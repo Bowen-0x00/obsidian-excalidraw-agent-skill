@@ -1,10 +1,27 @@
 # Keep the public package limited to reviewed distribution files.
 *
 !/.gitignore
+!/.gitattributes
 !/LICENSE
 !/README.md
 !/README.zh-CN.md
 !/CHANGELOG.md
+!/THIRD_PARTY_NOTICES.md
+!/plugin.json
+!/mcp.json
+!/launcher.py
+!/setup_connection.py
+!/pyproject.toml
+!/uv.lock
+!/runtime/
+!/runtime/*.py
+!/runtime/tests/
+!/runtime/tests/*.py
+!/bridge/
+!/bridge/bundle.json
+!/bridge/Scripts/
+!/bridge/Scripts/**/
+!/bridge/Scripts/**/*.md
 !/.claude-plugin/
 !/.claude-plugin/plugin.json
 !/.claude-plugin/marketplace.json
@@ -18,8 +35,8 @@
 # Never stage runtime configuration, credentials or user output.
 .env
 .env.*
-mcp.json
-.mcp.json
+connection.json
+Agent-Bridge-Connection.json
 .omp/
 .obsidian/
 *.excalidraw

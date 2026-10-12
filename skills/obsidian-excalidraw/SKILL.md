@@ -7,17 +7,17 @@ description: 在 Obsidian Excalidraw 修改版中绘制原生可编辑流程图�
 
 ## 执行入口
 
-优先使用已发现的 `mcp__excalidraw_drawing_*` 工具。工具成功不是视觉通过；本 Skill 的交付必须包含实际 PNG 检查和 review ledger。
+优先使用已发现的 `drawing_*` 工具，MCP server 与marketplace可能加前缀或缩短过长名称；以真实工具列表/schema为准，不硬编码 `mcp__excalidraw_`。工具成功不是视觉通过；本 Skill 的交付必须包含实际 PNG 检查和 review ledger。
 
-本包只有 Skill 与参考文档，不包含 MCP server、Bridge 或插件运行时。使用已安装的兼容执行器；不能从 Skill 所在目录推断执行器根目录。没有 MCP 工具时，仅在用户的安装说明或 `EXCALIDRAW_AGENT_HOME` 已提供真实执行器目录后，使用其实际 Python 环境运行 `drawing_client.py --help`；不要假设全局 Skill 旁边存在 `.venv` 或脚本。CLI 预览返回 `out_path`，必须用图片读取工具打开该 PNG。令牌由执行器自己的环境或私有配置读取，绝不打印或写入提示、图、报告和公开仓库。缺执行器时明确报告前提缺失，不用原始 JSON 或假图片冒充完成。
+本包包含 Skill、MCP 执行器、Bridge/Feature Engine bundle 和首次连接入口。若 `drawing_setup` 存在，先用 `status` 发现 vault，再在用户选定目标后用 `connect`。没有 MCP 工具时，使用本包 `launcher.py` 的真实 CLI（安装目录由用户环境提供，不从 Skill 目录猜测）；不能假定已连接 Bridge。CLI 预览返回 `out_path`，必须用图片读取工具打开 PNG。令牌只在本机私有状态目录，绝不打印或写入提示、图、报告、vault 描述文件和公开仓库。缺 Obsidian/ymjr 插件时明确报告宿主前提缺失，不用原始 JSON 或假图片冒充完成。
 
 ## 默认策略
 
 - 用户只提供内容与关系即可；不要索要元素 JSON、坐标、字体编号。
 - 只有缺失信息会改变业务语义，才问一个关键问题；普通布局、配色和间距自行选一致默认值。
-- 新图创建独立 `.excalidraw.md`；用户说修改已有图时按明确文件绑定。不能直接写 active/first，也不能 clear 重建用户的图。
-- 默认平整专业风格：中文文楷、正文20、标题28、线宽2、克制浅色底、roughness0；手绘或指定风格由用户覆盖。
-- 优先原生 shape/text/arrow。图片、公式、ECharts、embeddable保留真实源引用/配置；不能把整图保存为一张图片。
+- 新图创建独立 `.excalidraw.md`；修改已有图按明确文件绑定。不能直接写 active/first，也不能 clear 重建用户的图。
+- 默认平整专业风格：原生 Helvetica 与系统中文 fallback，正文20、标题28、线宽2、roughness0；自定义字体必须通过 discovery 确认，用户要求覆盖默认值。
+- 优先原生 shape/text/arrow。图片、公式、ECharts、embeddable 保留真实源引用/配置；不能把整图保存为一张图片。
 
 ## 按需选择图型、风格、图元和素材
 
@@ -34,7 +34,7 @@ description: 在 Obsidian Excalidraw 修改版中绘制原生可编辑流程图�
 
 ## 新图：自然语言到真实操作
 
-1. `drawing_context(action="discover")` 核对 Bridge、字体、Engine。服务未启动时用用户已配置的 Advanced URI 启动；无效令牌、缺插件/画布不能假装已有连接。
+1. 若有 `drawing_setup`，先调用 `status`。未连接时，在用户目标已明确或仅有一个合法 vault 时调用 `connect`；多 vault 歧义才询问。它部署 bundle、生成私有凭据、通过实际 Advanced URI 启动；没装 Advanced URI 则报告返回的准确手动命令，不能声称启动成功。已配置但 Obsidian 重启后用 `start`。然后 `drawing_context(action="discover")` 核对 Bridge、字体与 Engines。无效令牌、缺插件/画布不能假装已有连接。
 2. `drawing_context(action="create", filename=描述性名称, foldername="Agent-Diagrams")` 得到 `contextToken`、真实文件与revision。修改已有图则 `action="bind", file_path=明确vault相对路径`。之后所有操作传该token。
 3. `drawing_read(context_token)` 读取完整摘要；不是几个选中元素。保留初始状态。
 4. 组织简短图描述并调用 `drawing_plan(context_token, diagram)`。规划器使用真实字体/内容尺寸，负责换行、节点尺寸、分层和避障；不要按字数猜宽。
@@ -75,7 +75,7 @@ description: 在 Obsidian Excalidraw 修改版中绘制原生可编辑流程图�
 
 1. `drawing_check(context_token, expected=语义断言)`：断言节点存在、方向正确等。读取issues中的native IDs；结构通过不意味着业务或美观通过。
    - `expected`示例：`{"type":"label_equals","id":"实际节点或文字ID","text":"完整内容"}`、`{"type":"edge_label","from":"起点ID","to":"终点ID","text":"通过"}`；节点字段是`id`，不是`target`。
-2. `drawing_preview(context_token, base_revision=check.revision, scale="auto", padding=20)`：默认预算避免大scale。全图用于整体结构；小字/扩展内容再用ids局部PNG。`complete=false`或资源错误不能当成功。
+2. `drawing_preview(context_token, base_revision=check.revision, scale="auto", padding=20)`：默认预算避免大scale与包缓存内输出。除非用户明确指定外部交付路径，不传out_path，使用本机持久化artifact目录；不要把PNG写进版本化安装包。全图用于整体结构；小字/扩展内容再用ids局部PNG。`complete=false`或资源错误不能当成功。
 3. **实际查看返回的PNG**。MCP返回image block；CLI使用`read(out_path)`。没有图像查看能力就记录visual_reviewed=false并明确限制。
 4. 检查：内容与方向、长中文完整、文字是否在形状有效区域、表头/正文分离、对齐与间距、连线路径/箭头头/标签、图片/公式/图表/嵌入是否真出现、整体层级与配色。用返回的bounds/transform关联PNG位置和元素ID。
    - **程序check=pass仍可能缺标签或不好看**。逐项核对用户要求的所有节点全文与分支标签；不要仅核对edge.from/to存在。普通节点内容用`label_equals`，分支标签用`edge_label`语义断言。

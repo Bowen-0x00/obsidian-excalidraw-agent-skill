@@ -1,7 +1,7 @@
 {
   "name": "obsidian-excalidraw-agent-skill",
-  "version": "0.4.1",
-  "description": "Agent workflow for editable Obsidian Excalidraw-ymjr diagrams with geometry checks and PNG visual review. Requires a separately configured drawing MCP/Bridge runtime.",
+  "version": "0.5.0",
+  "description": "Complete native Obsidian Excalidraw MCP, Bridge/Engines, setup and PNG-reviewed Agent Skill.",
   "author": { "name": "Bowen-0x00" },
   "homepage": "https://github.com/Bowen-0x00/obsidian-excalidraw-agent-skill",
   "repository": "https://github.com/Bowen-0x00/obsidian-excalidraw-agent-skill",

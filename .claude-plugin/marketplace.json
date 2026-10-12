@@ -3,15 +3,15 @@
   "name": "obsidian-excalidraw-agent",
   "owner": { "name": "Bowen-0x00" },
   "metadata": {
-    "description": "Editable Obsidian Excalidraw agent drawing workflow. Skill only; execution runtime is configured separately.",
-    "version": "0.4.1"
+    "description": "Complete native drawing MCP, bundled Bridge/Engines and Agent Skill for Obsidian Excalidraw.",
+    "version": "0.5.0"
   },
   "plugins": [
     {
       "name": "obsidian-excalidraw-agent-skill",
-      "description": "Native diagrams, libraries, style recipes and required PNG feedback.",
+      "description": "Native drawing runtime, private first-time vault connection and PNG feedback.",
       "source": "./",
-      "version": "0.4.1",
+      "version": "0.5.0",
       "homepage": "https://github.com/Bowen-0x00/obsidian-excalidraw-agent-skill",
       "license": "MIT",
       "category": "productivity",

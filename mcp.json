@@ -1,0 +1,12 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "excalidraw": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "--frozen", "--project", "${PLUGIN_ROOT}", "python", "${PLUGIN_ROOT}/launcher.py", "serve"],
+      "cwd": "${PLUGIN_ROOT}",
+      "env": {"PYTHONUTF8": "1", "EXCALIDRAW_AGENT_STATE_DIR": "${PLUGIN_DATA}/state"}
+    }
+  }
+}

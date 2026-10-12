@@ -6,13 +6,13 @@
 
 | profile | 确定性规则 | 使用条件 |
 |---|---|---|
-| professional | roughness0、浅色solid、中文文楷、克制语义色 | 默认文档图 |
+| professional | roughness0、浅色solid、Helvetica与系统中文fallback、克制语义色 | 默认文档图 |
 | handdrawn | roughness1、hachure、手绘线边；布局/绑定仍确定 | 用户要手绘效果，不等于自由笔画 |
 | visio | roughness0、sharp边、1.5线宽、Helvetica与中文fallback | 正交工程图、UML；不声称输出.vsdx |
 | blueprint | 白底蓝线、清晰数据通路与端口 | 电路/微架构；默认保留库素材本身样式 |
-| presentation | 较大字号与标题层级 | 原生frame演示页，指定库版式优先 |
+| presentation | 较大字号与标题层级、Helvetica与系统中文fallback | 原生frame演示页，指定库版式优先 |
 
-在普通图描述加`"style":"visio"`或`"style":"handdrawn"`。允许对象`{"profile":"visio","fontFamily":"LXGWWenKai-Regular","shape":{"strokeWidth":2}}`做显式覆盖。优先级：硬保护→用户显式局部字段→原图未请求字段→role/variant→profile默认。已有图不自动全图换主题。库源样式默认原样保留；只有用户明确要求才对本次导入的副本重新样式。
+在普通图描述加`"style":"visio"`或`"style":"handdrawn"`。允许对象`{"profile":"visio","fontFamily":"Helvetica","shape":{"strokeWidth":2}}`做显式覆盖。优先级：硬保护→用户显式局部字段→原图未请求字段→role/variant→profile默认。已有图不自动全图换主题。库源样式默认原样保留；只有用户明确要求才对本次导入的副本重新样式。
 
 ## 流程图
 

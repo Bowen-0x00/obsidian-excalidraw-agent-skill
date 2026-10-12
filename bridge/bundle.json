@@ -1,0 +1,222 @@
+{
+  "name": "obsidian-excalidraw-drawing-bundle",
+  "version": "0.10.0",
+  "plugin_id": "obsidian-excalidraw-plugin-ymjr",
+  "bootstrap": "mcp/Start-Agent-Drawing.md",
+  "bridge": "mcp/Engine-Agent-Bridge.md",
+  "scripts": [
+    "mcp/Start-Agent-Drawing.md",
+    "mcp/Engine-Agent-Bridge.md",
+    "hover/Feature-Hover-Engine.md",
+    "shadow/Feature-Shadow-Engine.md",
+    "gradient/Feature-Gradient-Engine.md",
+    "swimlane/Feature-Swimlane-Engine.md",
+    "callout/Feature-Callout-Engine.md",
+    "checkbox/Feature-Checkbox-Engine.md",
+    "code-highlight/Feature-Code-Highlight-Engine.md",
+    "echarts/Feature-Echarts-Engine.md",
+    "layer/Feature-Layer-Engine.md",
+    "mindmap/Feature-Mindmap-Engine.md",
+    "text/Feature-Text-Render-Engine.md",
+    "wave-drom/Feature-Wavedrom-Engine.md",
+    "library/Feature-Library-Engine.md",
+    "export/Feature-Export-Embeddable.md",
+    "table/Feature-Table-Engine.md",
+    "arrow/Feature-Arrow-Head-Resize-Engine.md"
+  ],
+  "engines": [
+    {
+      "id": "hover",
+      "name": "Hover Interaction Engine",
+      "path": "hover/Feature-Hover-Engine.md",
+      "script_id": "ymjr.feature.hover-engine",
+      "properties": [
+        "_ymjr_HoverState"
+      ],
+      "category": "interaction",
+      "role": "dependency"
+    },
+    {
+      "id": "shadow",
+      "name": "Shadow Visual Engine",
+      "path": "shadow/Feature-Shadow-Engine.md",
+      "script_id": "ymjr.feature.shadow-engine",
+      "properties": [
+        "_ymjr_shadow",
+        "_ymjr_shadow_engine"
+      ],
+      "category": "visual",
+      "role": "feature",
+      "dependencies": [
+        "hover"
+      ]
+    },
+    {
+      "id": "gradient",
+      "name": "Gradient Rendering Engine",
+      "path": "gradient/Feature-Gradient-Engine.md",
+      "script_id": "ymjr.feature.gradient-engine",
+      "properties": [
+        "_ymjr_gradient",
+        "_ymjr_gradient_engine"
+      ],
+      "category": "visual",
+      "role": "feature"
+    },
+    {
+      "id": "swimlane",
+      "name": "Swimlane Container Engine",
+      "path": "swimlane/Feature-Swimlane-Engine.md",
+      "script_id": "ymjr.feature.swimlane-engine",
+      "properties": [
+        "_ymjr_swimlane",
+        "_ymjr_swimlane_engine"
+      ],
+      "category": "layout",
+      "role": "feature"
+    },
+    {
+      "id": "callout",
+      "name": "Callout Annotation Engine",
+      "path": "callout/Feature-Callout-Engine.md",
+      "script_id": "ymjr.feature.callout-engine",
+      "properties": [
+        "_ymjr_callout",
+        "_ymjr_callout_engine"
+      ],
+      "category": "annotation",
+      "role": "feature"
+    },
+    {
+      "id": "checkbox",
+      "name": "Checkbox Interactive Engine",
+      "path": "checkbox/Feature-Checkbox-Engine.md",
+      "script_id": "ymjr.feature.checkbox-engine",
+      "properties": [
+        "_ymjr_checkbox",
+        "_ymjr_checkbox_state",
+        "_ymjr_checkbox_engine"
+      ],
+      "category": "text",
+      "role": "feature"
+    },
+    {
+      "id": "code_highlight",
+      "name": "Code Highlight Engine",
+      "path": "code-highlight/Feature-Code-Highlight-Engine.md",
+      "script_id": "ymjr.feature.codehighlight",
+      "properties": [
+        "_ymjr_code_highlight",
+        "_ymjr_codeHighlight",
+        "_ymjr_code_highlight_engine",
+        "_ymjr_codeMap"
+      ],
+      "category": "text",
+      "role": "feature"
+    },
+    {
+      "id": "echarts",
+      "name": "Apache ECharts Diagram Engine",
+      "path": "echarts/Feature-Echarts-Engine.md",
+      "script_id": "ymjr.feature.echarts-engine",
+      "properties": [
+        "_ymjr_echarts",
+        "_ymjr_echarts_engine"
+      ],
+      "category": "diagram",
+      "role": "feature"
+    },
+    {
+      "id": "layer",
+      "name": "Layer Management Engine",
+      "path": "layer/Feature-Layer-Engine.md",
+      "script_id": "ymjr.feature.layer-engine",
+      "properties": [
+        "_ymjr_layer_engine",
+        "_ymjr_layer"
+      ],
+      "category": "layout",
+      "role": "feature"
+    },
+    {
+      "id": "mindmap",
+      "name": "Mindmap Diagram Engine",
+      "path": "mindmap/Feature-Mindmap-Engine.md",
+      "script_id": "ymjr.feature.mindmap-engine",
+      "properties": [
+        "_ymjr_mindmap",
+        "_ymjr_mindmap_engine",
+        "MindmapAPI"
+      ],
+      "category": "diagram",
+      "role": "feature"
+    },
+    {
+      "id": "text_render",
+      "name": "Rich Text Rendering Engine",
+      "path": "text/Feature-Text-Render-Engine.md",
+      "script_id": "ymjr.feature.text-render-engine",
+      "properties": [
+        "_ymjr_text_render",
+        "_ymjr_textRender",
+        "_ymjr_text_render_engine"
+      ],
+      "category": "text",
+      "role": "feature"
+    },
+    {
+      "id": "wavedrom",
+      "name": "WaveDrom Timing Diagram Engine",
+      "path": "wave-drom/Feature-Wavedrom-Engine.md",
+      "script_id": "ymjr.feature.wavedrom-engine",
+      "properties": [
+        "_ymjr_wavedrom",
+        "_ymjr_wavedrom_engine",
+        "WaveDrom"
+      ],
+      "category": "diagram",
+      "role": "feature"
+    },
+    {
+      "id": "library",
+      "name": "Library Engine & Image Hydration",
+      "path": "library/Feature-Library-Engine.md",
+      "script_id": "ymjr.feature.library-engine",
+      "properties": [
+        "_ymjr_customLibraryImageCache"
+      ],
+      "category": "library",
+      "role": "dependency"
+    },
+    {
+      "id": "export_embeddable",
+      "name": "Embeddable SVG Export Engine",
+      "path": "export/Feature-Export-Embeddable.md",
+      "script_id": "ymjr.feature.export-embeddable-svg",
+      "properties": [
+        "_ymjr_mdCacheMap",
+        "html2canvas"
+      ],
+      "category": "export",
+      "role": "dependency"
+    },
+    {
+      "id": "table",
+      "name": "Table Layout & Structure Engine",
+      "path": "table/Feature-Table-Engine.md",
+      "script_id": "ymjr.feature.table-engine",
+      "properties": [],
+      "category": "diagram",
+      "role": "dependency"
+    },
+    {
+      "id": "arrow_head_resize",
+      "name": "Arrowhead Resizer Engine",
+      "path": "arrow/Feature-Arrow-Head-Resize-Engine.md",
+      "script_id": "ymjr.feature.arrowhead-resize-engine",
+      "properties": [],
+      "category": "geometry",
+      "role": "dependency"
+    }
+  ]
+}
