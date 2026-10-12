@@ -1,0 +1,33 @@
+# Keep the public package limited to reviewed distribution files.
+*
+!/.gitignore
+!/LICENSE
+!/README.md
+!/README.zh-CN.md
+!/CHANGELOG.md
+!/.claude-plugin/
+!/.claude-plugin/plugin.json
+!/.claude-plugin/marketplace.json
+!/skills/
+!/skills/obsidian-excalidraw/
+!/skills/obsidian-excalidraw/SKILL.md
+!/skills/obsidian-excalidraw/references/
+!/skills/obsidian-excalidraw/references/diagram-recipes.md
+!/skills/obsidian-excalidraw/references/native-features.md
+
+# Never stage runtime configuration, credentials or user output.
+.env
+.env.*
+mcp.json
+.mcp.json
+.omp/
+.obsidian/
+*.excalidraw
+*.excalidraw.md
+*.excalidrawlib
+artifacts/
+backups/
+__pycache__/
+.venv/
+*.png
+*.log
