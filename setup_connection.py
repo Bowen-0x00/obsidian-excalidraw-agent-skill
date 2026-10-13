@@ -91,10 +91,15 @@ def _bridge_probe(config: dict[str, Any]) -> dict[str, Any]:
 
 def setup_status() -> dict[str, Any]:
     config = load_connection()
+    remote = config.get("mode") == "remote"
     return {"configured": bool(config.get("bridge_token")), "config_path": str(connection_path()),
-            "vault_path": config.get("vault_path"), "vault_name": config.get("vault_name"),
+            "mode": "remote" if remote else "local",
+            "rendering_location": "host" if remote else "local",
+            "remote_host": config.get("remote_host"),
+            "host_vault_path": config.get("host_vault_path") if remote else None,
+            "vault_path": None if remote else config.get("vault_path"), "vault_name": config.get("vault_name"),
             "bridge_url": config.get("bridge_url"), "state_directory": str(state_directory()),
-            "available_vaults": discover_vaults(), **_bridge_probe(config)}
+            "available_vaults": [] if remote else discover_vaults(), **_bridge_probe(config)}
 
 
 def _launch_uri(uri: str) -> None:
@@ -108,6 +113,8 @@ def _launch_uri(uri: str) -> None:
 
 def start_bridge(open_uri: bool = True, wait_seconds: float = 15) -> dict[str, Any]:
     config = load_connection()
+    if config.get("mode") == "remote":
+        raise ValueError("Remote rendering connection: start Obsidian/Bridge and the SSH tunnel on the host machine, not on this headless client.")
     if not config.get("vault_path") or not config.get("bridge_script"):
         raise ValueError("Select a vault with connect before starting the Bridge")
     vault = Path(config["vault_path"])
@@ -141,6 +148,8 @@ def start_bridge(open_uri: bool = True, wait_seconds: float = 15) -> dict[str, A
 def connect_vault(vault_path: str | None = None, vault_name: str | None = None,
                   port: int | None = None, open_uri: bool = True,
                   obsidian_config_dir: str = ".obsidian") -> dict[str, Any]:
+    if load_connection().get("mode") == "remote":
+        raise ValueError("Remote rendering connection: select/connect the vault on the host machine; this client must not deploy vault scripts.")
     candidates = discover_vaults()
     if not vault_path:
         if len(candidates) != 1:
@@ -217,7 +226,7 @@ def connect_vault(vault_path: str | None = None, vault_name: str | None = None,
         deployed[relative] = digest
     descriptor = destination / "mcp/Agent-Bridge-Connection.json"
     _private_write(descriptor, {"configPath": str(private_path)})
-    _private_write(install_record, {"destination": str(destination), "files": deployed, "version": "0.5.0"})
+    _private_write(install_record, {"destination": str(destination), "files": deployed, "version": "0.6.0"})
     result = {"configured": True, "vault_path": str(vault), "deployed_scripts": len(deployed),
               "script_directory": str(destination), "config_path": str(private_path),
               "token_disclosed": False, "plugin_version": manifest.get("version"),

@@ -23,11 +23,12 @@ def serve() -> None:
                       vault_path: str | None = None, vault_name: str | None = None,
                       port: int | None = None, open_uri: bool = True,
                       obsidian_config_dir: str = ".obsidian") -> dict[str, Any]:
-        """Discover vaults, deploy bundled Engines/Bridge and establish a private local connection.
+        """Report connection status, or deploy/start the local Obsidian drawing bundle.
 
-        On first use call status, then connect to the intended vault_path. Never returns a bearer token.
-        Requires an installed and enabled Excalidraw-ymjr plugin. Does not rewrite plugin permissions.
-        Advanced URI can start the bundle; otherwise returns the exact manual command.
+        Status includes mode=remote when rendering through a host SSH tunnel.
+        Remote clients cannot connect/start a vault; do that on the graphical host.
+        Local first use discovers vaults then connects the intended vault_path.
+        Never returns a bearer token or rewrites plugin trust permissions.
         """
         if action == "status":
             return setup_status()
@@ -91,6 +92,10 @@ def main() -> int:
     trial.add_argument("--filename", default="Drawing-Installation-Smoke")
     cli = commands.add_parser("cli", help="Run the full drawing CLI; options after -- are forwarded")
     cli.add_argument("arguments", nargs=argparse.REMAINDER)
+    for name in ("remote-deploy", "remote-tunnel"):
+        remote = commands.add_parser(name, help="Install a headless client or keep its SSH reverse tunnel open")
+        remote.add_argument("--host", required=True, help="Existing SSH alias on this graphical host")
+        remote.add_argument("--remote-port", type=int)
     args = parser.parse_args()
     if args.action == "serve":
         serve()
@@ -101,7 +106,13 @@ def main() -> int:
         runpy.run_path(str(ROOT / "runtime/drawing_client.py"), run_name="__main__")
         return 0
     try:
-        if args.action == "connect":
+        if args.action in ("remote-deploy", "remote-tunnel"):
+            from remote_control import deploy_remote, tunnel_command
+            if args.action == "remote-tunnel":
+                import subprocess
+                return subprocess.run(tunnel_command(args.host, args.remote_port)).returncode
+            result = deploy_remote(args.host, args.remote_port)
+        elif args.action == "connect":
             result = connect_vault(args.vault_path, args.vault_name, args.port, not args.no_open, args.obsidian_config_dir)
         elif args.action == "start":
             result = start_bridge(not args.no_open)

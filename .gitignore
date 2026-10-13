@@ -11,6 +11,7 @@
 !/mcp.json
 !/launcher.py
 !/setup_connection.py
+!/remote_control.py
 !/pyproject.toml
 !/uv.lock
 !/runtime/

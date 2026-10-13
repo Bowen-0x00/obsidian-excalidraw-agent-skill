@@ -11,6 +11,8 @@ description: 在 Obsidian Excalidraw 修改版中绘制原生可编辑流程图�
 
 本包包含 Skill、MCP 执行器、Bridge/Feature Engine bundle 和首次连接入口。若 `drawing_setup` 存在，先用 `status` 发现 vault，再在用户选定目标后用 `connect`。没有 MCP 工具时，使用本包 `launcher.py` 的真实 CLI（安装目录由用户环境提供，不从 Skill 目录猜测）；不能假定已连接 Bridge。CLI 预览返回 `out_path`，必须用图片读取工具打开 PNG。令牌只在本机私有状态目录，绝不打印或写入提示、图、报告、vault 描述文件和公开仓库。缺 Obsidian/ymjr 插件时明确报告宿主前提缺失，不用原始 JSON 或假图片冒充完成。
 
+若 `drawing_setup(status)` 返回 `mode="remote"`：Agent 所在机器是无GUI客户端，渲染在本机宿主Obsidian；不要在远端调用connect/start、安装Obsidian或扫描远端vault。连接不通时报告宿主Bridge/SSH隧道前提。vault-relative画布与素材路径属于宿主；PNG的out_path和ledger属于远端执行器，可在远端实际read。MCP ImageContent已经把真实PNG返回模型，不需要X11。
+
 ## 默认策略
 
 - 用户只提供内容与关系即可；不要索要元素 JSON、坐标、字体编号。
@@ -99,10 +101,11 @@ description: 在 Obsidian Excalidraw 修改版中绘制原生可编辑流程图�
 - `resize {target,width,height}`；读取最终容器与邻边状态，不能仅扩大text bbox假装容器已适配。
 - `patch_element {target,patch:{x/y/width/height/points/合法样式}}`；线的points是局部坐标，首点[0,0]，其余可负。
 - `connect {from,to,start:{anchor,mode:"orbit"},end:{anchor,mode:"orbit"},waypoints:[scene点],label?,elbowed:true,style?}`。
-- `rebind_arrow`/`unbind_arrow`按实际capabilities字段；不手写单边boundElements。
+- `rebind_arrow {arrow:箭头ID,startTarget:节点ID,endTarget:节点ID,start:{anchor,mode:"orbit"},end:{anchor,mode:"orbit"},preservePoints:true}`：更新双向绑定；另用patch_element更新局部points。不能直接patch startBinding/endBinding/boundElements。`unbind_arrow {arrow:箭头ID,end:"start"|"end"|"both"}`按实际capabilities使用。
 - `patch_element {target:箭头绑定text ID,patch:{labelPosition:0.2}}`：保持原生绑定而调标签路径位置；实际PNG复核，不能只改x/y却被引擎重新居中。
 - `patch_custom_data {target,merge:{安全元数据},remove:[字段路径]}`；是merge，不是patch。
 - `set_feature {feature,targets:[ID],config}`用发现的spec；gradient接direction/stops，不接模型生成代码；shadow只有px字符串是像素。
+- `delete {targets:[过时元素ID],cascadeBoundText:true}`：只删除明确被本次修复替代的箭头/图元，默认连带删除其绑定文字并解除相关引用。删除旧关系后核对新关系仍存在；不能为了消除交叉删除用户业务关系。
 
 不要将反馈四舍五入的坐标整条回写。不要为了消除穿线删掉跨组关系、缩短业务内容或移用户锁定元素。REVISION_CONFLICT时重新读受影响数据，不覆盖用户新编辑。
 

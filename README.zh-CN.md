@@ -72,6 +72,35 @@ uv run --frozen python launcher.py smoke
 
 直接 CLI 默认使用平台用户数据目录；marketplace 安装使用 OMP 持久化的 `${PLUGIN_DATA}/state`。需要有意共享时设置 `EXCALIDRAW_AGENT_STATE_DIR`；或通过 `EXCALIDRAW_AGENT_CONFIG` 选择已有私有连接文件。`drawing_setup(status)` 返回实际路径，不返回令牌。
 
+## 无图形界面的远端 Agent 控制本机绘图
+
+0.6.0 增加 SSH 反向隧道部署。先在有桌面的本机连接并启动 Obsidian Bridge，再在本机执行以下命令。使用 marketplace 连接时，先将 `EXCALIDRAW_AGENT_STATE_DIR` 设置为 `drawing_setup(status)` 返回的实际状态目录。
+
+```sh
+uv run --frozen python launcher.py remote-deploy --host Redhat --remote-port 28125
+uv run --frozen python launcher.py remote-tunnel --host Redhat --remote-port 28125
+```
+
+`Redhat` 是本机已有 SSH 别名。第二条命令持续运行：把远端 `127.0.0.1:28125` 转发到本机已配置的 Bridge loopback 端口。独立私有 SSH 配置保留真实目标、密钥、代理，排除原别名的其他端口转发和 X11，不将 Bridge 开放到公网。要求密钥免密登录且 known-host 身份已验证；后台隧道不能回答密码/主机确认提示。
+
+部署会在远端用户目录安装 Python 3.11+ venv、绘图客户端和完整 Skill。远端只需 Python/pip、SSH、OMP，不需要 uv、Obsidian 或显示器。依赖从官方 PyPI 安装，不修改全局 pip 设置。保留既有 OMP 模型、鉴权、设置与其他 MCP server；已修改的受管运行时/Skill 文件不会静默覆盖。
+
+远端重启 OMP 或执行 `/mcp reload`，然后要求使用 `skill://obsidian-excalidraw` 和 `excalidraw-local` MCP。`drawing_setup(status)` 返回 `mode=remote`、`rendering_location=host` 以及首连配置的宿主 vault 身份。远端 `connect`/`start` 被明确禁止：开启 GUI/Bridge、切换 vault 都在本机完成。
+
+从本机进入远端交互 OMP：`ssh -t -o ClearAllForwardings=yes -o ForwardX11=no Redhat omp`。脚本方式通过 SSH 执行 `omp -p` 时用 `ssh -n`，使OMP得到stdin EOF，不会一直等待管道输入。这些单次命令的转发选项不会停止单独运行的绘图隧道。
+
+原生 `.excalidraw.md`、图片/素材源路径属于本机 vault。PNG 字节通过隧道返回，保存到远端状态目录，并作为 MCP `ImageContent` 交给远端模型。所以远端 Agent 无需 X11 就能实际看 PNG，也能在远端读取返回的 `out_path`。预览凭据/ledger 保存在远端持久化目录，普通 PNG 交付无需再 SCP。
+
+远端位置：
+
+- 运行时/venv：`~/.local/share/obsidian-excalidraw-agent-remote/`。
+- 私有连接与产物：该目录的 `state/`，连接文件权限 0600。
+- Skill：`~/.omp/agent/skills/obsidian-excalidraw/`。
+- MCP：合并到 `~/.omp/agent/mcp.json` 的 `excalidraw-local` 条目，支持 `PI_CODING_AGENT_DIR`。
+
+此方案与 SSH-stdio 不同：为让远端 Python 客户端调用宿主 Bridge，令牌经加密 SSH stdin 安全配置到远端受信任用户的私有文件，不出现在命令参数或公开文件。该远端用户有宿主 vault 绘图权限，只给可信账户使用。关闭隧道或宿主 Bridge 会中断远端绘图。本机切换 vault 后重新 `remote-deploy`，远端重启 MCP 加载变更的连接。
+
+
 ## 绘图工具
 
 | 工具 | 职责 |
@@ -107,7 +136,7 @@ uv run --frozen python launcher.py smoke
 
 - [Skill](skills/obsidian-excalidraw/SKILL.md)、[图型/风格参考](skills/obsidian-excalidraw/references/diagram-recipes.md)、[原生图元参考](skills/obsidian-excalidraw/references/native-features.md)。
 - `runtime/`：完整绘图、布局、诊断、资源和评审执行模块。
-- `launcher.py`、`setup_connection.py`：MCP 入口和首次连接。
+- `launcher.py`、`setup_connection.py`、`remote_control.py`：MCP 入口、首次连接、无GUI远端部署与SSH隧道。
 - [Bridge bundle](bridge/bundle.json)：Bridge、bootstrap、16 个 Feature Engines，包括内嵌的离线图表/高亮/导出库。
 - `plugin.json`、`mcp.json`、`.claude-plugin/`：带版本的安装信息；`pyproject.toml`/`uv.lock`：锁定执行依赖。
 - [第三方声明](THIRD_PARTY_NOTICES.md)：原脚本和内嵌库许可证。

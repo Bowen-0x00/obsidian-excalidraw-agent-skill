@@ -72,6 +72,35 @@ The complete drawing CLI is `launcher.py cli -- --help`. For another MCP client,
 
 Direct CLI mode uses the platform user-data directory. Marketplace mode uses OMP's persistent `${PLUGIN_DATA}/state`. Use `EXCALIDRAW_AGENT_STATE_DIR` to intentionally share a state directory, or `EXCALIDRAW_AGENT_CONFIG` to choose an existing private connection file. `drawing_setup(status)` returns the actual paths without returning tokens.
 
+## Headless remote Agent controlling this desktop
+
+Version 0.6.0 adds an SSH reverse-tunnel setup. Run these commands on the graphical host after connecting its Obsidian Bridge. If using a marketplace connection, set `EXCALIDRAW_AGENT_STATE_DIR` to the real directory returned by `drawing_setup(status)` first.
+
+```sh
+uv run --frozen python launcher.py remote-deploy --host Redhat --remote-port 28125
+uv run --frozen python launcher.py remote-tunnel --host Redhat --remote-port 28125
+```
+
+`Redhat` is an existing SSH alias on the graphical host. The second command stays running: remote `127.0.0.1:28125` forwards to the host's configured Bridge loopback port. A private isolated SSH configuration preserves the alias's target/key/proxy but omits unrelated forwards and X11. The Bridge is never opened to public interfaces. SSH key authentication and verified known-host identity are required; no password or host-key confirmation can be answered by a background tunnel.
+
+Deployment installs a Python 3.11+ venv, the drawing client and full Skill under the remote user's account; the remote machine needs Python/pip, SSH and OMP, not uv, Obsidian or a display. Dependencies are installed from official PyPI without changing global pip configuration. Existing OMP model/auth/settings and unrelated MCP servers are preserved; customized managed runtime/Skill files are not silently overwritten.
+
+On the remote machine, restart OMP or `/mcp reload`, then ask it to use `skill://obsidian-excalidraw` and the `excalidraw-local` MCP server. `drawing_setup(status)` reports `mode=remote`, `rendering_location=host` and the host vault identity from the provisioned connection. Remote `connect`/`start` are intentionally rejected: start the GUI/Bridge and choose the vault on the graphical host.
+
+From the host, open an interactive remote OMP with `ssh -t -o ClearAllForwardings=yes -o ForwardX11=no Redhat omp`. For non-interactive `omp -p` runs over SSH, use `ssh -n` so OMP receives stdin EOF instead of waiting indefinitely for piped input. These per-command forwarding options do not stop the separate drawing tunnel.
+
+Native `.excalidraw.md` drawings and image/library source paths belong to the host vault. The rendered PNG bytes cross the tunnel, are saved in the remote state directory, and are returned as MCP `ImageContent` to the remote model. Thus the remote Agent can actually inspect PNGs without X11 and can read the returned `out_path` locally. Its receipts/ledgers remain remote and persistent; no SCP is needed for ordinary PNG delivery.
+
+Remote locations:
+
+- Runtime/venv: `~/.local/share/obsidian-excalidraw-agent-remote/`.
+- Private connection and artifacts: the directory's `state/`; connection file permissions are 0600.
+- Skill: `~/.omp/agent/skills/obsidian-excalidraw/`.
+- MCP: merged `excalidraw-local` entry in `~/.omp/agent/mcp.json` (honors `PI_CODING_AGENT_DIR`).
+
+Unlike SSH-stdio, this reverse-tunnel mode provisions the Bridge credential onto the remote trusted user's account via encrypted SSH stdin. It never appears in command arguments or public files. That user can draw in the host vault; grant access only to trusted accounts. Closing the tunnel or stopping the host Bridge interrupts remote drawing. Reconnect a changed host vault and rerun `remote-deploy`; the remote server must restart to load changed credentials.
+
+
 ## Drawing tools
 
 | Tools | Responsibility |
@@ -107,7 +136,7 @@ Missing image access is unreviewed, not a pass. Unsupported curve/rotation diagn
 
 - [Skill](skills/obsidian-excalidraw/SKILL.md), [diagram/style recipes](skills/obsidian-excalidraw/references/diagram-recipes.md), [native primitives](skills/obsidian-excalidraw/references/native-features.md).
 - `runtime/`: all drawing, planning, diagnostics, resources and review modules.
-- `launcher.py`, `setup_connection.py`: MCP entry and first-time connection.
+- `launcher.py`, `setup_connection.py`, `remote_control.py`: MCP entry, first-time connection and headless SSH deployment/tunnel.
 - [Bridge bundle](bridge/bundle.json): Bridge, bootstrap and 16 required Feature Engines with embedded offline chart/highlight/export libraries.
 - `plugin.json`, `mcp.json`, `.claude-plugin/`: versioned installation metadata; `pyproject.toml`/`uv.lock`: pinned execution dependencies.
 - [Third-party notices](THIRD_PARTY_NOTICES.md): original script and embedded library licenses.

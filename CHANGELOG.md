@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0 — Headless remote drawing over SSH
+
+- Add host-side `remote-deploy` and `remote-tunnel` commands to provision a remote Python MCP/Skill and an isolated loopback-only SSH reverse tunnel without reusing unrelated user forwarding/X11 settings.
+- Transfer credentials only through encrypted SSH stdin into remote private 0600 configuration; preserve existing OMP model/auth/settings, other servers and customized managed files.
+- Add remote setup mode: show the host rendering target and tunnel status, reject vault deployment/GUI startup on the headless client, and store returned PNGs/review evidence on the remote machine.
+- Preserve native host-vault editing and existing MCP ImageContent delivery for remote model inspection without a GUI.
+- Verified real headless Redhat OMP creation of a host-vault native Chinese approval flow, PNG ImageContent/file delivery back to Redhat, visual inspection and same-token local repair; final review completed at round 2/5 with 18 active elements and zero diagnostics. Twenty behavior regressions pass; remote credentials are 0600 and existing model/settings fingerprints remain unchanged.
+
 ## 0.5.0 — Complete drawing runtime and first-time connection
 
 - Bundle the real MCP server and all native planning, geometry, resource, library, composition and review modules instead of requiring a separate private executor.
