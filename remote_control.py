@@ -178,7 +178,7 @@ def deploy_remote(host: str, remote_port: int | None = None) -> dict[str, Any]:
                          "bridge_token": connection["bridge_token"], "bridge_timeout": 180,
                          "vault_name": connection.get("vault_name"), "host_vault_path": connection.get("vault_path"),
                          "bridge_script": connection.get("bridge_script"), "remote_host": host}
-    payload = {"version": "0.6.0", "package": base64.b64encode(_package_archive()).decode("ascii"),
+    payload = {"version": "0.6.1", "package": base64.b64encode(_package_archive()).decode("ascii"),
                "dependencies": dependencies, "connection": remote_connection, "remote_port": port}
     config_path = tunnel[2]
     command = "python3 -c " + shlex.quote(REMOTE_INSTALL)

@@ -32,6 +32,7 @@
 !/skills/obsidian-excalidraw/references/
 !/skills/obsidian-excalidraw/references/diagram-recipes.md
 !/skills/obsidian-excalidraw/references/native-features.md
+!/skills/obsidian-excalidraw/references/native-cli.md
 
 # Never stage runtime configuration, credentials or user output.
 .env

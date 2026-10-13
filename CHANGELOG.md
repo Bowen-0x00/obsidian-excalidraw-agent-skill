@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.1 — Native CLI guidance and documentation
+
+- Teach the Skill to choose between the drawing MCP, the plugin's native terminal CLI and in-process `ea.executeCLI()` without mixing operation schemas, revisions or preview receipts.
+- Document the ymjr command prefix, runtime prerequisites, numeric native font IDs, paged reads, request replay/recovery, save outcomes, trusted-script lifetime and PNG export limits.
+- Keep the Bridge-based layout/diagnostics/remote PNG workflow as the default for full diagram authoring; native CLI is an optional plugin feature, not a replacement remote service.
+- Rewrite English and Chinese READMEs around installation, local use, remote use, native CLI, updates and troubleshooting.
+- Verify in-process native create/open/read/apply/export against the actual 2.29.0-1 build: saved edits, identical-request replay and stale-write rejection. Terminal handler invocation remains unverified on the installed host because its console CLI launcher is unavailable.
+
 ## 0.6.0 — Headless remote drawing over SSH
 
 - Add host-side `remote-deploy` and `remote-tunnel` commands to provision a remote Python MCP/Skill and an isolated loopback-only SSH reverse tunnel without reusing unrelated user forwarding/X11 settings.

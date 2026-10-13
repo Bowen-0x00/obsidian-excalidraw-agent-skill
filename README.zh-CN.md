@@ -1,44 +1,103 @@
 # Obsidian Excalidraw Agent
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+[English](README.md) · [简体中文](README.zh-CN.md)
 
-**完整的 Obsidian Excalidraw-ymjr Agent 绘图包**：MCP server、确定性布局和诊断、Engine-Agent Bridge、16 个 Feature Engines、首次 vault 连接，以及强制真实 PNG 评审的 Skill。
+让 Agent 根据自然语言在 Obsidian Excalidraw-ymjr 中绘制可编辑图。仓库包含绘图 Skill、MCP 服务，以及连接 Obsidian 的 Bridge 和 Feature Engine 脚本。
 
-0.5.0 替代此前的 Skill-only 发布包。现在无需另找绘图后端、手工拼 MCP 路径或把 Bearer token 贴进提示：安装一次，连接目标 vault，之后直接描述要画什么。
+## 功能
 
-## 宿主前提
+- 流程图、系统架构图、UML、泳道图和可编辑演示页面。
+- 原生形状、文字、箭头，以及运行环境支持的图片、公式、图表和用户素材库。
+- 文字尺寸测量、布局规划、几何检查、PNG 预览和局部修改。
+- 远端无 GUI 的 OMP 控制本机 Obsidian 绘图，并收到 PNG 进行检查。
 
-- [oh my pi / OMP](https://github.com/can1357/oh-my-pi)，支持 Agent Plugins（实际验证版本：18.10.1）。
-- PATH 中有 [uv](https://docs.astral.sh/uv/getting-started/installation/)。`uv run` 自动准备锁定的 Python 依赖；要求 Python 3.11+，首次下载依赖需要网络。
-- Obsidian Desktop，目标 vault 中 [Excalidraw-ymjr 已安装并启用](https://github.com/Bowen-0x00/obsidian-excalidraw-plugin-ymjr)。切换插件前备份 vault；安装器不会擅自启用插件、修改信任权限或替换原版 Excalidraw。
-- 能实际查看 PNG 的 Agent。
+## 环境要求
 
-[Advanced URI](https://github.com/Vinzent03/obsidian-advanced-uri) 可选：启用时自动启动 Bridge；否则安装器返回在 Obsidian 中运行一次的准确命令。LaTeX 需要在 Obsidian 启用兼容的 Excalidraw Extras MathJax 组件。自定义字体和用户素材库按需准备，普通图不依赖它们。
+本机绘图需要：
 
-## 全局安装
+- Obsidian Desktop；目标 vault 中已安装并启用 [Excalidraw-ymjr](https://github.com/Bowen-0x00/obsidian-excalidraw-plugin-ymjr)。
+- 支持 Agent Plugins 的 [OMP](https://github.com/can1357/oh-my-pi)、PATH 中可用的 [uv](https://docs.astral.sh/uv/getting-started/installation/)，以及 Python 3.11+。
+- 支持图像输入的模型，以便实际查看 PNG。
+
+[Advanced URI](https://github.com/Vinzent03/obsidian-advanced-uri) 可选。安装后可自动执行 Bridge 启动命令；没有它时，在 Obsidian 中手动运行返回的命令即可。自定义字体和素材库按需准备。LaTeX 需要已启用、版本兼容的 Excalidraw Extras MathJax 组件。
+
+## 快速开始
+
+### 1. 安装 OMP 插件包
 
 ```sh
 omp plugin marketplace add Bowen-0x00/obsidian-excalidraw-agent-skill
 omp plugin install --scope user obsidian-excalidraw-agent-skill@obsidian-excalidraw-agent
 ```
 
-重启 OMP，或在已有 TUI 执行 `/reload-plugins`。包内提供无凭据的 `mcp.json`：OMP 解析安装目录和持久化数据目录，通过 uv 启动 `launcher.py serve`。共暴露 **15 个工具**，包含首次连接工具 `drawing_setup`。
+重启 OMP，或在已有会话执行 `/reload-plugins`。包内 MCP 通过 uv 启动，首次使用会下载依赖。用 `/mcp list` 检查绘图服务，名称可能带插件前缀。
 
-用 `/mcp list` 确认 `excalidraw`，然后直接说：
+### 2. 连接 vault
 
-> 使用 Obsidian Excalidraw Skill，连接我选择的 vault。画申请流程：提交申请→审核；通过→发放凭据，未通过→说明拒绝原因；两路到结束。保持原生可编辑，实际检查 PNG。
+保持 Obsidian 打开，在 OMP 中输入：
 
-Agent 先调用 `drawing_setup(action="status")` 发现本机 vault，再通过 `drawing_setup(action="connect", vault_path=选定路径)` 连接。目标有歧义时才询问。连接过程：
+> 使用 skill://obsidian-excalidraw，连接我选择的 Obsidian vault，并检查绘图服务。
 
-1. 核对目标 vault 中已安装、已启用的 ymjr 插件和实际脚本目录。
-2. 部署至 `<脚本目录>/Agent-Drawing/`，保留其他脚本，拒绝覆盖已被用户修改的受管文件。
-3. 生成本机随机令牌，保存到 vault/安装包之外的私有目录。
-4. 通过 Advanced URI 启动 `Agent-Drawing/mcp/Start-Agent-Drawing`；没有该插件则返回手动命令。
-5. 确认鉴权后的 Bridge 状态。Obsidian 尚未索引新脚本时，重载一次，再调用 `drawing_setup(action="start")`。
+Agent 通过 `drawing_setup` 列出 vault，并连接选定目标。脚本安装在插件已配置脚本目录的 `Agent-Drawing` 子目录，不覆盖无关文件，也不修改插件启用权限。
 
-Obsidian 重启后，用 `drawing_setup(action="start")` 启动已保存的连接。已有其他 Bridge 占用端口时，在连接参数 `port` 中选择空闲端口；不能将连接失败冒称成功。替换 Bridge 会让旧画布 token 失效，需要重新 bind。
+无法自动启动时，打开一个画布，在 Obsidian 命令面板运行 `Agent-Drawing/mcp/Start-Agent-Drawing`。新脚本尚未出现在列表中时，重载一次 Obsidian。
 
-**从 0.4.1 升级：** 如果用户级/项目级私有 MCP 文件中的旧 `excalidraw` 条目仍指向单独的本地执行器，仅移除这个旧条目，保留其他 server 和设置。原生配置优先级高于包内配置，不移除就会继续运行旧后端。此前“只发布 Skill、另配执行器”的说明已废弃。
+### 3. 描述要画的内容
+
+> 画申请审批流程：提交申请→审核，通过则发放凭据，未通过则说明拒绝原因，两路到结束。保留完整中文，检查 PNG。
+
+> 画订单系统架构，分为前端、业务服务、存储三个区域，保留跨区域连接。
+
+> 修改我指定画布中的一个节点标签，其他内容和样式不变。
+
+原生可编辑图保存在已连接的 vault。PNG 和评审记录保存在执行器的数据目录。Agent 查看图片后修复具体问题，不会为一次局部修改重建整图。默认最多五次评审，达标提前结束；仍有问题时明确报告。
+
+## 远端绘图
+
+本机运行 Obsidian 和 Bridge。远端运行 OMP、Skill 和 Python MCP 客户端，不需要 Obsidian、桌面或 X11。
+
+在本机的仓库克隆目录或已安装包目录执行以下命令。先选择与本机 MCP 相同的连接状态；使用 marketplace 安装时，可将 `EXCALIDRAW_AGENT_STATE_DIR` 设置为 `drawing_setup(status)` 返回的目录。
+
+```sh
+uv run --frozen python launcher.py remote-deploy --host Redhat --remote-port 28125
+uv run --frozen python launcher.py remote-tunnel --host Redhat --remote-port 28125
+```
+
+`Redhat` 是本机已有 SSH 别名。部署要求远端有 Python 3.11+、pip 和 OMP，会在远端用户目录安装 Skill 和 `excalidraw-local` MCP，保留已有 OMP 配置。第二条命令持续保持反向隧道，将远端 loopback 端口 28125 转发到本机 Bridge。使用期间保持它和 Obsidian 运行。
+
+已经登录远端时，直接运行 `omp`；已有会话执行 `/reload-plugins`，然后描述绘图需求即可。无需用特定 SSH 命令登录。
+
+画布和源素材仍在本机 vault。PNG 字节通过隧道返回，保存到远端，并以 MCP 图片消息交给模型；返回的 PNG 路径可以由远端 Agent 直接读取。`drawing_setup(status)` 返回 `mode=remote`。选择 vault、启动 Obsidian 要在本机完成，不能在远端调用本机部署操作。
+
+远端连接凭据保存在权限 0600 的私有文件中，只应授权可信用户。隧道使用独立 SSH 配置、密钥登录和 known-host 验证，不使用别名中其他端口转发，也不启用 X11。断线后重启隧道。本机切换 vault 后重新 `remote-deploy`，并重启远端 MCP。通过 SSH 脚本执行 `omp -p` 时使用 `ssh -n` 关闭 stdin；交互使用正常终端即可。
+
+## 插件原生 CLI
+
+较新的 ymjr 插件还提供原生 CLI，适合不经过本包 Bridge 的简单创建、读取、编辑和导出。终端入口要求 **Obsidian 1.12.2+、CLI 已启用**，且已安装插件版本注册了这些命令。
+
+```sh
+obsidian vault="目标vault" obsidian-excalidraw-plugin-ymjr:status
+obsidian vault="目标vault" obsidian-excalidraw-plugin-ymjr:help
+obsidian vault="目标vault" obsidian-excalidraw-plugin-ymjr:schema action=create
+```
+
+命令前缀以真实插件 ID 为准。Windows 捕获输出使用已安装的 `Obsidian.com` console launcher。可信 EA 脚本中可以通过 `ea.executeCLI(request)` 调用相同 JSON 协议，不依赖终端注册条件；先确认安装版本实际提供该方法。
+
+Skill 已区分原生 CLI 与本包的 `launcher.py cli`，会检查保存回执、请求 ID、分页读取和真实导出。原生 CLI **不提供本包的自动布局、几何诊断、review ledger 或远端图片传输**。完整绘图和已连接的远端工作流继续使用 `drawing_*`。接口差异、保存结果、限制及错误恢复见 [原生 CLI 参考](skills/obsidian-excalidraw/references/native-cli.md)。
+
+## 配置与文件位置
+
+| 内容 | 位置 |
+| --- | --- |
+| Marketplace 连接配置和产物 | OMP 持久化插件数据目录中的 `${PLUGIN_DATA}/state` |
+| 直接 CLI 的连接配置和产物 | 平台用户数据目录，`launcher.py status` 返回实际路径 |
+| 远端运行时、连接配置和产物 | `~/.local/share/obsidian-excalidraw-agent-remote/` |
+| 远端 Skill / MCP 注册 | 用户 agent 目录，通常为 `~/.omp/agent/skills/` 和 `~/.omp/agent/mcp.json` |
+| Obsidian 端脚本 | `<已配置脚本目录>/Agent-Drawing/` |
+
+`EXCALIDRAW_AGENT_STATE_DIR` 选择状态目录；`EXCALIDRAW_AGENT_CONFIG` 选择私有连接文件。setup 工具不返回令牌。vault 内的 `Agent-Bridge-Connection.json` 只保存外部配置路径，公开 vault 仓库应忽略该文件，避免泄露机器相关路径。
+
+直接使用 CLI 时，克隆仓库后运行 `uv run --frozen python launcher.py --help`；完整绘图命令见 `launcher.py cli -- --help`。其他 MCP 客户端可通过 uv 启动 `launcher.py serve`。执行代码在 `runtime/`，Obsidian 脚本在 `bridge/`，Agent 绘图规范在 `skills/`。
 
 ## 更新与卸载
 
@@ -47,114 +106,32 @@ omp plugin marketplace update obsidian-excalidraw-agent
 omp plugin upgrade --scope user obsidian-excalidraw-agent-skill@obsidian-excalidraw-agent
 ```
 
-重启 OMP，再连接同一 vault，部署变更的受管脚本。Engine 升级后重启 Obsidian，让已加载 Hook 使用新版本。连接和产物保存在版本缓存之外，不随包更新消失。
+更新后重启 OMP。重新连接同一 vault 更新受管脚本；Engine 变更后重启 Obsidian。远端受管安装通过重新执行 `remote-deploy` 更新。用户修改过的脚本或 Skill 不会静默覆盖。
 
-```sh
-omp plugin uninstall --scope user obsidian-excalidraw-agent-skill@obsidian-excalidraw-agent
-```
+卸载命令为 `omp plugin uninstall --scope user obsidian-excalidraw-agent-skill@obsidian-excalidraw-agent`。卸载不会删除图、数据目录或已部署 vault 脚本；不再使用时再单独清理。从旧手动执行器迁移时，只移除它的过时 MCP 条目，避免覆盖包内服务，保留其他配置。
 
-卸载仅移除 OMP 包注册，不删除图或 vault 脚本。需要删除已部署内容时，关闭 Obsidian 后只删除自己安装的 `Agent-Drawing` 子目录；保留其他脚本和 vault 文件。
+## 常见问题与限制
 
-## 备选：克隆后直接使用 CLI
-
-```sh
-git clone https://github.com/Bowen-0x00/obsidian-excalidraw-agent-skill.git
-cd obsidian-excalidraw-agent-skill
-uv run --frozen python launcher.py status
-uv run --frozen python launcher.py connect --vault "/path/to/your/vault"
-uv run --frozen python launcher.py doctor
-uv run --frozen python launcher.py smoke
-```
-
-把示例路径替换成实际 vault 路径。`connect --no-open` 仅部署、不打开 URI；`--vault-name` 适配 Obsidian 别名；`--obsidian-config-dir` 支持非默认配置目录；`--port` 指定本地端口。`smoke` 创建真实可编辑流程图和 PNG，但明确返回 `visual_reviewed=false`：脚本不能冒充模型看图。
-
-完整绘图 CLI：`launcher.py cli -- --help`。其他 MCP 客户端可运行 `uv run --frozen --project <克隆目录> python <克隆目录>/launcher.py serve`，MCP 配置无需凭据。包内标准 `mcp.json` 使用 OMP/Agent Plugins 的占位符语义，不假设所有客户端都支持。
-
-直接 CLI 默认使用平台用户数据目录；marketplace 安装使用 OMP 持久化的 `${PLUGIN_DATA}/state`。需要有意共享时设置 `EXCALIDRAW_AGENT_STATE_DIR`；或通过 `EXCALIDRAW_AGENT_CONFIG` 选择已有私有连接文件。`drawing_setup(status)` 返回实际路径，不返回令牌。
-
-## 无图形界面的远端 Agent 控制本机绘图
-
-0.6.0 增加 SSH 反向隧道部署。先在有桌面的本机连接并启动 Obsidian Bridge，再在本机执行以下命令。使用 marketplace 连接时，先将 `EXCALIDRAW_AGENT_STATE_DIR` 设置为 `drawing_setup(status)` 返回的实际状态目录。
-
-```sh
-uv run --frozen python launcher.py remote-deploy --host Redhat --remote-port 28125
-uv run --frozen python launcher.py remote-tunnel --host Redhat --remote-port 28125
-```
-
-`Redhat` 是本机已有 SSH 别名。第二条命令持续运行：把远端 `127.0.0.1:28125` 转发到本机已配置的 Bridge loopback 端口。独立私有 SSH 配置保留真实目标、密钥、代理，排除原别名的其他端口转发和 X11，不将 Bridge 开放到公网。要求密钥免密登录且 known-host 身份已验证；后台隧道不能回答密码/主机确认提示。
-
-部署会在远端用户目录安装 Python 3.11+ venv、绘图客户端和完整 Skill。远端只需 Python/pip、SSH、OMP，不需要 uv、Obsidian 或显示器。依赖从官方 PyPI 安装，不修改全局 pip 设置。保留既有 OMP 模型、鉴权、设置与其他 MCP server；已修改的受管运行时/Skill 文件不会静默覆盖。
-
-远端重启 OMP，或执行 `/reload-plugins` 同时发现新Skill与MCP；单独 `/mcp reload` 仅重连MCP，不会发现刚复制的新Skill。然后要求使用 `skill://obsidian-excalidraw` 和 `excalidraw-local`。`drawing_setup(status)` 返回 `mode=remote`、`rendering_location=host` 以及首连配置的宿主 vault 身份。远端 `connect`/`start` 被明确禁止：开启 GUI/Bridge、切换 vault 都在本机完成。
-
-从本机进入远端交互 OMP：`ssh -t -o ClearAllForwardings=yes -o ForwardX11=no Redhat omp`。脚本方式通过 SSH 执行 `omp -p` 时用 `ssh -n`，使OMP得到stdin EOF，不会一直等待管道输入。这些单次命令的转发选项不会停止单独运行的绘图隧道。
-
-原生 `.excalidraw.md`、图片/素材源路径属于本机 vault。PNG 字节通过隧道返回，保存到远端状态目录，并作为 MCP `ImageContent` 交给远端模型。所以远端 Agent 无需 X11 就能实际看 PNG，也能在远端读取返回的 `out_path`。预览凭据/ledger 保存在远端持久化目录，普通 PNG 交付无需再 SCP。
-
-远端位置：
-
-- 运行时/venv：`~/.local/share/obsidian-excalidraw-agent-remote/`。
-- 私有连接与产物：该目录的 `state/`，连接文件权限 0600。
-- Skill：`~/.omp/agent/skills/obsidian-excalidraw/`。
-- MCP：合并到 `~/.omp/agent/mcp.json` 的 `excalidraw-local` 条目，支持 `PI_CODING_AGENT_DIR`。
-
-此方案与 SSH-stdio 不同：为让远端 Python 客户端调用宿主 Bridge，令牌经加密 SSH stdin 安全配置到远端受信任用户的私有文件，不出现在命令参数或公开文件。该远端用户有宿主 vault 绘图权限，只给可信账户使用。关闭隧道或宿主 Bridge 会中断远端绘图。本机切换 vault 后重新 `remote-deploy`，远端重启 MCP 加载变更的连接。
-
-
-## 绘图工具
-
-| 工具 | 职责 |
+| 现象 | 检查项 |
 | --- | --- |
-| `drawing_setup` | 发现 vault、部署脚本、建立私有连接、启动/检查 Bridge |
-| `drawing_context`、`drawing_read` | 能力发现、明确文件绑定、完整摘要和按需详情 |
-| `drawing_measure`、`drawing_plan`、`drawing_apply` | 原生文字测量、确定性布局、revision 保护的批量操作 |
-| `drawing_check`、`drawing_preview`、`drawing_review`、`drawing_revert` | 几何/语义检查、真实 PNG、持久化评审、事务撤销 |
-| `drawing_templates`、`drawing_primitives` | 图型与风格 recipe；draw、多边形、立方体、大括号、callout、代码、checkbox、连接 |
-| `drawing_library`、`drawing_compose`、`drawing_present` | 真实素材库发现/导入、分阶段组合、原生可编辑 frame 页面 |
+| 找不到 Skill 或绘图工具 | 重启 OMP 或 `/reload-plugins`，检查 `/mcp list` 和 uv 是否在 PATH |
+| 服务未连接 | 查看 `drawing_setup(status)`，启动本机 Bridge；远端使用还需保持隧道运行 |
+| `ready=false`，但 `connected=true` | 服务可能没有活动画布，显式创建或绑定目标即可 |
+| 文件被修改，更新被拒绝 | 先保留或处理该自定义修改，再部署 |
+| 找不到原生命令 | 检查 CLI 设置、Obsidian API版本、console launcher、插件版本和目标 vault |
 
-工具可能带 `mcp__excalidraw_` 前缀，调用前读取真实 schema。素材库导入保留源→新 ID、组、frame、绑定和资源；组合报告分阶段提交，不虚构整笔原子事务。
+Bridge 是有 vault 读写权限的受信任本地代码，不是沙箱；仅监听 loopback，并对请求鉴权。素材库里的可执行 `customData` 需要显式信任。曲线或旋转几何可能不能完整检查，Excalidraw 演示页面不等于 PPTX。没有图像能力或资源缺失时，不能把导出成功计为评审通过。
 
-## 自然语言示例
+首次依赖安装使用 PyPI，远端部署使用官方索引。SSH 部署会把包代码和连接凭据发送到选定主机。绘图使用本机插件和资源，不另接第三方渲染服务；Agent 使用的模型服务会接收它处理的提示和图片。
 
-> 用 Visio 风格 UML 展示订单、客户和支付，包含字段、方法以及方向正确的组合箭头。
-
-> 使用我已安装的数字电路素材库连接 MUX→ALU→CROSSBAR，先发现并预览准确 item，不拿近似矩形替代。
-
-> 从我已安装的演示库创建三页可编辑 Excalidraw 页面。保留 frame 和装饰，逐页及总览实际看 PNG，不声称输出 PPTX。
-
-> 修改我指定的 vault 相对路径画布：更改节点标签并向右移动，其他内容、样式、绑定不变，检查更新后的 PNG。
-
-普通图默认采用原生 Helvetica 与系统中文 fallback，避免依赖个人文楷字体文件。用户明确指定字体时保留其选择，并通过 runtime discovery 核实。
-
-## PNG 反馈与完成条件
-
-强制 `check → PNG → 实际看图 → review → 局部修正`。默认最多 **五次评审，初图计入**，达标提前结束；连续两次无改善则停止并列剩余问题。完整摘要、全文/分支标签、双向绑定、当前 revision 的完整 PNG 和资源就绪由程序检查；视觉判断仍要求 Agent 实际看图。
-
-缺图像能力只能标未评审；不能完整检查的曲线/旋转几何明确报告；Excalidraw frame 页面不是 `.pptx`。局部修改不清空重建用户画布。
-
-## 包内容
-
-- [Skill](skills/obsidian-excalidraw/SKILL.md)、[图型/风格参考](skills/obsidian-excalidraw/references/diagram-recipes.md)、[原生图元参考](skills/obsidian-excalidraw/references/native-features.md)。
-- `runtime/`：完整绘图、布局、诊断、资源和评审执行模块。
-- `launcher.py`、`setup_connection.py`、`remote_control.py`：MCP 入口、首次连接、无GUI远端部署与SSH隧道。
-- [Bridge bundle](bridge/bundle.json)：Bridge、bootstrap、16 个 Feature Engines，包括内嵌的离线图表/高亮/导出库。
-- `plugin.json`、`mcp.json`、`.claude-plugin/`：带版本的安装信息；`pyproject.toml`/`uv.lock`：锁定执行依赖。
-- [第三方声明](THIRD_PARTY_NOTICES.md)：原脚本和内嵌库许可证。
-
-## 隐私与信任边界
-
-`connection.json`、令牌、用户绝对路径、画布、安装素材库、PNG、ledger、缓存、虚拟环境不进入发布内容。vault 内描述文件只保存外部私有连接文件的路径，**不保存令牌，但路径是机器相关信息：公开 vault 仓库应忽略 `Agent-Bridge-Connection.json`。** POSIX 私有文件以 0600 创建；Windows 使用当前用户数据目录权限。
-
-Bridge 仅监听 loopback，每次请求鉴权，拒绝浏览器 Origin，保留 revision 保护。它是有 vault 读写权限的受信任本地代码，不是沙箱。用户素材中的可执行 `customData` 需要显式信任来源。环境变量凭据覆盖只供有意配置的高级场景，正常连接不需要。
-
-## 开发
+## 开发与许可证
 
 ```sh
 uv run --frozen python -m unittest discover -s runtime/tests -v
 ```
 
-使用 Conventional Commits，更新 [CHANGELOG.md](CHANGELOG.md)，不上传用户真实产物。分发白名单只放行预期运行时代码/Bridge 源文件。安装组织参考 [academic-research-skills](https://github.com/Imbad0202/academic-research-skills)，不分发其内容。
+[Skill](skills/obsidian-excalidraw/SKILL.md) · [图型参考](skills/obsidian-excalidraw/references/diagram-recipes.md) · [原生图元](skills/obsidian-excalidraw/references/native-features.md) · [更新记录](CHANGELOG.md)
 
-插件链接：[安装/发布仓库](https://github.com/Bowen-0x00/obsidian-excalidraw-plugin-ymjr)、[插件源码](https://github.com/Bowen-0x00/obsidian-excalidraw-plugin/tree/ymjr)、[组件源码](https://github.com/Bowen-0x00/excalidraw/tree/ymjr)、[原脚本](https://github.com/Bowen-0x00/obsidian-excalidraw-scripts)。
+相关项目：[ymjr插件/发布](https://github.com/Bowen-0x00/obsidian-excalidraw-plugin-ymjr)、[插件源码](https://github.com/Bowen-0x00/obsidian-excalidraw-plugin/tree/ymjr)、[组件源码](https://github.com/Bowen-0x00/excalidraw/tree/ymjr)、[原脚本](https://github.com/Bowen-0x00/obsidian-excalidraw-scripts)。
 
-原创包代码使用 [MIT 许可证](LICENSE)，内嵌组件保留 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 中各自许可证。本项目与 Obsidian、上游 Excalidraw 无官方关联。
+原创包代码使用 [MIT 许可证](LICENSE)。内嵌库保留 [第三方声明](THIRD_PARTY_NOTICES.md) 中各自许可证。本项目与 Obsidian、上游 Excalidraw 无官方关联。

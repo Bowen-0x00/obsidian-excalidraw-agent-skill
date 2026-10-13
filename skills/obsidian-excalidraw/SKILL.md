@@ -1,15 +1,19 @@
 ---
 name: obsidian-excalidraw
-description: 在 Obsidian Excalidraw 修改版中绘制原生可编辑流程图、UML、架构/微架构、电路和多页演示。支持用户指定library的原生导入、自由手绘draw、多边形、立方体、大括号、callout、代码高亮与checkbox，提供手绘/Visio等风格；必须根据真实PNG反馈局部迭代，默认五轮、达标提前结束。
+description: 在 Obsidian Excalidraw 修改版中绘制原生可编辑流程图、UML、架构、电路和多页演示。按能力选择 drawing MCP、插件原生CLI或ea.executeCLI，支持素材库和扩展图元；实际查看PNG并局部迭代，默认最多五轮，保留绑定与用户内容。
 ---
 
 # Obsidian Excalidraw：可编辑绘图与 PNG 反馈闭环
 
 ## 执行入口
 
-优先使用已发现的 `drawing_*` 工具，MCP server 与marketplace可能加前缀或缩短过长名称；以真实工具列表/schema为准，不硬编码 `mcp__excalidraw_`。工具成功不是视觉通过；本 Skill 的交付必须包含实际 PNG 检查和 review ledger。
+先选择实际可用入口，不混用两套 operation/revision schema：
 
-本包包含 Skill、MCP 执行器、Bridge/Feature Engine bundle 和首次连接入口。若 `drawing_setup` 存在，先用 `status` 发现 vault，再在用户选定目标后用 `connect`。没有 MCP 工具时，使用本包 `launcher.py` 的真实 CLI（安装目录由用户环境提供，不从 Skill 目录猜测）；不能假定已连接 Bridge。CLI 预览返回 `out_path`，必须用图片读取工具打开 PNG。令牌只在本机私有状态目录，绝不打印或写入提示、图、报告、vault 描述文件和公开仓库。缺 Obsidian/ymjr 插件时明确报告宿主前提缺失，不用原始 JSON 或假图片冒充完成。
+- **已连接 MCP / 远端绘图 / 自动布局或扩展图元**：优先使用已发现的 `drawing_*` 工具，以真实工具列表/schema为准，不硬编码前缀。MCP路径必须包含实际PNG检查与review ledger。
+- **本机简单创建、读取、局部编辑或导出，且原生CLI可用**：按需读取 `skill://obsidian-excalidraw/references/native-cli.md`。终端入口需要Obsidian1.12.2+及CLI启用；ymjr命令前缀取真实manifest ID，不照抄原版前缀。先status/help/schema再操作。
+- **可信EA脚本内**：只有 `typeof ea.executeCLI === "function"` 才使用同一版本化JSON协议。该进程内方法不依赖终端CLI注册，不能当作远程服务或自动布局器。
+
+本包仍提供MCP执行器、Bridge/Engines和首次连接入口。`drawing_setup(status)`发现目标；没有MCP时可以用本包实际 `launcher.py cli`，或已确认的插件原生CLI，但二者不是同一个CLI。缺真实执行入口就报告前提，不直接拼场景JSON冒充执行。令牌只保存在私有状态目录，不打印、不写提示/图/报告/vault描述文件。
 
 若 `drawing_setup(status)` 返回 `mode="remote"`：Agent 所在机器是无GUI客户端，渲染在本机宿主Obsidian；不要在远端调用connect/start、安装Obsidian或扫描远端vault。连接不通时报告宿主Bridge/SSH隧道前提。vault-relative画布与素材路径属于宿主；PNG的out_path和ledger属于远端执行器，可在远端实际read。MCP ImageContent已经把真实PNG返回模型，不需要X11。
 
@@ -34,7 +38,7 @@ description: 在 Obsidian Excalidraw 修改版中绘制原生可编辑流程图�
 - 多页intro可能有多个title/full-name占位；必须按sourceIdMap完整替换，不能只填一个留下旧英文。slides已有原生bullet时新文字不要重复加Unicode项目符号；派生bullet保持同一library instance并纳入原生frame/group。
 - 样式和文本字段放在operation的`style`对象，例如`create_text {...,style:{fontFamily,fontSize,strokeColor}}`；不是任意顶层fontSize。没有节点的标题/注释直接create_text，不把空nodes传给图规划器。
 
-## 新图：自然语言到真实操作
+## MCP 路径：自然语言到真实操作
 
 1. 若有 `drawing_setup`，先调用 `status`。未连接时，在用户目标已明确或仅有一个合法 vault 时调用 `connect`；多 vault 歧义才询问。它部署 bundle、生成私有凭据、通过实际 Advanced URI 启动；没装 Advanced URI 则报告返回的准确手动命令，不能声称启动成功。已配置但 Obsidian 重启后用 `start`。然后 `drawing_context(action="discover")` 核对 Bridge、字体与 Engines。无效令牌、缺插件/画布不能假装已有连接。
 2. `drawing_context(action="create", filename=描述性名称, foldername="Agent-Diagrams")` 得到 `contextToken`、真实文件与revision。修改已有图则 `action="bind", file_path=明确vault相对路径`。之后所有操作传该token。
@@ -92,7 +96,9 @@ description: 在 Obsidian Excalidraw 修改版中绘制原生可编辑流程图�
 
 停止标准：语义清单完整；无硬错误；必需几何检查无unknown；所有资源完整；当前revision的PNG确实看过；无影响使用的视觉问题。工具错误/无进展不是完成。
 
-## 局部修正：真实 native operations
+原生CLI路径也必须检查内容、绑定、保存结果并实际看PNG，采用相同最多5轮/无进展停止规则；没有MCP check/review时按native-cli参考记录真实评审过程和未覆盖约束，不编造check=pass、previewId或ledger。Native CLI更新后若回到MCP，重新读取它的revision并导出注册预览。
+
+## MCP 路径：局部修正操作
 
 先读取目标详细元素：`drawing_read(context_token, ids=[...], detail="full")`。优先这些操作，不直接改scene JSON：
 
@@ -117,4 +123,4 @@ LaTeX先看discovery中的`latex.available`：当前插件源码可能通过独�
 
 ## 交付
 
-给出真实vault文件、最终PNG、本轮数/ledger状态和剩余问题（若有）。保留原生可编辑场景。不要声称“专业”只因为元素已创建；以最后一次PNG和校验为准。
+给出真实vault文件、最终PNG、实际保存/校验结果、评审轮数和剩余问题。MCP交付ledger；原生-only明确没有MCPledger并列实际评审记录/检查边界。保留原生可编辑场景，以最后一次真实PNG和校验为准。

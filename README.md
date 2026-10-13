@@ -1,44 +1,103 @@
 # Obsidian Excalidraw Agent
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+[English](README.md) · [简体中文](README.zh-CN.md)
 
-**Complete drawing package for Obsidian Excalidraw-ymjr:** MCP server, deterministic layout and diagnostics, Engine-Agent Bridge, 16 Feature Engines, first-time vault connection, and the Agent Skill with real PNG review.
+Draw editable diagrams in Obsidian Excalidraw-ymjr from natural-language requests. The package includes an Agent Skill, a drawing MCP server, and the scripts that connect it to Obsidian.
 
-Version 0.5.0 replaces the former Skill-only package. You no longer need to obtain a separate drawing backend, compose MCP paths, or copy bearer tokens into prompts. Install once, connect your intended vault, then describe what to draw.
+## Features
 
-## Host prerequisites
+- Flowcharts, architecture diagrams, UML, swimlanes and editable presentation frames.
+- Native shapes, text and arrows; image/LaTeX/chart content and user-installed libraries where supported.
+- Measured text layout, geometry checks, PNG previews and incremental edits.
+- Headless remote OMP support: render in desktop Obsidian and return the PNG to the remote Agent.
 
-- [oh my pi / OMP](https://github.com/can1357/oh-my-pi) with Agent Plugins support (verified on OMP 18.10.1).
-- [uv](https://docs.astral.sh/uv/getting-started/installation/) on PATH. `uv run` prepares the pinned Python dependencies automatically; Python 3.11+ is required. The initial dependency download needs network access.
-- Obsidian Desktop with [Excalidraw-ymjr installed and enabled](https://github.com/Bowen-0x00/obsidian-excalidraw-plugin-ymjr). Back up your vault before changing plugins. The installer does not silently enable plugins, change trust permissions, or replace your upstream Excalidraw installation.
-- An image-capable Agent for actual PNG inspection.
+## Requirements
 
-[Advanced URI](https://github.com/Vinzent03/obsidian-advanced-uri) is optional: when enabled, setup starts the Bridge automatically; otherwise setup returns the exact Obsidian command to run once. LaTeX needs the compatible Excalidraw Extras MathJax component enabled in Obsidian. Custom fonts and user-selected libraries are optional resources, not prerequisites for ordinary diagrams.
+For local drawing:
 
-## Install globally
+- Obsidian Desktop with [Excalidraw-ymjr](https://github.com/Bowen-0x00/obsidian-excalidraw-plugin-ymjr) installed and enabled in the target vault.
+- [OMP](https://github.com/can1357/oh-my-pi) with Agent Plugins support, plus [uv](https://docs.astral.sh/uv/getting-started/installation/) on PATH and Python 3.11+.
+- A model that accepts images, so it can inspect the exported PNG.
+
+[Advanced URI](https://github.com/Vinzent03/obsidian-advanced-uri) is optional. Setup uses it to start the Bridge; without it, run the returned command in Obsidian. Custom fonts and libraries are optional. LaTeX requires a compatible enabled Excalidraw Extras MathJax component.
+
+## Quick start
+
+### 1. Install the OMP package
 
 ```sh
 omp plugin marketplace add Bowen-0x00/obsidian-excalidraw-agent-skill
 omp plugin install --scope user obsidian-excalidraw-agent-skill@obsidian-excalidraw-agent
 ```
 
-Restart OMP, or use `/reload-plugins` in an existing TUI session. The package includes a credential-free `mcp.json`: OMP resolves its installed package/data directories and starts `launcher.py serve` through uv. It exposes **15 tools**, including first-time `drawing_setup`.
+Restart OMP or run `/reload-plugins`. The package starts its MCP server through uv; dependencies are downloaded on first use. `/mcp list` should show the drawing server, possibly under a plugin-prefixed name.
 
-Check `/mcp list` for `excalidraw`, then ask:
+### 2. Connect a vault
 
-> Use the Obsidian Excalidraw Skill. Connect to the vault I choose, then draw a request-review flowchart: submission → review; approved → issue credentials, rejected → explain the reason; both branches end. Keep the diagram editable and inspect the PNG.
+Keep Obsidian open, then ask OMP:
 
-The Agent calls `drawing_setup(action="status")`, discovers local vaults, and connects with `drawing_setup(action="connect", vault_path=the_selected_vault)`. It asks only when the target is ambiguous. Setup:
+> Use skill://obsidian-excalidraw. Connect to my chosen Obsidian vault and check the drawing service.
 
-1. Checks the selected vault's installed/enabled ymjr plugin and configured script folder.
-2. Deploys the bundled Bridge and Engines under `<script folder>/Agent-Drawing/`, preserving unrelated scripts and refusing to overwrite locally modified managed files.
-3. Generates a local random bearer token and stores it outside the vault/package.
-4. Starts `Agent-Drawing/mcp/Start-Agent-Drawing` through Advanced URI, or returns its manual command.
-5. Confirms authenticated Bridge status. If Obsidian has not indexed new scripts yet, reload Obsidian once and run `drawing_setup(action="start")`.
+The Agent uses `drawing_setup` to list vaults and connect the selected one. Setup installs scripts under the plugin's configured script folder, in an `Agent-Drawing` subdirectory. It preserves unrelated files and does not change plugin permissions.
 
-After an Obsidian restart, `drawing_setup(action="start")` starts the saved connection again. If another Bridge owns the same port, choose an unused `port` during connection; setup reports failure rather than claiming success. Bridge replacement invalidates old canvas tokens, so rebind before continuing.
+If automatic startup is unavailable, open a drawing and run `Agent-Drawing/mcp/Start-Agent-Drawing` in Obsidian's command palette. Reload Obsidian once if newly installed scripts are not listed yet.
 
-**Upgrading from 0.4.1:** remove only the old manually configured `excalidraw` server entry from your private user/project MCP file if it still points at a separate local executor. Native configuration takes precedence over the bundled server; leaving the old entry would keep running the old backend. Preserve other servers and settings. The old Skill-only instructions are obsolete.
+### 3. Describe the diagram
+
+> Draw a request-review flowchart: submit → review; approved → issue credentials, rejected → explain the reason; both paths end. Keep all labels and inspect the PNG.
+
+> Draw an order-system architecture with frontend, services and storage containers. Keep cross-container connections.
+
+> Rename a node in the drawing I specify, leaving other content and styles unchanged.
+
+The editable drawing is saved in the connected vault. PNG previews and review records are saved in the execution server's data directory. The Agent checks the image and repairs specific problems rather than rebuilding the whole drawing. By default it stops after a successful review or at five reviews, reporting unresolved issues.
+
+## Remote drawing
+
+The desktop machine runs Obsidian and the Bridge. The remote machine runs OMP, the Skill and a Python MCP client; it does not need Obsidian, a desktop or X11.
+
+On the desktop host, use a checkout of this repository or the installed package directory. Select the same connection state used by your local MCP: set `EXCALIDRAW_AGENT_STATE_DIR` to the path returned by `drawing_setup(status)` if needed. Then run:
+
+```sh
+uv run --frozen python launcher.py remote-deploy --host Redhat --remote-port 28125
+uv run --frozen python launcher.py remote-tunnel --host Redhat --remote-port 28125
+```
+
+`Redhat` is an existing SSH alias. Deployment requires remote Python 3.11+, pip and OMP. It installs the Skill and `excalidraw-local` MCP under the remote user's account, preserving existing OMP settings. The second command keeps an SSH reverse tunnel open from remote loopback port 28125 to the desktop Bridge. Keep that command and Obsidian running.
+
+Already logged into the remote machine? Run `omp` normally, or `/reload-plugins` in an existing session, then describe the diagram. You do not need to log in using a special SSH command.
+
+Native drawings and source assets remain in the desktop vault. PNG bytes return through the tunnel, are saved on the remote machine, and reach the model as MCP image content. The returned PNG path is therefore readable by the remote Agent. Remote `drawing_setup(status)` reports `mode=remote`; selecting a vault or starting Obsidian must be done on the desktop host.
+
+The remote client stores its Bridge credential in a private 0600 file. Give access only to trusted users. The tunnel uses an isolated SSH configuration with key authentication and known-host verification; it does not reuse unrelated port forwards or enable X11. Stop/restart the tunnel after disconnection. After changing the host vault, rerun `remote-deploy` and restart the remote MCP. For scripted `omp -p` calls over SSH, use `ssh -n` to close stdin; interactive sessions use a normal terminal.
+
+## Native Excalidraw CLI
+
+Recent ymjr versions also include a plugin-native CLI. It is useful for simple creation, inspection, edits and exports without this package's Bridge. The terminal entry requires **Obsidian 1.12.2+ with CLI enabled** and a plugin build that registers the commands.
+
+```sh
+obsidian vault="My vault" obsidian-excalidraw-plugin-ymjr:status
+obsidian vault="My vault" obsidian-excalidraw-plugin-ymjr:help
+obsidian vault="My vault" obsidian-excalidraw-plugin-ymjr:schema action=create
+```
+
+Use the actual plugin ID as the command prefix. On Windows, use the installed `Obsidian.com` console launcher to capture output. In trusted EA scripts, `ea.executeCLI(request)` exposes the same JSON protocol without the terminal registration requirement; check that the installed plugin provides the method first.
+
+The Skill now distinguishes this native CLI from `launcher.py cli`. It checks save receipts and request IDs, uses paged reads, and inspects real exports. The native CLI does **not** supply our automatic layout, geometry diagnostics, review ledger or remote image transport. Connected MCP/remote workflows continue using `drawing_*`. See [Native CLI reference](skills/obsidian-excalidraw/references/native-cli.md) for schemas, persistence, limits and error recovery.
+
+## Configuration and files
+
+| Item | Location |
+| --- | --- |
+| Marketplace connection and artifacts | OMP's persistent plugin data directory, `${PLUGIN_DATA}/state` |
+| Direct CLI connection and artifacts | Platform user-data directory; `launcher.py status` shows the path |
+| Remote runtime, connection and artifacts | `~/.local/share/obsidian-excalidraw-agent-remote/` |
+| Remote Skill / MCP registration | User agent directory, normally `~/.omp/agent/skills/` and `~/.omp/agent/mcp.json` |
+| Deployed Obsidian scripts | `<configured script folder>/Agent-Drawing/` |
+
+`EXCALIDRAW_AGENT_STATE_DIR` selects a state directory; `EXCALIDRAW_AGENT_CONFIG` selects a private connection file. Credentials are not returned by the setup tool. The vault's `Agent-Bridge-Connection.json` contains only the external config path; exclude it from public vault repositories because that path is machine-specific.
+
+For direct CLI use, clone the repository and run `uv run --frozen python launcher.py --help`. The drawing CLI is `launcher.py cli -- --help`. MCP clients can start `launcher.py serve` through uv. The execution code lives in `runtime/`; the Obsidian scripts in `bridge/`; drawing conventions in `skills/`.
 
 ## Updates and removal
 
@@ -47,114 +106,32 @@ omp plugin marketplace update obsidian-excalidraw-agent
 omp plugin upgrade --scope user obsidian-excalidraw-agent-skill@obsidian-excalidraw-agent
 ```
 
-Restart OMP, then reconnect the same vault to deploy changed managed scripts. Restart Obsidian after Engine upgrades so already-loaded hooks do not retain an old version. Persistent connection/artifact data is outside the versioned package cache.
+Restart OMP after an update. Reconnect the same vault to update managed scripts; restart Obsidian after Engine changes. Run `remote-deploy` again to update a managed remote installation. Modified scripts/Skills are not silently overwritten.
 
-```sh
-omp plugin uninstall --scope user obsidian-excalidraw-agent-skill@obsidian-excalidraw-agent
-```
+Uninstall with `omp plugin uninstall --scope user obsidian-excalidraw-agent-skill@obsidian-excalidraw-agent`. This does not delete drawings, data directories or deployed vault scripts. Remove those separately only if no longer needed. When migrating from an old manually configured executor, remove only its obsolete MCP entry so it does not override the packaged server.
 
-Uninstall removes the OMP package registration, not your drawings or installed vault scripts. If you want to remove the deployed bundle, remove only the `Agent-Drawing` subdirectory you installed, after stopping Obsidian. Keep unrelated scripts and vault files.
+## Troubleshooting and limits
 
-## Clone / direct CLI alternative
-
-```sh
-git clone https://github.com/Bowen-0x00/obsidian-excalidraw-agent-skill.git
-cd obsidian-excalidraw-agent-skill
-uv run --frozen python launcher.py status
-uv run --frozen python launcher.py connect --vault "/path/to/your/vault"
-uv run --frozen python launcher.py doctor
-uv run --frozen python launcher.py smoke
-```
-
-Replace the example path with the actual vault path. `connect --no-open` deploys without opening a URI; `--vault-name` handles Obsidian aliases; `--obsidian-config-dir` supports a non-default vault configuration folder; `--port` selects a local port. `smoke` creates a real editable flowchart and PNG, but deliberately reports `visual_reviewed=false`: a script cannot pretend to be a model looking at the image.
-
-The complete drawing CLI is `launcher.py cli -- --help`. For another MCP client, run `uv run --frozen --project <clone> python <clone>/launcher.py serve`; no credential belongs in its MCP configuration. The bundled standard `mcp.json` targets OMP/Agent Plugins placeholder semantics; do not assume every client implements them.
-
-Direct CLI mode uses the platform user-data directory. Marketplace mode uses OMP's persistent `${PLUGIN_DATA}/state`. Use `EXCALIDRAW_AGENT_STATE_DIR` to intentionally share a state directory, or `EXCALIDRAW_AGENT_CONFIG` to choose an existing private connection file. `drawing_setup(status)` returns the actual paths without returning tokens.
-
-## Headless remote Agent controlling this desktop
-
-Version 0.6.0 adds an SSH reverse-tunnel setup. Run these commands on the graphical host after connecting its Obsidian Bridge. If using a marketplace connection, set `EXCALIDRAW_AGENT_STATE_DIR` to the real directory returned by `drawing_setup(status)` first.
-
-```sh
-uv run --frozen python launcher.py remote-deploy --host Redhat --remote-port 28125
-uv run --frozen python launcher.py remote-tunnel --host Redhat --remote-port 28125
-```
-
-`Redhat` is an existing SSH alias on the graphical host. The second command stays running: remote `127.0.0.1:28125` forwards to the host's configured Bridge loopback port. A private isolated SSH configuration preserves the alias's target/key/proxy but omits unrelated forwards and X11. The Bridge is never opened to public interfaces. SSH key authentication and verified known-host identity are required; no password or host-key confirmation can be answered by a background tunnel.
-
-Deployment installs a Python 3.11+ venv, the drawing client and full Skill under the remote user's account; the remote machine needs Python/pip, SSH and OMP, not uv, Obsidian or a display. Dependencies are installed from official PyPI without changing global pip configuration. Existing OMP model/auth/settings and unrelated MCP servers are preserved; customized managed runtime/Skill files are not silently overwritten.
-
-On the remote machine, restart OMP or use `/reload-plugins` to discover both the new Skill and MCP; `/mcp reload` alone reconnects MCP but does not discover a newly copied Skill. Then ask it to use `skill://obsidian-excalidraw` and `excalidraw-local`. `drawing_setup(status)` reports `mode=remote`, `rendering_location=host` and the host vault identity from the provisioned connection. Remote `connect`/`start` are intentionally rejected: start the GUI/Bridge and choose the vault on the graphical host.
-
-From the host, open an interactive remote OMP with `ssh -t -o ClearAllForwardings=yes -o ForwardX11=no Redhat omp`. For non-interactive `omp -p` runs over SSH, use `ssh -n` so OMP receives stdin EOF instead of waiting indefinitely for piped input. These per-command forwarding options do not stop the separate drawing tunnel.
-
-Native `.excalidraw.md` drawings and image/library source paths belong to the host vault. The rendered PNG bytes cross the tunnel, are saved in the remote state directory, and are returned as MCP `ImageContent` to the remote model. Thus the remote Agent can actually inspect PNGs without X11 and can read the returned `out_path` locally. Its receipts/ledgers remain remote and persistent; no SCP is needed for ordinary PNG delivery.
-
-Remote locations:
-
-- Runtime/venv: `~/.local/share/obsidian-excalidraw-agent-remote/`.
-- Private connection and artifacts: the directory's `state/`; connection file permissions are 0600.
-- Skill: `~/.omp/agent/skills/obsidian-excalidraw/`.
-- MCP: merged `excalidraw-local` entry in `~/.omp/agent/mcp.json` (honors `PI_CODING_AGENT_DIR`).
-
-Unlike SSH-stdio, this reverse-tunnel mode provisions the Bridge credential onto the remote trusted user's account via encrypted SSH stdin. It never appears in command arguments or public files. That user can draw in the host vault; grant access only to trusted accounts. Closing the tunnel or stopping the host Bridge interrupts remote drawing. Reconnect a changed host vault and rerun `remote-deploy`; the remote server must restart to load changed credentials.
-
-
-## Drawing tools
-
-| Tools | Responsibility |
+| Symptom | Check |
 | --- | --- |
-| `drawing_setup` | Discover vaults, deploy bundled scripts, create a private connection and start/check the Bridge |
-| `drawing_context`, `drawing_read` | Capability discovery, explicit target binding, complete summaries and selected details |
-| `drawing_measure`, `drawing_plan`, `drawing_apply` | Native text measurement, deterministic layout and revision-checked operations |
-| `drawing_check`, `drawing_preview`, `drawing_review`, `drawing_revert` | Geometry/semantic diagnostics, PNG images, persistent review rounds and transaction undo |
-| `drawing_templates`, `drawing_primitives` | Diagram/style recipes; freehand, polygons, cuboids, braces, callout, code, checkbox and connections |
-| `drawing_library`, `drawing_compose`, `drawing_present` | Real library discovery/import, staged composition and editable native frame pages |
+| Skill or drawing tools missing | Restart OMP or `/reload-plugins`; check `/mcp list` and uv on PATH |
+| Service disconnected | Run `drawing_setup(status)`; start the Bridge locally and, for remote use, the tunnel |
+| `ready=false` but `connected=true` | The service may have no active drawing; create or bind an explicit canvas |
+| Modified file blocks an update | Preserve or resolve that customization before redeploying |
+| Native command missing | Check CLI setting, Obsidian API version, console launcher, plugin build and selected vault |
 
-Tool names may have the `mcp__excalidraw_` prefix. Read the real schema before calling. Library import preserves source-to-native IDs, groups, frames, bindings and resources; composition reports separately committed stages instead of inventing cross-stage atomicity.
+The Bridge is trusted local code with vault read/write access, not a sandbox. It listens on loopback and authenticates requests. Executable library `customData` requires explicit trust. Curves/rotated geometry may have unsupported diagnostics; frame presentations are not PPTX files. Missing image access or resources must be reported, not counted as a successful review.
 
-## Natural-language examples
+Initial dependency installation uses PyPI (remote deployment uses the official index); SSH deployment sends connection credentials and package code to the selected host. Drawing itself uses the local plugin and resources, with no separate rendering service. Your Agent/model provider receives the prompts and images it processes.
 
-> Use Visio-style UML to show Order, Customer and Payment, with fields, methods and correctly directed composition arrows.
-
-> Use the digital-circuit library I installed to connect MUX → ALU → CROSSBAR. Discover and preview exact items first; do not replace them with approximate rectangles.
-
-> Create three editable Excalidraw presentation pages from my installed presentation library. Preserve frames and decorations; inspect every page and the overview. Do not claim a PPTX export.
-
-> In the vault-relative file I specify, rename this node and move it right. Preserve unrelated content, style and bindings, then inspect the updated PNG.
-
-Ordinary diagrams default to native Helvetica with system CJK fallback, avoiding a dependency on a private font asset. Explicit user fonts are preserved and checked against runtime discovery.
-
-## PNG feedback and completion
-
-The Skill requires `check → PNG → actually inspect → review → local repair`. Default maximum: **five reviews including the initial drawing**, with early completion when requirements pass. Two consecutive non-improving transitions stop with unresolved issues. Complete summaries, full node/branch labels, reciprocal bindings, intact current-revision PNGs and resource completeness are checked; subjective visual judgment still requires the Agent to see the image.
-
-Missing image access is unreviewed, not a pass. Unsupported curve/rotation diagnostics are reported. Excalidraw frame pages are not `.pptx` files. User drawings are never cleared and rebuilt just to apply a local edit.
-
-## Package layout
-
-- [Skill](skills/obsidian-excalidraw/SKILL.md), [diagram/style recipes](skills/obsidian-excalidraw/references/diagram-recipes.md), [native primitives](skills/obsidian-excalidraw/references/native-features.md).
-- `runtime/`: all drawing, planning, diagnostics, resources and review modules.
-- `launcher.py`, `setup_connection.py`, `remote_control.py`: MCP entry, first-time connection and headless SSH deployment/tunnel.
-- [Bridge bundle](bridge/bundle.json): Bridge, bootstrap and 16 required Feature Engines with embedded offline chart/highlight/export libraries.
-- `plugin.json`, `mcp.json`, `.claude-plugin/`: versioned installation metadata; `pyproject.toml`/`uv.lock`: pinned execution dependencies.
-- [Third-party notices](THIRD_PARTY_NOTICES.md): original script and embedded library licenses.
-
-## Privacy and trust
-
-`connection.json`, bearer tokens, absolute user paths, vault drawings, installed library files, PNGs, ledgers, caches and virtual environments are not release content. The vault descriptor stores only a local path to the external connection file. **That descriptor contains no token, but its path is machine-specific: exclude `Agent-Bridge-Connection.json` from public vault repositories.** POSIX private files are created with mode 0600; Windows uses the current user's data-directory permissions.
-
-The Bridge listens on loopback, authenticates every request, rejects browser origins, and retains revision protection. This is trusted local code with vault read/write access, not a sandbox. Executable user-library `customData` requires explicit source trust. Environment credential overrides are for deliberate advanced setups, not the normal connection flow.
-
-## Development
+## Development and license
 
 ```sh
 uv run --frozen python -m unittest discover -s runtime/tests -v
 ```
 
-Use Conventional Commits and update [CHANGELOG.md](CHANGELOG.md). Keep real user artifacts private. The allowlist admits only intended runtime/Bridge/source files. Installation organization follows [academic-research-skills](https://github.com/Imbad0202/academic-research-skills); its content is not bundled.
+[Skill](skills/obsidian-excalidraw/SKILL.md) · [Diagram recipes](skills/obsidian-excalidraw/references/diagram-recipes.md) · [Native features](skills/obsidian-excalidraw/references/native-features.md) · [Changelog](CHANGELOG.md)
 
-Plugin links: [distribution/releases](https://github.com/Bowen-0x00/obsidian-excalidraw-plugin-ymjr), [plugin source](https://github.com/Bowen-0x00/obsidian-excalidraw-plugin/tree/ymjr), [component source](https://github.com/Bowen-0x00/excalidraw/tree/ymjr), [original scripts](https://github.com/Bowen-0x00/obsidian-excalidraw-scripts).
+Related projects: [ymjr plugin/releases](https://github.com/Bowen-0x00/obsidian-excalidraw-plugin-ymjr), [plugin source](https://github.com/Bowen-0x00/obsidian-excalidraw-plugin/tree/ymjr), [component source](https://github.com/Bowen-0x00/excalidraw/tree/ymjr), [original scripts](https://github.com/Bowen-0x00/obsidian-excalidraw-scripts).
 
-[MIT License](LICENSE) for the package's original code; embedded components retain their licenses in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Not affiliated with Obsidian or upstream Excalidraw.
+Original package code is [MIT licensed](LICENSE). Embedded libraries retain the licenses in [Third-party notices](THIRD_PARTY_NOTICES.md). This project is not affiliated with Obsidian or upstream Excalidraw.
