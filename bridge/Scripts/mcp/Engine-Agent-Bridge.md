@@ -2,14 +2,14 @@
 name: Excalidraw Agent Bridge
 description: Local authenticated MCP bridge for Obsidian Excalidraw.
 author: local
-version: 0.12.0
+version: 0.12.1
 autorun: false
 ---
 /*
 ```javascript
 */
 
-const BRIDGE_VERSION = "0.12.0";
+const BRIDGE_VERSION = "0.12.1";
 const PROTOCOL_VERSION = "3";
 const DEFAULT_PORT = 27124;
 
@@ -12394,6 +12394,58 @@ function bindingObject(
 
     // Capture temporary images for ECharts / Embeddables
     for (const el of elements) {
+      if (el.customData?.wavedrom) {
+        const engine = ea.plugin?._ymjr_wavedrom;
+        const code = el.customData.code || el.text;
+        let image;
+        let reason = "WAVEDROM_NOT_READY";
+        try {
+          const cached = engine?.imageCache?.get(el.id);
+          if (cached?.rawText === code && cached.status === "ready" &&
+            cached.img?.complete && cached.img.naturalWidth > 0 && cached.img.naturalHeight > 0) {
+            image = cached.img;
+          } else if (code && typeof engine?.generateImageFromCode === "function" &&
+            engine.loadLocalScripts?.() === true) {
+            let timer;
+            try {
+              const rendered = await Promise.race([
+                engine.generateImageFromCode(code, `agent_export_${el.id}`),
+                new Promise((_, reject) => {
+                  timer = setTimeout(() => reject(new Error("WAVEDROM_RENDER_TIMEOUT")), 2500);
+                }),
+              ]);
+              if (rendered?.img?.complete && rendered.img.naturalWidth > 0 && rendered.img.naturalHeight > 0) {
+                image = rendered.img;
+              }
+            } finally {
+              clearTimeout(timer);
+            }
+          } else {
+            reason = code ? "WAVEDROM_ENGINE_UNAVAILABLE" : "WAVEDROM_SOURCE_MISSING";
+          }
+        } catch (error) {
+          reason = error.message || reason;
+        }
+        if (image) {
+          const tempFileId = `temp_wavedrom_${el.id}`;
+          ea.imagesDict[tempFileId] = { id: tempFileId, mimeType: "image/svg+xml",
+            dataURL: image.src, created: Date.now() };
+          const data = clone(el.customData);
+          delete data.wavedrom;
+          delete data.code;
+          const fit = Math.min(el.width / image.naturalWidth, el.height / image.naturalHeight);
+          const imageWidth = image.naturalWidth * fit;
+          const imageHeight = image.naturalHeight * fit;
+          ea.elementsDict[el.id] = { ...clone(el), type: "image", fileId: tempFileId,
+            x: el.x + (el.width - imageWidth) / 2, y: el.y + (el.height - imageHeight) / 2,
+            width: imageWidth, height: imageHeight,
+            scale: [1, 1], crop: null, status: "saved", customData: data };
+        } else {
+          complete = false;
+          resourceIssues.push({ id: el.id, type: "wavedrom", reason });
+        }
+        continue;
+      }
       if (el.customData?.codeHighlight) {
         const deadline = Date.now() + 2500;
         let cache;

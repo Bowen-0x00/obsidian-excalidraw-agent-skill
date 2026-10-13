@@ -46,7 +46,7 @@ PROFILES = {
         "container": {"strokeColor": "#cbd5e1", "backgroundColor": "#ffffff", "fillStyle": "solid", "roughness": 0, "strokeWidth": 1.5},
     },
 }
-ALIASES = {"手绘": "handdrawn", "hand-drawn": "handdrawn", "visio-style": "visio", "专业": "professional", "ppt": "presentation"}
+ALIASES = {"手绘": "handdrawn", "hand-drawn": "handdrawn", "roughjs": "handdrawn", "rough-js": "handdrawn", "visio-style": "visio", "专业": "professional", "ppt": "presentation"}
 
 
 def resolve_style(style: str | dict[str, Any] | None = None) -> dict[str, Any]:
@@ -79,4 +79,5 @@ def resolve_style(style: str | dict[str, Any] | None = None) -> dict[str, Any]:
 
 def style_catalog() -> dict[str, Any]:
     return {"styles": [{"name": name, "description": data["description"], "defaults": deepcopy(data)} for name, data in PROFILES.items()],
+            "aliases": dict(ALIASES),
             "precedence": "native library style preserved; profile < role/variant < explicit local style; hard protections cannot be overridden"}

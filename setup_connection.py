@@ -226,7 +226,7 @@ def connect_vault(vault_path: str | None = None, vault_name: str | None = None,
         deployed[relative] = digest
     descriptor = destination / "mcp/Agent-Bridge-Connection.json"
     _private_write(descriptor, {"configPath": str(private_path)})
-    _private_write(install_record, {"destination": str(destination), "files": deployed, "version": "0.8.1"})
+    _private_write(install_record, {"destination": str(destination), "files": deployed, "version": "0.8.2"})
     result = {"configured": True, "vault_path": str(vault), "deployed_scripts": len(deployed),
               "script_directory": str(destination), "config_path": str(private_path),
               "token_disclosed": False, "plugin_version": manifest.get("version"),

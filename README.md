@@ -13,6 +13,35 @@ Create and edit diagrams in **Obsidian Excalidraw-ymjr** from natural-language r
 - Visual effects, interaction and navigation supplied by the modified plugin and its drawing scripts. Availability depends on the installed host capabilities.
 - Measured text, layout planning, relationship/geometry checks, PNG inspection and targeted edits that preserve unrelated content.
 
+## Editable diagrams, multiple styles, remote development
+
+The result remains native Excalidraw shapes, text, arrows, groups, frames, bindings and SVG-path carriers. PNGs are review artifacts, not replacements for the canvas. You can drag, rename, reconnect and restyle elements in Obsidian.
+
+| Style | Behavior |
+| --- | --- |
+| `professional` | Clean, restrained document diagrams |
+| `visio` | Sharp edges, explicit partitions and engineering connectors |
+| `handdrawn` / `roughjs` | Native Rough.js roughness and hachure, not a bitmap filter |
+| `blueprint` | White background with blue engineering lines |
+| `presentation` | Larger type and stronger hierarchy |
+| Native freehand (`draw` / `freedraw`) | Editable point/pressure strokes for handdraw whiteboard requests; distinct from a Rough.js profile |
+
+Hand-drawn styling and freehand strokes are different: `handdrawn` is a rendering profile; draw/handdraw whiteboard requests can use native `freedraw` elements. Visio styling does not imply `.vsdx` export.
+
+An Agent working on a development server can use this Skill and MCP while the actual diagram is created in desktop Obsidian:
+
+```mermaid
+flowchart LR
+  A[Server Agent + Skill + MCP] -->|SSH loopback tunnel| B[Local Bridge + Obsidian Excalidraw]
+  B --> C[Editable vault canvas]
+  C -->|PNG ImageContent| A
+```
+
+The server reasons and calls tools; the local host owns the vault, plugin, fonts, assets and rendering. No server-side GUI or X11 is required. Host paths are not remote paths, and the current convenience `remote-deploy` registration is OMP-specific; other clients register the same remote stdio runtime as described in [Agent setup](skills/obsidian-excalidraw/references/agent-setup.md).
+
+See [next-ai-draw-io comparison](skills/obsidian-excalidraw/references/next-ai-draw-io.md) for useful canvas-first, edit-gate, snapshot and screenshot-validation ideas.
+See [Showcase and GIF guide](skills/obsidian-excalidraw/references/showcase.md) for reproducible prompts and the real native-canvas → PNG → local-repair workflow.
+
 The package has three parts: the **Skill** describes the workflow; the **MCP server** exposes operations; **Obsidian drawing scripts** construct elements, manage extensions and render them. Installing only the Skill does not provide an execution connection.
 
 ## Before you start
@@ -121,6 +150,7 @@ To ask an Agent to curate descriptions and summaries, copy [the library maintena
 | Claude Code / Codex / OMP setup, remote drawing, state directories and updates | [Agent setup](skills/obsidian-excalidraw/references/agent-setup.md) |
 | Develop drawing scripts, run them through URI and inspect PNGs | [Script execution](skills/obsidian-excalidraw/references/script-execution.md) |
 | The plugin's native CLI, distinct from this package's MCP | [Native CLI](skills/obsidian-excalidraw/references/native-cli.md) |
+| next-ai-draw-io reference and reusable ideas | [Comparison](skills/obsidian-excalidraw/references/next-ai-draw-io.md) |
 | Release changes | [Changelog](CHANGELOG.md) |
 
 ## Updates and safety

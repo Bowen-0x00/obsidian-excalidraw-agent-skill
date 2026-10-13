@@ -14,6 +14,10 @@
 
 在普通图描述加`"style":"visio"`或`"style":"handdrawn"`。允许对象`{"profile":"visio","fontFamily":"Helvetica","shape":{"strokeWidth":2}}`做显式覆盖。优先级：硬保护→用户显式局部字段→原图未请求字段→role/variant→profile默认。已有图不自动全图换主题。库源样式默认原样保留；只有用户明确要求才对本次导入的副本重新样式。
 
+`roughjs`/`rough-js`是`handdrawn`的已声明别名；`drawing_templates(list)`同时返回aliases。自然语言中的“手画/handdraw白板笔迹”用原生`draw`/freedraw，**不是第二个Rough.js renderer或名为handdraw的profile**；可混用freedraw轮廓、原生文字及有binding的arrow。不要为证明多风格把所有场景都画成同一种矩形。
+
+演示与GIF适合1280×900左右的可读构图；极宽/极长全图在auto PNG中会缩小文字。先按语义组织少量列/行/分区，不通过删业务关系或截短标签压尺寸。`layout.nodeGap>=32`、`rankGap>=40`；默认值优先，紧凑布局需遵守真实planner边界。
+
 ## 流程图
 
 `drawing_templates(get,name="flowchart")`，再`drawing_plan`或`drawing_templates(plan,...)`。节点、关系、分支标签齐全；长中文先测量和语义换行。菱形不要过宽；失败回边用外围通道，不能为了美观删业务关系。
@@ -56,7 +60,7 @@
 {"id":"alu","label":"算术逻辑单元","library":{"source":"指定库路径","item":"ALU","scale":2}}
 ```
 
-库图元是line时不能假称能直接作为箭头绑定目标。组合器请求透明原生rectangle anchor，和整项编组；外部连接用返回anchorElementId，内部元素原样保留。`fromFixedPoint/toFixedPoint`是0–1比例，可区分多输入，例如MUX左端0.28/0.72；它们是几何锚点，库未声明电子引脚时不能臆造电气语义或认为网表已验证。
+库图元是line时不能假称能直接作为箭头绑定目标。组合器请求透明原生rectangle anchor，和整项编组；外部连接用返回anchorElementId，内部元素原样保留。`fromFixedPoint/toFixedPoint`是0–1比例，但必须按**当前素材的真实端口stub**计算，不能把示例0.28/0.72当固定MUX引脚：端口scene位置=`carrier origin + source stub × targetSize/viewBoxSize`，比例由当前anchor几何反算。库未声明电子引脚时只提供几何锚点，不臆造电气语义或网表验证。
 
 每次native插入分别提交；出错返回已完成的stage/ID，不自动重放整图。重复item插入生成独立ID/group/frame，不共享身份。
 

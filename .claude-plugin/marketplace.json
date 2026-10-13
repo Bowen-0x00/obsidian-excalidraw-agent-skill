@@ -4,14 +4,14 @@
   "owner": { "name": "Bowen-0x00" },
   "metadata": {
     "description": "Complete native drawing MCP, bundled Bridge/Engines and Agent Skill for Obsidian Excalidraw.",
-    "version": "0.8.1"
+    "version": "0.8.2"
   },
   "plugins": [
     {
       "name": "obsidian-excalidraw-agent-skill",
       "description": "Native drawing runtime, private first-time vault connection and PNG feedback.",
       "source": "./",
-      "version": "0.8.1",
+      "version": "0.8.2",
       "homepage": "https://github.com/Bowen-0x00/obsidian-excalidraw-agent-skill",
       "license": "MIT",
       "category": "productivity",

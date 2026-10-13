@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.2 — Real style showcase and waveform export readiness
+
+- Ran OMP with the installed Skill to create eight editable diagrams across Visio architecture/UML, Rough.js flows, professional swimlanes, blueprint library composition, native freehand strokes and a presentation containing WaveDrom/code/callout. Actual PNGs were inspected; architecture layout and MUX input ports were repaired in place.
+- Fixed WaveDrom cold-cache export: use the real Engine image with bounded readiness wait and contain scaling, or return complete=false with a resource issue. Export leaves the native carrier and source unchanged.
+- Discover roughjs/rough-js as aliases of handdrawn; keep handdraw/freehand requests on native draw primitives rather than inventing a second renderer.
+- Tightened Skill guidance for planner spacing bounds, package/config selection, real library stub coordinates and review accounting across reconnection.
+- Added reproducible showcase/GIF prompts and a source-backed next-ai-draw-io comparison; user assets and private run artifacts stay outside the public package.
+
 ## 0.8.1 — Clear multi-Agent setup and portable terminology
 
 - Reorganized both READMEs around prerequisites, Agent installation, Obsidian connection, natural-language use and user libraries; OMP is an example, not a dependency.

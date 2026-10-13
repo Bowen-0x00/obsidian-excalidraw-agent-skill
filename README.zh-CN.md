@@ -13,6 +13,38 @@
 - 使用修改版提供的视觉效果、交互和导航功能。具体支持取决于宿主插件与已启用的脚本。
 - 测量文字、规划布局、检查关系与几何约束，查看 PNG 后局部修正，保留其他内容。
 
+## 可编辑、多风格与服务器绘图
+
+### 可编辑不是导出图片
+
+Agent 生成的是 Obsidian Excalidraw 原生元素：shape、text、arrow、frame、group、绑定关系、图片资源和可修改的 SVG path carrier。PNG 只用于视觉检查，不替代画布。用户可以在 Obsidian 中继续拖动、改字、重连和调整样式。
+
+### 风格是布局/属性 profile，不是图片滤镜
+
+| 风格 | 规则 |
+| --- | --- |
+| `professional` | 平整、克制、适合文档 |
+| `visio` | 低粗糙度、锐利边、规整分区和工程连接 |
+| `handdrawn` / `roughjs` | Rough.js roughness/hachure 手绘渲染，仍保留原生元素 |
+| `blueprint` | 白底蓝线，适合电路和微架构 |
+| `presentation` | 更大字号和更强标题层级 |
+| 原生自由笔画 `draw/freedraw` | 手画/handdraw白板笔迹，保留点列与压力；不是另一个Rough.js profile |
+
+“手绘风格”不等于自由笔画；用户说 handdraw/手画笔迹时使用原生freedraw。`visio`不代表生成`.vsdx`，`roughjs`也不代表生成不可编辑图片。真实演示及可复制的录制prompt见[演示与GIF指南](skills/obsidian-excalidraw/references/showcase.md)。
+
+### 服务器调用本地绘图
+
+```mermaid
+flowchart LR
+  A[服务器上的 Agent + Skill + MCP] -->|SSH loopback 隧道| B[本地 Bridge + Obsidian Excalidraw]
+  B --> C[vault 中的可编辑画布]
+  C -->|PNG ImageContent| A
+```
+
+服务器负责理解需求、调用 Skill/MCP、读回摘要、接收 PNG 和决定迭代；本地桌面负责真实插件、vault、字体、图片资源和渲染。已有SSH连接的开发服务器无需GUI或X11。当前remote-deploy便捷注册面向OMP，其他Agent注册同一远端运行时，见[Agent接入说明](skills/obsidian-excalidraw/references/agent-setup.md)。服务器路径不能直接当宿主vault路径。
+
+next-ai-draw-io的 canvas-first、内容级编辑门、版本/缩略图和截图验证值得借鉴；具体比较见 [next-ai-draw-io参考](skills/obsidian-excalidraw/references/next-ai-draw-io.md)。
+
 仓库包含三部分：**Skill** 告诉 Agent 怎样工作；**MCP 服务**提供操作工具；**Obsidian 绘图脚本**在应用里构造元素、管理扩展并渲染。只安装 Skill 不会自动获得执行能力。
 
 ## 开始前
@@ -121,6 +153,7 @@ Agent-Drawing/mcp/Start-Agent-Drawing
 | Claude Code / Codex / OMP 配置、远端绘图、状态目录与更新 | [Agent 接入说明](skills/obsidian-excalidraw/references/agent-setup.md) |
 | 开发绘图脚本，通过 URI 运行并检查 PNG | [脚本执行参考](skills/obsidian-excalidraw/references/script-execution.md) |
 | 使用插件自带的 CLI，而非本包 MCP | [原生 CLI 参考](skills/obsidian-excalidraw/references/native-cli.md) |
+| next-ai-draw-io 对本项目的借鉴 | [比较参考](skills/obsidian-excalidraw/references/next-ai-draw-io.md) |
 | 版本变化 | [CHANGELOG](CHANGELOG.md) |
 
 ## 更新与安全边界

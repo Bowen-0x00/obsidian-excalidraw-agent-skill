@@ -1,6 +1,6 @@
 {
   "name": "obsidian-excalidraw-drawing-bundle",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "plugin_id": "obsidian-excalidraw-plugin-ymjr",
   "bootstrap": "mcp/Start-Agent-Drawing.md",
   "bridge": "mcp/Engine-Agent-Bridge.md",

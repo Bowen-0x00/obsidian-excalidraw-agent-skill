@@ -28,6 +28,8 @@ Mindmap Markdown导出Action读取bound text/原文、按发出arrow遍历子节
 
 代码是WaveDrom JSON/JSON5数据，不是任意JS。保留source；改code后清相关cache、按native测量适配carrier，等真实SVG/image加载后export。矩形是可编辑carrier，波形源可修改；不是每根波形线都自动变成独立原生可编辑line。PNG要实测波形、标签/总线数据，不把空矩形当成功；无运行时则报告缺依赖。
 
+Bridge 0.12.1的PNG导出复用真实WaveDrom Engine：缓存与当前code匹配且图像解码就绪才使用，否则有界等待实际SVG/image生成并在临时导出workbench捕获；失败返回complete=false与wavedrom资源原因。不修改原carrier/源数据来导出，不能依赖“首轮先空白、第二轮才显示”的时序。
+
 ## Git（用户原名保留）
 
 已调查的绘图脚本集合未发现Git专用目录/Engine/Action；不能宣称已支持Git版本管理脚本，也不能把git擅自改成gif。
