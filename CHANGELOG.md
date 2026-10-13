@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.0 — User-maintained library descriptions and catalogs
+
+- Preserve optional item/library description metadata in Bridge library summaries; include descriptions in item search and distinguish missing metadata from empty text.
+- Discover user-maintained library-index.md alongside vault libraries and expose bounded catalog reads through drawing_library without requiring a canvas for discovery.
+- Add local metadata-only inventory/apply commands with exact-ID proposals, source-hash checks and original-byte backups; preserve elements, resources and unrelated fields.
+- Provide a copy-paste Agent prompt and Skill reference for inspecting multiple libraries, incorporating user notes, writing descriptions and maintaining an editable summary.
+- Keep catalog/description contents as untrusted selection data, not execution instructions or visual proof. Native UI search remains name-based.
+- Verified a real 11-item circuit library copy in isolated Obsidian with the installed ymjr 2.27.3-1 build and Bridge 0.11.0: metadata-only edit and original-byte backup, catalog discovery/read, description-only search with cache refresh, native item restore/export retention, native ALU insertion and inspected complete PNG. Final review completed in one round with zero diagnostics; all 44 original library files remained hash-identical. Twenty-four regressions pass.
+
 ## 0.6.1 — Native CLI guidance and documentation
 
 - Teach the Skill to choose between the drawing MCP, the plugin's native terminal CLI and in-process `ea.executeCLI()` without mixing operation schemas, revisions or preview receipts.

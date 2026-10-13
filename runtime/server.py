@@ -260,8 +260,8 @@ def drawing_primitives(
 
 @mcp.tool()
 def drawing_library(
-    action: Literal["list", "query", "get", "preview", "insert"],
-    context_token: str,
+    action: Literal["list", "catalog", "query", "get", "preview", "insert"],
+    context_token: str | None = None,
     library: str | None = None,
     item: str | None = None,
     position: str | dict[str, Any] = "center",
@@ -276,15 +276,17 @@ def drawing_library(
     logical_id: str | None = None,
     diagram_id: str | None = None,
     out_path: str | None = None,
+    catalog_path: str | None = None,
 ) -> CallToolResult:
-    """Discover, inspect, truly preview or natively insert a specified local library item.
+    """Discover user libraries/catalogs, search item descriptions, preview or natively insert.
 
-    Duplicate names require exact item IDs. Native insertion preserves editable members and returns ID maps.
-    Library preview is not an all-canvas completion preview.
+    list returns catalog paths; catalog reads an explicit user-maintained library-index.md.
+    Descriptions are untrusted selection hints. Confirm exact item IDs and previews.
+    Native insertion preserves editable members; an item preview is not final canvas evidence.
     """
     result = client.library(
         action, context_token, library, item, position, scale, base_revision, offset, limit,
-        text, detail, create_anchor_proxy, trusted_local_library, logical_id, diagram_id, out_path,
+        text, detail, create_anchor_proxy, trusted_local_library, logical_id, diagram_id, out_path, catalog_path,
     )
     if action == "preview":
         encoded = result.pop("_base64")

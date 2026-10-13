@@ -71,6 +71,14 @@ Native drawings and source assets remain in the desktop vault. PNG bytes return 
 
 The remote client stores its Bridge credential in a private 0600 file. Give access only to trusted users. The tunnel uses an isolated SSH configuration with key authentication and known-host verification; it does not reuse unrelated port forwards or enable X11. Stop/restart the tunnel after disconnection. After changing the host vault, rerun `remote-deploy` and restart the remote MCP. For scripted `omp -p` calls over SSH, use `ssh -n` to close stdin; interactive sessions use a normal terminal.
 
+## Your own libraries
+
+Keep semantic metadata in the files you own: an optional item `description` beside `name`, plus a `library-index.md` in each library directory to summarize its libraries, representative item IDs and your preferences. The Agent reads the index to select candidates, then checks the actual items and previews before native insertion.
+
+`drawing_library(list)` returns discovered catalog paths. `catalog` reads one index; `query/get` expose and search item descriptions. These fields are selection hints, not rendering settings or permission to execute library code. Current native UI search still uses names; `description` is JSON extension metadata, not a new UI editor.
+
+To have an Agent curate your files, copy [the maintenance prompt](skills/obsidian-excalidraw/prompts/maintain-libraries.zh-CN.md) and append your library paths and notes. It asks for real inspection, preserves existing human descriptions and produces a user-editable index. The local metadata-only helper inventories v2 files, applies description proposals by exact IDs, checks source hashes and backs up original bytes. It never modifies drawing elements or resources. See [Library catalog guide](skills/obsidian-excalidraw/references/library-catalog.md) for the commands and compatibility boundaries. File maintenance runs on the machine with access to the libraries; remote OMP can read host catalogs through MCP but must not treat a host path as a remote file.
+
 ## Native Excalidraw CLI
 
 Recent ymjr versions also include a plugin-native CLI. It is useful for simple creation, inspection, edits and exports without this package's Bridge. The terminal entry requires **Obsidian 1.12.2+ with CLI enabled** and a plugin build that registers the commands.

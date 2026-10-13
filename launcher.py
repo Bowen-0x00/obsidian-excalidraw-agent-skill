@@ -92,6 +92,8 @@ def main() -> int:
     trial.add_argument("--filename", default="Drawing-Installation-Smoke")
     cli = commands.add_parser("cli", help="Run the full drawing CLI; options after -- are forwarded")
     cli.add_argument("arguments", nargs=argparse.REMAINDER)
+    metadata = commands.add_parser("library-maintain", help="Inspect local library files or apply reviewed description-only edits")
+    metadata.add_argument("arguments", nargs=argparse.REMAINDER)
     for name in ("remote-deploy", "remote-tunnel"):
         remote = commands.add_parser(name, help="Install a headless client or keep its SSH reverse tunnel open")
         remote.add_argument("--host", required=True, help="Existing SSH alias on this graphical host")
@@ -99,6 +101,11 @@ def main() -> int:
     args = parser.parse_args()
     if args.action == "serve":
         serve()
+        return 0
+    if args.action == "library-maintain":
+        forwarded = args.arguments[1:] if args.arguments[:1] == ["--"] else args.arguments
+        sys.argv = [str(ROOT / "runtime/library_metadata.py"), *forwarded]
+        runpy.run_path(str(ROOT / "runtime/library_metadata.py"), run_name="__main__")
         return 0
     if args.action == "cli":
         forwarded = args.arguments[1:] if args.arguments[:1] == ["--"] else args.arguments

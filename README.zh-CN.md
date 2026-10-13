@@ -71,6 +71,14 @@ uv run --frozen python launcher.py remote-tunnel --host Redhat --remote-port 281
 
 远端连接凭据保存在权限 0600 的私有文件中，只应授权可信用户。隧道使用独立 SSH 配置、密钥登录和 known-host 验证，不使用别名中其他端口转发，也不启用 X11。断线后重启隧道。本机切换 vault 后重新 `remote-deploy`，并重启远端 MCP。通过 SSH 脚本执行 `omp -p` 时使用 `ssh -n` 关闭 stdin；交互使用正常终端即可。
 
+## 用户自己的素材库
+
+语义信息放在用户维护的文件里：item 的 `description` 与原有 `name` 同级；每个库目录的 `library-index.md` 汇总库用途、代表item ID和用户偏好。Agent先读摘要筛选候选，再核对真实item、查看预览，最后原生导入。
+
+`drawing_library(list)` 返回发现的摘要路径，`catalog` 读取摘要，`query/get` 返回并检索item描述。它们只帮助选素材，不改变渲染，也不授权执行库内代码。当前原生UI搜索仍只读name，description是JSON扩展元数据，不是新增的UI编辑框。
+
+复制 [素材库维护prompt](skills/obsidian-excalidraw/prompts/maintain-libraries.zh-CN.md)，再追加自己的库目录和补充描述，即可让Agent清点、预览、保留人工描述、增补字段并生成可继续编辑的摘要。本机维护工具只按准确ID修改description，检查源hash并保存原字节备份，不改图元或资源。命令及兼容边界见 [库摘要参考](skills/obsidian-excalidraw/references/library-catalog.md)。文件维护应在能访问库的宿主执行；远端OMP可以通过MCP读宿主摘要，但不能把本机路径当远端文件。
+
 ## 插件原生 CLI
 
 较新的 ymjr 插件还提供原生 CLI，适合不经过本包 Bridge 的简单创建、读取、编辑和导出。终端入口要求 **Obsidian 1.12.2+、CLI 已启用**，且已安装插件版本注册了这些命令。

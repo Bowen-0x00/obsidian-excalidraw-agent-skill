@@ -33,6 +33,9 @@
 !/skills/obsidian-excalidraw/references/diagram-recipes.md
 !/skills/obsidian-excalidraw/references/native-features.md
 !/skills/obsidian-excalidraw/references/native-cli.md
+!/skills/obsidian-excalidraw/references/library-catalog.md
+!/skills/obsidian-excalidraw/prompts/
+!/skills/obsidian-excalidraw/prompts/maintain-libraries.zh-CN.md
 
 # Never stage runtime configuration, credentials or user output.
 .env
@@ -46,6 +49,7 @@ Agent-Bridge-Connection.json
 *.excalidrawlib
 artifacts/
 backups/
+*.metadata-backup
 __pycache__/
 .venv/
 *.png

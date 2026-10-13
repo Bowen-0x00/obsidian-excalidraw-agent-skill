@@ -502,18 +502,23 @@ class DrawingClient:
                      "strokeColor": profile["text"]["strokeColor"]}
         return plan_primitives(self, context_token, items, style)
 
-    def library(self, action: str, context_token: str, library: str | None = None, item: str | None = None,
+    def library(self, action: str, context_token: str | None = None, library: str | None = None, item: str | None = None,
                 position: str | dict = "center", scale: float = 1, base_revision: str | None = None,
                 offset: int = 0, limit: int = 100, text: str | None = None, detail: str = "summary",
                 create_anchor_proxy: bool = True, trusted_local_library: bool = False,
-                logical_id: str | None = None, diagram_id: str | None = None, out_path: str | None = None) -> dict:
-        paths = {"list": "/v3/libraries/list", "query": "/v3/libraries/items/query",
-                 "get": "/v3/libraries/items/get", "preview": "/v3/libraries/items/preview",
-                 "insert": "/v3/libraries/insert"}
+                logical_id: str | None = None, diagram_id: str | None = None, out_path: str | None = None,
+                catalog_path: str | None = None) -> dict:
+        paths = {"list": "/v3/libraries/list", "catalog": "/v3/libraries/catalog",
+                 "query": "/v3/libraries/items/query", "get": "/v3/libraries/items/get",
+                 "preview": "/v3/libraries/items/preview", "insert": "/v3/libraries/insert"}
         if action not in paths:
-            raise ValueError("Library action must be list/query/get/preview/insert")
+            raise ValueError("Library action must be list/catalog/query/get/preview/insert")
         payload = {"contextToken": context_token}
-        if action != "list":
+        if action == "catalog":
+            if not catalog_path:
+                raise ValueError("An explicit catalog_path returned by library list is required")
+            payload["catalogPath"] = catalog_path
+        elif action != "list":
             if not library:
                 raise ValueError("An explicit library source or unique installed name is required")
             payload["library"] = library
@@ -526,6 +531,8 @@ class DrawingClient:
         if action == "get":
             payload["detail"] = detail
         if action in ("preview", "insert"):
+            if not context_token:
+                raise ValueError("Library preview/insertion requires an explicit canvas context_token")
             payload["scale"] = scale
             payload["trustedLocalLibrary"] = trusted_local_library
         if action == "insert":
