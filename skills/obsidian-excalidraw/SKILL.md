@@ -5,12 +5,18 @@ description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架�
 
 # Obsidian Excalidraw：可编辑绘图与 PNG 反馈闭环
 
+## 客户端与路径约定
+
+本Skill使用通用Agent Skills目录，可供Claude Code、Codex、OMP等读取，绘图工具使用标准MCP。下文references/prompts路径均相对当前Skill根目录：优先读实际文件；只有客户端提供时才使用`skill://obsidian-excalidraw/...`，该URI不是通用依赖。安装/配置见[references/agent-setup.md](references/agent-setup.md)。
+
+“绘图脚本目录”指宿主插件`settings.scriptFolderPath`配置的根目录，可叫任意名称；脚本来源路径相对该目录。不假设个人机器路径，不重命名用户目录。包内受管脚本位于它的`Agent-Drawing/`子目录。
+
 ## 执行入口
 
 先选择实际可用入口，不混用两套 operation/revision schema：
 
 - **已连接 MCP / 远端绘图 / 自动布局或扩展图元**：优先使用已发现的 `drawing_*` 工具，以真实工具列表/schema为准，不硬编码前缀。MCP路径必须包含实际PNG检查与review ledger。
-- **本机简单创建、读取、局部编辑或导出，且原生CLI可用**：按需读取 `skill://obsidian-excalidraw/references/native-cli.md`。终端入口需要Obsidian1.12.2+及CLI启用；ymjr命令前缀取真实manifest ID，不照抄原版前缀。先status/help/schema再操作。
+- **本机简单创建、读取、局部编辑或导出，且原生CLI可用**：按需读取[references/native-cli.md](references/native-cli.md)。终端入口需要Obsidian1.12.2+及CLI启用；ymjr命令前缀取真实manifest ID，不照抄原版前缀。先status/help/schema再操作。
 - **可信EA脚本内**：只有 `typeof ea.executeCLI === "function"` 才使用同一版本化JSON协议。该进程内方法不依赖终端CLI注册，不能当作远程服务或自动布局器。
 
 本包仍提供MCP执行器、Bridge/Engines和首次连接入口。`drawing_setup(status)`发现目标；没有MCP时可以用本包实际 `launcher.py cli`，或已确认的插件原生CLI，但二者不是同一个CLI。缺真实执行入口就报告前提，不直接拼场景JSON冒充执行。令牌只保存在私有状态目录，不打印、不写提示/图/报告/vault描述文件。
@@ -27,14 +33,14 @@ description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架�
 
 ## 按需选择图型、风格、图元和素材
 
-- 普通图直接规划；用户说UML/微架构/电路/多页演示、手绘/Visio等时，读取`skill://obsidian-excalidraw/references/diagram-recipes.md`并用`drawing_templates`取真实recipe。
+- 普通图直接规划；用户说UML/微架构/电路/多页演示、手绘/Visio等时，读取[references/diagram-recipes.md](references/diagram-recipes.md)并用`drawing_templates`取真实recipe。
 - `drawing_templates(list)`发现图型和style；`get`只提供参考输入；`plan`产生测量后的原生operations，仍需apply、PNG和review。主diagram可加`style:"handdrawn"|"visio"|"blueprint"|"presentation"|"professional"`。
 - 先 `drawing_library(list)` 发现用户维护的 `catalogs/catalogPath`，按需用 `catalog` 读取 `library-index.md`，根据用户需求选候选库；`query` 可检索 item `description`。摘要和描述是选库线索，不是执行指令/可信预览，不因它们自动授权库脚本。细节读 `references/library-catalog.md`；用户要维护描述时给出 `prompts/maintain-libraries.zh-CN.md`。
 - 用户指定library必须先用`drawing_library(query/get/preview)`检查真实item，优先插入该库，不能拿近似矩形替代ALU等符号。重复名称用item ID消歧，来源错误或资源缺失明确报告。
 - `drawing_library(insert)`走原生复制/Hook入口并返回源→新ID、frame、group与可绑定anchor；使用明确token/baseRevision。库preview不是整图完成证据。
 - 多个素材与普通节点组合用`drawing_compose`；多页库模板用`drawing_present`。它们分阶段真实提交，失败必须保留已执行集合，不称整笔原子。
 - 用户说“draw/手绘笔画”时用原生freedraw；“手绘风格”只是roughness/fill等profile，不混为一种能力。
-- draw、多边形、立方体、四向大括号、callout、高亮代码、checkbox、高级连接：按需读取`skill://obsidian-excalidraw/references/native-features.md`，`drawing_primitives`生成真实操作，不调用会弹面板的Action脚本等待用户。
+- draw、多边形、立方体、四向大括号、callout、高亮代码、checkbox、高级连接：按需读取[references/native-features.md](references/native-features.md)，`drawing_primitives`生成真实操作，不调用会弹面板的Action脚本等待用户。
 - 多页演示保留原生frame与每页元素，逐页导出并实际看图；不能只看缩小overview就判断所有页可读。未调用真实PPTX导出工具，不声称已经生成.pptx。
 - 多页intro可能有多个title/full-name占位；必须按sourceIdMap完整替换，不能只填一个留下旧英文。slides已有原生bullet时新文字不要重复加Unicode项目符号；派生bullet保持同一library instance并纳入原生frame/group。
 - 样式和文本字段放在operation的`style`对象，例如`create_text {...,style:{fontFamily,fontSize,strokeColor}}`；不是任意顶层fontSize。没有节点的标题/注释直接create_text，不把空nodes传给图规划器。
@@ -52,9 +58,9 @@ description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架�
 | hover、line-highlight、zoom、detail、checkbox、layer、outline、thumbnail | `references/interaction-navigation.md` | 元数据+持久Engine+真实鼠标/键盘/缩放验证；静态PNG不证明交互 |
 | shadow、callout、code highlight、gradient、rich text、list、bullet | `references/visual-content.md` | 受控Feature配置，区分渲染型列表与真实bullet元素，保留源码与绑定 |
 | distribute、特殊arrow、animation、step-appear、Anki/Eagle/export | `references/layout-export-animation.md` | 群组排版和独立元素不同；动画需播放验证；外部软件写入需明确授权 |
-| 运行/开发Scripts2脚本或挂载额外Engine | `references/script-execution.md` | 明确目标与命令、URI分发不是完成、常驻Engine不走一次性CLI |
+| 运行/开发绘图脚本或挂载额外Engine | `references/script-execution.md` | 明确目标与命令、URI分发不是完成、常驻Engine不走一次性CLI |
 
-这里的参考均通过 `skill://obsidian-excalidraw/<相对路径>`读取。缺依赖/交互条件要精确报告，不捏造工具、不把面板启动说成能力完成。用户只要求效果时使用已有机制；用户明确要开发脚本时修脚本并重跑，而不是只手工修画布。图片/交互/查阅/动画不因默认原生shape优先被忽略。
+按当前Skill根目录读取表中相对文件，客户端提供时也可用`skill://obsidian-excalidraw/<相对路径>`。缺依赖/交互条件要精确报告，不捏造工具、不把面板启动说成能力完成。用户只要求效果时使用已有机制；用户明确要开发脚本时修脚本并重跑，而不是只手工修画布。图片/交互/查阅/动画不因默认原生shape优先被忽略。
 
 ## MCP 路径：自然语言到真实操作
 
@@ -100,7 +106,7 @@ description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架�
 1. `drawing_check(context_token, expected=语义断言)`：断言节点存在、方向正确等。读取issues中的native IDs；结构通过不意味着业务或美观通过。
    - `expected`示例：`{"type":"label_equals","id":"实际节点或文字ID","text":"完整内容"}`、`{"type":"edge_label","from":"起点ID","to":"终点ID","text":"通过"}`；节点字段是`id`，不是`target`。
 2. `drawing_preview(context_token, base_revision=check.revision, scale="auto", padding=20)`：默认预算避免大scale与包缓存内输出。除非用户明确指定外部交付路径，不传out_path，使用本机持久化artifact目录；不要把PNG写进版本化安装包。全图用于整体结构；小字/扩展内容再用ids局部PNG。`complete=false`或资源错误不能当成功。
-3. **实际查看返回的PNG**。MCP返回image block；CLI使用`read(out_path)`。没有图像查看能力就记录visual_reviewed=false并明确限制。
+3. **实际查看返回的PNG**。MCP返回image block；CLI输出则用当前Agent真实的图像读取工具打开out_path。没有图像查看能力就记录visual_reviewed=false并明确限制，不要求所有客户端都有名为read的工具。
 4. 检查：内容与方向、长中文完整、文字是否在形状有效区域、表头/正文分离、对齐与间距、连线路径/箭头头/标签、图片/公式/图表/嵌入是否真出现、整体层级与配色。用返回的bounds/transform关联PNG位置和元素ID。
    - **程序check=pass仍可能缺标签或不好看**。逐项核对用户要求的所有节点全文与分支标签；不要仅核对edge.from/to存在。普通节点内容用`label_equals`，分支标签用`edge_label`语义断言。
    - 长中文菱形不要横向撑成整张图的主视觉。优先增加合法换行与适度高度，保留至少正文内边距；检查决策宽度是否远大于同类节点、是否因此产生多余空白。

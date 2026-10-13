@@ -6,7 +6,7 @@
 
 1. 按用户语义搜索图片，优先官方/开放授权来源。记录来源网页、直接资源URL、作者/许可（不确定就说明），不是把搜索缩略图当原始资源。不要绕过登录/付费/站点访问限制。
 2. 获取实际图片字节，确认HTTP响应、Content-Type、解码尺寸与真实内容；网页HTML/反爬提示不是图片。下载使用Agent已有HTTP/浏览器工具或宿主可信EA `ea.obsidian.requestUrl`，不要在绘图工具不存在下载API时编造调用。
-3. 默认保存真实附件到宿主vault可见目录，用唯一文件名或内容hash，避免覆盖现有附件。远端Agent下载到Redhat的文件不是宿主资源，需SSH/SCP传到宿主或通过可信宿主脚本`vault.createBinary`保存；不能把远端绝对路径传给宿主。
+3. 默认保存真实附件到宿主vault可见目录，用唯一文件名或内容hash，避免覆盖现有附件。远端Agent下载的文件不是宿主资源，需SSH/SCP传到宿主或通过可信宿主脚本`vault.createBinary`保存；不能把远端绝对路径传给宿主。
 4. SVG要检查脚本、事件属性、foreignObject、外部资源，来源不明时优先可信PNG/JPEG/WebP版本；无授权不执行其代码。保留原始来源说明，不把嵌入图片当可修改的矢量子元素。
 5. 用真实API插入，保留`fileId`/附件来源。尺寸按自然比例缩放，考虑布局边距；明确裁剪用户所需内容，不默认拉伸。
 6. 读回image元素/资源就绪，保存后再导出PNG并实际看图；背景透明、EXIF旋转、远端解码、丢资源都可能导致画面与预期不同。
@@ -50,4 +50,4 @@ requestUrl参数来自可信数据，不是任意JS。保存前应检查字节/�
 
 GIF单张PNG只能显示一帧，多帧控制见[special-diagrams](special-diagrams.md)。LaTeX是含源公式的image资源，不拿普通文字或截图假装公式；先确认Extras MathJax。Markdown/PDF/SVG链接可能触发插件专用loader和远端访问，先读真实API/资源条件，不能把页面占位当正文。插入图片不会天然生成点击导航/hover，按需另设原生link或已确认的交互metadata。
 
-来源：插件`ExcalidrawAutomate.addImage`/`EmbeddedFilesLoader`、本包Bridge`createImage`与Native CLI`image`操作；网络获取是Agent或可信宿主HTTP能力，不是Scripts2新增下载引擎。
+来源：插件`ExcalidrawAutomate.addImage`/`EmbeddedFilesLoader`、本包Bridge`createImage`与Native CLI`image`操作；网络获取是Agent或可信宿主HTTP能力，不是独立的绘图下载引擎。

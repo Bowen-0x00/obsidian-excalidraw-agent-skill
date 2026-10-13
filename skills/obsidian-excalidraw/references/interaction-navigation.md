@@ -1,6 +1,6 @@
 # 交互、导航与查阅能力
 
-这些能力大多由Scripts2的常驻Engine拦截鼠标/键盘/缩放/渲染Hook实现。写入customData只是配置，不自动挂载Engine。静态PNG不能证明交互生效。
+这些能力大多由宿主绘图脚本的常驻Engine拦截鼠标/键盘/缩放/渲染Hook实现。写入customData只是配置，不自动挂载Engine。静态PNG不能证明交互生效。
 
 ## 能力矩阵
 
@@ -68,4 +68,4 @@ Outline Engine的三种真实模式是`frame`、`text - level`、`text - text`�
 Thumbnail原Engine的DOM listener把`handleMouseEvents(event,ea,api)`直接传给addEventListener，浏览器只传event，函数中的ea/api没有上下文；拖红框导航需实际修正对应宿主版本的闭包绑定，不把仅面板存在称导航通过。当前测试没有修改用户原Engine。
 
 
-来源：`Scripts2/hover/Feature-Hover-Engine.md`、`Action-Toggle-Hover.md`；`line-highlight/Feature-Line-Highlight-Engine.md`；`zoom/Feature-Zoom-Hide-Engine.md`；`detail/Feature-Detail-Engine.md`和`Action-Toggle-Detail.md`；`checkbox/Feature-Checkbox-Engine.md`；`layer/Feature-Layer-Engine.md`；`outline/Feature-Outline-Engine.md`；`thumbnail/Feature-Thumbnail-Engine.md`。交互执行边界见[script-execution](script-execution.md)。
+来源（相对绘图脚本目录）：`hover/Feature-Hover-Engine.md`、`Action-Toggle-Hover.md`；`line-highlight/Feature-Line-Highlight-Engine.md`；`zoom/Feature-Zoom-Hide-Engine.md`；`detail/Feature-Detail-Engine.md`和`Action-Toggle-Detail.md`；`checkbox/Feature-Checkbox-Engine.md`；`layer/Feature-Layer-Engine.md`；`outline/Feature-Outline-Engine.md`；`thumbnail/Feature-Thumbnail-Engine.md`。交互执行边界见[script-execution](script-execution.md)。

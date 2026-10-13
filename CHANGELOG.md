@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.8.0 — Scripts2 capability coverage
+## 0.8.1 — Clear multi-Agent setup and portable terminology
+
+- Reorganized both READMEs around prerequisites, Agent installation, Obsidian connection, natural-language use and user libraries; OMP is an example, not a dependency.
+- Added source-backed Claude Code/Codex Skill and stdio MCP instructions, with client-specific commands, state-sharing rules and the current OMP-specific remote deployment boundary.
+- Replaced the personal script folder name in public guidance with drawing script directory and relative source paths; actual host directories and runtime compatibility defaults are unchanged.
+- Made Skill references portable local paths, with skill:// access optional for clients that provide it.
+- Documented library-update behavior: requery current items and refresh user-maintained metadata/catalogs; do not copy user .excalidrawlib files into the Skill.
+
+## 0.8.0 — Drawing-script capability coverage
 
 - Added Skill references for trusted URI/EA execution, web-image acquisition and native asset insertion, interaction/navigation engines, visual effects/lists, mindmaps/WaveDrom/GIF/Git boundaries, layout/arrow/animation and Anki/Eagle export.
 - Documented which features are Bridge adapters versus host-only Engines/UI actions, including hover, line highlight, zoom hide, detail, checkbox, layer, outline, thumbnail, Smart List, Bullet, shadow, callout, code highlight and animation.

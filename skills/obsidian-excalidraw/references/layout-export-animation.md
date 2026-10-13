@@ -8,7 +8,7 @@
 {"op":"distribute","targets":["a","b","c"],"direction":"horizontal","includeBoundText":true}
 ```
 
-Bridge horizontal/vertical算法按外包围盒总跨度与总尺寸计算等边距；原`Scripts2/distribute/Action-Distribute-Horizontally/Vertically.md`则先BFS合并group/container/bound text为不可分割实体、按视觉中心等距、首尾不动，还处理单实体在frame中居中。两者不是等价实现，不能把MCP独立元素distribute用于复杂群组后声称保留全部内部布局。
+Bridge horizontal/vertical算法按外包围盒总跨度与总尺寸计算等边距；绘图脚本`distribute/Action-Distribute-Horizontally/Vertically.md`则先BFS合并group/container/bound text为不可分割实体、按视觉中心等距、首尾不动，还处理单实体在frame中居中。两者不是等价实现，不能把MCP独立元素distribute用于复杂群组后声称保留全部内部布局。
 
 复杂组先显式求group/container/bound-text闭包、计算每组真实bounds，再translate整组并去重绑定text位移，或在受信宿主复用原Action的算法。文字已跟随容器移动时不能二次移动；箭头绑定/锁定图元须读回校验。对角线/文字排版看`Action-Distribute-Diagonally.md`与`Action-Distribute-Text.md`，不造第三个direction；没有对应adapter就受信脚本复用，不假称Bridge支持。paste auto-distribute是粘贴Hook，不能当全画布自动布局。
 
@@ -48,4 +48,4 @@ fixedLength/measure特殊Engine不在默认bundle内；按[script-execution](scr
 - **Eagle**：`Action-Export-Image-To-Eagle.md`纯图片用本机文件`/api/item/addFromPath`，混合图元用SVG dataURL的`/api/item/addFromURLs`；`Feature-Export-Eagle.md`也提供右键项。真实token从用户私有配置读取，不能把脚本里硬编码示例token复制到Skill或报告。HTTP ok不等于库item写入已核对，需真实返回/目标库确认；用户明确授权才发送。
 - Embeddable DOM导出依赖`Feature-Export-Embeddable`真实capture；网络或DOM资源失败应incomplete，不用空边框冒充。外部应用联动不在drawing_preview的默认副作用内。
 
-来源：Scripts2 `distribute/*`、`arrow/*`、`animation/*`、`step-appear/*`、`export/*`；Bridge `distribute/set_arrow_style`。接口版本和外部应用条件须在任务环境实际发现。
+来源（相对绘图脚本目录）：`distribute/*`、`arrow/*`、`animation/*`、`step-appear/*`、`export/*`；Bridge `distribute/set_arrow_style`。接口版本和外部应用条件须在任务环境实际发现。

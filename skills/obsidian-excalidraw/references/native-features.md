@@ -20,7 +20,7 @@
 
 或明确`points:[[0,0],[180,0],[140,90],[30,120]]`；执行层闭合首尾，原生类型line+polygon=true。
 
-来源：`Scripts2/generate/Action-Generate-Polygon.md:75–129`。原Action的自定义边长按等转角走前n−1边再闭合，并不能保证最后边长满足输入。本接口不伪称支持任意给定边长约束；非正多边形用实际vertices，regular用真实几何边长公式。
+来源：绘图脚本`generate/Action-Generate-Polygon.md:75–129`。原Action的自定义边长按等转角走前n−1边再闭合，并不能保证最后边长满足输入。本接口不伪称支持任意给定边长约束；非正多边形用实际vertices，regular用真实几何边长公式。
 
 ## 立方体/长方体
 
@@ -36,7 +36,7 @@
 {"kind":"brace","id":"grouping","side":"bottom","targets":["真实节点ID1","真实节点ID2"],"gap":10,"label":"数据通路"}
 ```
 
-或`box:{x,y,width,height}`或明确x/y/length。side=`top/bottom/left/right`。来源四个`Scripts2/brace/Action-Add-*-Brace-Path.md`，复用Q/L路径，top/left的负坐标整体归一化到viewBox，不只改carrier bbox。使用单个原生line+svgPathShape/svgViewBox，保持shape编辑与样式；不是图片。
+或`box:{x,y,width,height}`或明确x/y/length。side=`top/bottom/left/right`。来源四个绘图脚本`brace/Action-Add-*-Brace-Path.md`，复用Q/L路径，top/left的负坐标整体归一化到viewBox，不只改carrier bbox。使用单个原生line+svgPathShape/svgViewBox，保持shape编辑与样式；不是图片。
 
 任意SVG path符号/可复用组件的通用流程见[svg-components](svg-components.md)：复用真实Digital/Microarch生成脚本，DOM测量、归一化校验、源viewBox与目标尺寸分离、line carrier和独立文字/anchor分组。不是给drawing_primitives添加不存在的kind=svg；普通path使用drawing_apply的create_svg_path。
 

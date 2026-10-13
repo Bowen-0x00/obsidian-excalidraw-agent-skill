@@ -1,6 +1,6 @@
-# Scripts2 能力地图与缺口
+# 绘图脚本能力地图与缺口
 
-这是对真实脚本目录和当前Bridge的对照，不把“能设想”写成现有API。默认bundle只部署bundle.json列出的Engines；本参考中的原宿主可选脚本要先发现、审查再运行，用户自定义脚本与设置保持不变。
+这是对宿主绘图脚本和当前Bridge的对照，不把“能设想”写成现有API。本文脚本路径相对插件配置的绘图脚本目录；默认bundle只部署bundle.json列出的Engines，其他可选脚本须先发现、审查再运行，用户自定义脚本与设置保持不变。
 
 | 能力组 | 之前Skill缺口 | 当前推荐入口/参考 |
 |---|---|---|
@@ -20,7 +20,7 @@
 
 ## 额外重要能力：保留已有机制，按需发现
 
-- **Table**：Scripts2 `table/Feature-Table-Engine.md`、`Feature-Table-Paste-MD.md`、Action Generate/Modify。Bridge已有`create_table`和table metadata，cell root/row/col/rowNum/colNum由执行器维护；矩形+bound text保留编辑。单元格不同字体/长中文先测量，不能只改bbox；Markdown粘贴Hook与显式构建不同。
+- **Table**：绘图脚本目录下`table/Feature-Table-Engine.md`、`Feature-Table-Paste-MD.md`、Action Generate/Modify。Bridge已有`create_table`和table metadata，cell root/row/col/rowNum/colNum由执行器维护；矩形+bound text保留编辑。单元格不同字体/长中文先测量，不能只改bbox；Markdown粘贴Hook与显式构建不同。
 - **Swimlane/ECharts/LaTeX**：已有主Skill流程及adapter，继续按runtime discovery执行。用户称swimeline时保留意图，实际机制为swimlane/isContainer；ECharts传JSON options，LaTeX需真实Extras MathJax，不拿图片/普通文本冒充。
 - **Link/follow**：`link/Feature-Link-Engine.md`处理onLinkClick、同文件`#^group=...`跳转及历史，`Action-Return-Link-Origin.md`回退；`follow/Action-Follow-Arrow-Forward/Backward.md`按实际绑定导航。原生link可以通过已有patch_element设置，但增强导航需Engine和真实view；不要为消除导航问题删除业务边。
 - **No-bind/advanced connector**：`connection/Action-Toggle-No-Bind.md`是面板配置nobind，和显式connect/rebind操作不同。用户要禁止吸附时读实际字段/内核识别，不默认禁用所有绑定；连接优先native-features高级连接。
@@ -33,4 +33,4 @@
 
 代表性实际smoke：网络官方图片→附件→原生image→PNG；WaveDrom、callout、code highlight、shadow/checkbox图；checkbox真实Shift点击、hover、mindmap布局和折叠、zoom跨区间hide。箭头动画overlay像素跨帧变化与disable停止已实际观察。其余Engine/外部应用执行按环境条件说明；不声称全部脚本都已跑通。
 
-运行中发现的真实宿主限制记录在interaction-navigation；这些是用户代码的情况，不应为了让Skill看起来“全支持”掩盖。默认不修改原Scripts2，不自动授信/autorun，也不把缺入口写成已实现MCP。
+运行中发现的真实宿主限制记录在interaction-navigation；这些是用户代码的情况，不应为了让Skill看起来“全支持”掩盖。默认不修改用户绘图脚本，不自动授信/autorun，也不把缺入口写成已实现MCP。

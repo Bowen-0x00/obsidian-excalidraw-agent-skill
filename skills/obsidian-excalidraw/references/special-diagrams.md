@@ -2,7 +2,7 @@
 
 ## Mindmap
 
-真实能力来自`Scripts2/mindmap/Feature-Mindmap-Engine.md`与`Action-Create/Import/Detach/Export-Mindmap-*`。Engine提供折叠图标、Tab/Enter新节点、方向键导航、空格编辑及增删节点后的布局；`window.MindmapAPI.runLayout(sceneElements, commitToHistory=false, activeEa)`是实际公开脚本入口。
+真实能力来自绘图脚本目录下`mindmap/Feature-Mindmap-Engine.md`与`Action-Create/Import/Detach/Export-Mindmap-*`。Engine提供折叠图标、Tab/Enter新节点、方向键导航、空格编辑及增删节点后的布局；`window.MindmapAPI.runLayout(sceneElements, commitToHistory=false, activeEa)`是实际公开脚本入口。
 
 Bridge现有mindmap adapter支持set/clear_feature，目标不限type，配置包括`status/root/parent/level/settings/curveArrow`；这只是元数据，不会自动从自然语言造出整个树。创建时先用原生node和arrow API构造树，读回真实ID，再给节点设置root/parent/level。避免跨图悬空引用和循环父子关系，保留双向绑定。
 
@@ -20,7 +20,7 @@ Mindmap Markdown导出Action读取bound text/原文、按发出arrow遍历子节
 
 ## WaveDrom / wave-drom
 
-`Scripts2/wave-drom/Feature-Wavedrom-Engine.md`内置WaveDrom运行时，按`customData.wavedrom=true`与`customData.code`渲染波形，并缓存SVG/Image。Action Manager是编辑面板，不是无交互创建API。Bridge已有`wavedrom` adapter：先创建透明rectangle，再设置源代码：
+`wave-drom/Feature-Wavedrom-Engine.md`内置WaveDrom运行时，按`customData.wavedrom=true`与`customData.code`渲染波形，并缓存SVG/Image。Action Manager是编辑面板，不是无交互创建API。Bridge已有`wavedrom` adapter：先创建透明rectangle，再设置源代码：
 
 ```json
 {"op":"set_feature","feature":"wavedrom","targets":["waveBoxNativeId"],"config":{"code":"{ signal: [{ name: 'clk', wave: 'p......' }, { name: 'data', wave: 'x.345x.', data: ['A','B','C'] }] }"}}
@@ -30,13 +30,13 @@ Mindmap Markdown导出Action读取bound text/原文、按发出arrow遍历子节
 
 ## Git（用户原名保留）
 
-Scripts2完整目录与命名检索中未发现Git专用目录/Engine/Action；不能宣称已支持Git版本管理脚本，也不能把git擅自改成gif。
+已调查的绘图脚本集合未发现Git专用目录/Engine/Action；不能宣称已支持Git版本管理脚本，也不能把git擅自改成gif。
 
-若用户指Git历史/分支图：Agent可在用户明确仓库中只读真实`git log --graph`/提交父子数据，再用普通原生节点和箭头表达commit/branch/merge关系；短hash标签对应真实commit，merge保留多个parent。这是Git数据→绘图的工作流，不是Scripts2已有Git adapter。禁止擅自commit/push/rebase/reset或修改仓库，图形结果仍经PNG确认。用户明确Git含义再选语义，常规能力发现可以先完成而不打断其他功能。
+若用户指Git历史/分支图：Agent可在用户明确仓库中只读真实`git log --graph`/提交父子数据，再用普通原生节点和箭头表达commit/branch/merge关系；短hash标签对应真实commit，merge保留多个parent。这是Git数据→绘图的工作流，不是现有绘图脚本的Git adapter。禁止擅自commit/push/rebase/reset或修改仓库，图形结果仍经PNG确认。用户明确Git含义再选语义，常规能力发现可以先完成而不打断其他功能。
 
 ## GIF（实际另有此能力）
 
-`Scripts2/gif/Action-Toggle-GIF.md`写`customData.gif={index:0,frameCount:...}`并清imageCache；`Feature-GIF-Engine.md`提供键盘步进和悬浮UI。输入应是真实GIF资源，插件底层解码/多帧缓存需就绪，修改index不是GIF文件本身被重新编码。
+`gif/Action-Toggle-GIF.md`写`customData.gif={index:0,frameCount:...}`并清imageCache；`Feature-GIF-Engine.md`提供键盘步进和悬浮UI。输入应是真实GIF资源，插件底层解码/多帧缓存需就绪，修改index不是GIF文件本身被重新编码。
 
 MCP可插入真实image并保留来源，GIF元数据与Engine需受信宿主配置；本包没有gif FEATURE_SPEC，不造`set_feature gif`。默认PNG仅证明当前一帧；逐帧/播放需真实view验证，不能声称导出PNG保存了动画。原图、源GIF和交互状态分别保留。
 

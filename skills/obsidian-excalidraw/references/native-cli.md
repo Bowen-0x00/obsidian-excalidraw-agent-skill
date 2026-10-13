@@ -6,7 +6,7 @@
 
 | 当前环境 | 使用方式 |
 | --- | --- |
-| 已连接本包 MCP，尤其 `mode=remote` | 继续用 `drawing_*`；不要在 Redhat 上调用不存在的本机 Obsidian 可执行文件 |
+| 已连接本包 MCP，尤其 `mode=remote` | 继续用 `drawing_*`；不要在无GUI远端调用不存在的宿主 Obsidian 可执行文件 |
 | 在运行 Obsidian 的本机，有插件原生 CLI | 简单文件操作可直接调用原生命令，先读取 `status`、`help`、`schema` |
 | 在可信 EA 脚本中，插件有 `ea.executeCLI` | 调用同一 JSON 协议；它不是一个终端程序，也不是远程监听服务 |
 | 没有原生 CLI，也没有可用 MCP | 明确报告前提缺失；不能直接拼完整场景 JSON 冒充可靠执行 |
@@ -96,7 +96,7 @@ obsidian vault="目标vault" obsidian-excalidraw-plugin-ymjr:read path="Drawings
 obsidian vault="目标vault" obsidian-excalidraw-plugin-ymjr:export path="Drawings/Flow.excalidraw.md" source=live out="Drawings/Flow.png" requestId=preview-1 scale=1 padding=20
 ```
 
-- PNG 写到明确的宿主 vault `out`，并返回 `data.path/width/height/bytes/revision/source`。它不返回 MCP ImageContent，也不会把文件自动送到 Redhat；远端继续用 `drawing_preview`。
+- PNG 写到明确的宿主 vault `out`，并返回 `data.path/width/height/bytes/revision/source`。它不返回 MCP ImageContent，也不会自动把文件传给远端Agent；远端继续用 `drawing_preview`。
 - 已有输出必须明确 `overwrite=true`；不能替换图、请求文件或源资源。live export 不会隐式保存 drawing。
 - Native PNG scale 0.1–4；当前原生导出预算为 1600 万像素、每边 16384 像素。这是该接口的代码限制，不是所有 Excalidraw/Bridge 渲染器的通用上限。先 scale=1，按 bounds 和返回尺寸控制，必要时用 `area` 做局部图。
 - 真正读取 PNG 检查中文全文、文字容器、方向、分支标签、交叉、资源和颜色；成功回执不等于视觉通过。

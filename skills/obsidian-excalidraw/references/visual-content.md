@@ -51,4 +51,4 @@ Smart List的安全更新可用受信脚本：读取选中元素→copy到EA→m
 
 所有视觉效果遵循：原生编辑性优先；Feature元数据和Engine依赖记录；check→PNG→实际看图。不存在真实adapter的功能用[script-execution](script-execution.md)和用户授权的受信EA脚本，不能把面板按钮包装成无交互MCP。
 
-来源：Bridge `FEATURE_SPECS`中的`shadow/callout/code_highlight/rich_text/gradient`；`Scripts2/shadow`、`callout`、`code-highlight`、`list/Feature-Smart-List-Engine.md`、`generate/Feature-Bullet-Engine.md`及`native-features.md`。
+来源：Bridge `FEATURE_SPECS`中的`shadow/callout/code_highlight/rich_text/gradient`；绘图脚本目录下`shadow`、`callout`、`code-highlight`、`list/Feature-Smart-List-Engine.md`、`generate/Feature-Bullet-Engine.md`及`native-features.md`。

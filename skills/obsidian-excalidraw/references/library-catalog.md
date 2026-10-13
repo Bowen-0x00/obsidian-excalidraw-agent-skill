@@ -48,6 +48,13 @@ Skill 只提供读取与维护规则，不内置用户的素材内容，也不�
 
 list只自动发现vault中库文件同目录的 `library-index.md`。库在vault之外时，本机Agent可用文件read读取旁边的摘要，远端不会自动获得宿主外部任意Markdown；要供远端读取，可将摘要放进vault的可见库目录并用返回路径调用catalog。
 
+## 本地库更新后需要同步什么
+
+用户`.excalidrawlib`是运行时资源，不复制进Skill、不分发用户素材。增删/重命名item、改path/样式/description后，重新list/query/get/preview当前库；不能沿用上轮的item数量、候选ID或预览。原name/ID仍有效时不必修改通用recipe；有重复/缺失则按当前exact ID修正本次调用，不给固定库做特例。
+
+如果用户维护了`library-index.md`，库变更后检查它记录的hash、item数、代表ID和审查范围；过时则按授权更新，人工意见保持。不存在摘要时直接查询真实库，不为回答“是否需要同步”擅自编写描述或创建catalog。仅接口/渲染格式改变时更新Skill或adapter；历史验证中的旧库数量不是当前库清单。
+
+
 ## 摘要建议格式
 
 ```markdown
@@ -88,6 +95,6 @@ apply只修改description，保留不认识的字段、精确数字、图元、f
 
 ## 可复制的维护 prompt
 
-读取本Skill的 `skill://obsidian-excalidraw/prompts/maintain-libraries.zh-CN.md`（[prompt文件](../prompts/maintain-libraries.zh-CN.md)），复制全文，再追加自己的库目录/文件清单和补充描述。Agent会清点→预览→写description提案→安全应用→读回验证→生成/更新摘要，并列出未审查项。
+读取本Skill中的[prompts/maintain-libraries.zh-CN.md](../prompts/maintain-libraries.zh-CN.md)，复制全文，再追加自己的库目录/文件清单和补充描述；OMP也可用`skill://obsidian-excalidraw/prompts/maintain-libraries.zh-CN.md`。Agent会清点→预览→写description提案→安全应用→读回验证→生成/更新摘要，并列出未审查项。
 
-在 `mode=remote` 中，描述读取与摘要读取经MCP发生在宿主；文件维护工具只能修改它运行机器可访问的文件。没有宿主文件访问时，不在Redhat造一个假同名库，也不声称已修改本机文件。
+在 `mode=remote` 中，描述读取与摘要读取经MCP发生在宿主；文件维护工具只能修改它运行机器可访问的文件。没有宿主文件访问时，不在远端造一个假同名库，也不声称已修改宿主文件。

@@ -4,8 +4,8 @@ SVG path 是本修改版中制作数字电路、微架构和任意工程符号�
 
 ## 真实脚本依据
 
-- `Scripts2/generate/Action-Generate-Digital-SVG.md`：路径库→`measurePath(pathData)`测量真实SVG DOM bbox→`shiftPathData(path,bbox.x,bbox.y)`归一化→创建line carrier→写`customData.svgPathShape`与`svgViewBox`→单独创建标签。
-- `Scripts2/generate/Action-Generate-Digital-Microarch-Items.md`：同样的路径测量/归一化，按分类、网格、真实中心布局，写`componentName/category/isLibraryItem`，预览标签写`isPreviewLabel/parentItemName`，保存receipt。当前版本每项是独立line，**并未自动group标签或端口**；还会删除指定开发画布全部活跃元素，仅可在用户授权的独立开发图中复用，不能把整图清除带到通用脚本。
+- 绘图脚本`generate/Action-Generate-Digital-SVG.md`：路径库→`measurePath(pathData)`测量真实SVG DOM bbox→`shiftPathData(path,bbox.x,bbox.y)`归一化→创建line carrier→写`customData.svgPathShape`与`svgViewBox`→单独创建标签。
+- 绘图脚本`generate/Action-Generate-Digital-Microarch-Items.md`：同样的路径测量/归一化，按分类、网格、真实中心布局，写`componentName/category/isLibraryItem`，预览标签写`isPreviewLabel/parentItemName`，保存receipt。当前版本每项是独立line，**并未自动group标签或端口**；还会删除指定开发画布全部活跃元素，仅可在用户授权的独立开发图中复用，不能把整图清除带到通用脚本。
 - Bridge `FEATURE_SPECS.svg_path_shape`/`createSvgPath`：`create_svg_path`操作构造line；`drawing_primitives`目前只有brace等内置类型，没有通用`kind:"svg"`/组件目录规划器。任意path走准确的`drawing_apply create_svg_path`或受信EA脚本，不捏造工具。
 - 真实插件API和Engine通过`svgPathShape`渲染；line的`points`只承担carrier geometry，path字符串决定内部矢量形状。不要把原始路径的绝对坐标直接同时当scene x/y和path坐标。
 
