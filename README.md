@@ -79,6 +79,12 @@ Keep semantic metadata in the files you own: an optional item `description` besi
 
 To have an Agent curate your files, copy [the maintenance prompt](skills/obsidian-excalidraw/prompts/maintain-libraries.zh-CN.md) and append your library paths and notes. It asks for real inspection, preserves existing human descriptions and produces a user-editable index. The local metadata-only helper inventories v2 files, applies description proposals by exact IDs, checks source hashes and backs up original bytes. It never modifies drawing elements or resources. See [Library catalog guide](skills/obsidian-excalidraw/references/library-catalog.md) for the commands and compatibility boundaries. File maintenance runs on the machine with access to the libraries; remote OMP can read host catalogs through MCP but must not treat a host path as a remote file.
 
+## Scripts2 capability routing
+
+The Skill includes a [source capability map](skills/obsidian-excalidraw/references/capability-map.md) and on-demand references for [web images and native assets](skills/obsidian-excalidraw/references/images-assets.md), [SVG path components](skills/obsidian-excalidraw/references/svg-components.md), [interaction and navigation](skills/obsidian-excalidraw/references/interaction-navigation.md), [visual effects and lists](skills/obsidian-excalidraw/references/visual-content.md), [mindmaps, waveforms, Git and GIF](skills/obsidian-excalidraw/references/special-diagrams.md), [layout, arrows, animation and external export](skills/obsidian-excalidraw/references/layout-export-animation.md), and [trusted host-script execution](skills/obsidian-excalidraw/references/script-execution.md).
+
+Existing Bridge adapters remain MCP operations. Additional Scripts2 Engines must be discovered and started on the actual host; writing metadata alone does not activate them. Saved configuration, mounted hooks, PNG appearance and real interaction are separate evidence. No Git-specific script was found; GIF is a distinct capability. Anki/Eagle writes require explicit user intent. Bridge 0.12.0 uses the native mindmap Engine's open/close state contract.
+
 ## Native Excalidraw CLI
 
 Recent ymjr versions also include a plugin-native CLI. It is useful for simple creation, inspection, edits and exports without this package's Bridge. The terminal entry requires **Obsidian 1.12.2+ with CLI enabled** and a plugin build that registers the commands.

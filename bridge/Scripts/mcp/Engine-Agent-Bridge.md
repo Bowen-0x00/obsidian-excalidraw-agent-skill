@@ -2,14 +2,14 @@
 name: Excalidraw Agent Bridge
 description: Local authenticated MCP bridge for Obsidian Excalidraw.
 author: local
-version: 0.11.0
+version: 0.12.0
 autorun: false
 ---
 /*
 ```javascript
 */
 
-const BRIDGE_VERSION = "0.11.0";
+const BRIDGE_VERSION = "0.12.0";
 const PROTOCOL_VERSION = "3";
 const DEFAULT_PORT = 27124;
 
@@ -1000,7 +1000,7 @@ const FEATURE_SPECS = Object.freeze({
       "customData.curveArrow",
     ],
     config: {
-      status: '"open" or "closed"',
+      status: '"open" or "close" (native Mindmap Engine state)',
       root: "root element ID",
       parent: "parent element ID or null",
       level: "positive integer",
@@ -3740,7 +3740,7 @@ function featureSchema(name) {
           status: {
             enum: [
               "open",
-              "closed",
+              "close",
             ],
             default: "open",
           },
@@ -6993,10 +6993,10 @@ function bindingObject(
         assert(
           [
             "open",
-            "closed",
+            "close",
           ].includes(status),
           "INVALID_MINDMAP_STATUS",
-          "mindmap status must be open or closed",
+          "mindmap status must be open or close",
         );
   
         assert(

@@ -79,6 +79,12 @@ uv run --frozen python launcher.py remote-tunnel --host Redhat --remote-port 281
 
 复制 [素材库维护prompt](skills/obsidian-excalidraw/prompts/maintain-libraries.zh-CN.md)，再追加自己的库目录和补充描述，即可让Agent清点、预览、保留人工描述、增补字段并生成可继续编辑的摘要。本机维护工具只按准确ID修改description，检查源hash并保存原字节备份，不改图元或资源。命令及兼容边界见 [库摘要参考](skills/obsidian-excalidraw/references/library-catalog.md)。文件维护应在能访问库的宿主执行；远端OMP可以通过MCP读宿主摘要，但不能把本机路径当远端文件。
 
+## Scripts2 扩展能力
+
+Skill现在按需读取能力参考，不再只覆盖基础图元：[能力地图](skills/obsidian-excalidraw/references/capability-map.md)、[图片获取与原生插入](skills/obsidian-excalidraw/references/images-assets.md)、[SVG path与可复用组件制作](skills/obsidian-excalidraw/references/svg-components.md)、[交互与导航](skills/obsidian-excalidraw/references/interaction-navigation.md)、[视觉效果与列表](skills/obsidian-excalidraw/references/visual-content.md)、[脑图与波形/Git/GIF](skills/obsidian-excalidraw/references/special-diagrams.md)、[排版/箭头/动画/外部导出](skills/obsidian-excalidraw/references/layout-export-animation.md)、[可信宿主脚本执行](skills/obsidian-excalidraw/references/script-execution.md)。
+
+已有Bridge adapter继续走MCP；未随bundle部署的原Scripts2 Engine必须在真实宿主发现并按需运行。元数据保存、Engine挂载、PNG外观和实际交互是不同证据。原目录没有Git专用脚本，GIF另有真实能力；不混为一谈。Anki/Eagle导出有外部写入副作用，不能为验证擅自创建卡片或库item。Bridge 0.12.0脑图状态按原生Engine使用open/close。
+
 ## 插件原生 CLI
 
 较新的 ymjr 插件还提供原生 CLI，适合不经过本包 Bridge 的简单创建、读取、编辑和导出。终端入口要求 **Obsidian 1.12.2+、CLI 已启用**，且已安装插件版本注册了这些命令。

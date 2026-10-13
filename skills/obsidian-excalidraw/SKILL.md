@@ -1,6 +1,6 @@
 ---
 name: obsidian-excalidraw
-description: 在 Obsidian Excalidraw 修改版中绘制原生可编辑流程图、UML、架构、电路和多页演示。按能力选择 drawing MCP、插件原生CLI或ea.executeCLI，支持素材库和扩展图元；实际查看PNG并局部迭代，默认最多五轮，保留绑定与用户内容。
+description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架构、电路、脑图、波形和演示；从网上获取真实图片，配置交互、视觉效果、导航、排版与动画。按真实MCP/API/宿主脚本能力执行，实际查看PNG并验证交互，保留用户内容。
 ---
 
 # Obsidian Excalidraw：可编辑绘图与 PNG 反馈闭环
@@ -38,6 +38,23 @@ description: 在 Obsidian Excalidraw 修改版中绘制原生可编辑流程图�
 - 多页演示保留原生frame与每页元素，逐页导出并实际看图；不能只看缩小overview就判断所有页可读。未调用真实PPTX导出工具，不声称已经生成.pptx。
 - 多页intro可能有多个title/full-name占位；必须按sourceIdMap完整替换，不能只填一个留下旧英文。slides已有原生bullet时新文字不要重复加Unicode项目符号；派生bullet保持同一library instance并纳入原生frame/group。
 - 样式和文本字段放在operation的`style`对象，例如`create_text {...,style:{fontFamily,fontSize,strokeColor}}`；不是任意顶层fontSize。没有节点的标题/注释直接create_text，不把空nodes传给图规划器。
+
+## 扩展能力路由：不要只会基础图元
+
+用户提到下列能力时先读取对应参考；已有adapter优先MCP，无adapter用已授权的宿主EA/URI脚本。脚本存在≠已部署、Engine已运行≠PNG包含所有效果。
+完整来源/缺口对照见`references/capability-map.md`；另外列出table/link/follow/no-bind/dynamic library/recognition/clipboard等现有机制。不要把本文未展开的能力视为不存在，也不能把“来源清单”当成新MCP接口。
+
+| 需求 | 按需参考 | 执行重点 |
+| --- | --- | --- |
+| 从网上找图、照片、截图、图标并插入 | `references/images-assets.md` | 搜索真实来源→获取/解码图片→保存宿主附件→原生image→PNG；不能把远端路径当宿主路径 |
+| 用SVG path制作任意静态符号、独立组件/素材库 | `references/svg-components.md` | 两个Digital生成脚本的真实DOM测量/归一化、line carrier+svgViewBox、分色子图元/文字/组/anchor；不拿正则当通用SVG parser |
+| mindmap、折叠脑图、Markdown导入导出、WaveDrom波形、git/GIF | `references/special-diagrams.md` | 脑图树与实际ID、native close状态；波形源与runtime；git未发现专用脚本，不擅改成gif |
+| hover、line-highlight、zoom、detail、checkbox、layer、outline、thumbnail | `references/interaction-navigation.md` | 元数据+持久Engine+真实鼠标/键盘/缩放验证；静态PNG不证明交互 |
+| shadow、callout、code highlight、gradient、rich text、list、bullet | `references/visual-content.md` | 受控Feature配置，区分渲染型列表与真实bullet元素，保留源码与绑定 |
+| distribute、特殊arrow、animation、step-appear、Anki/Eagle/export | `references/layout-export-animation.md` | 群组排版和独立元素不同；动画需播放验证；外部软件写入需明确授权 |
+| 运行/开发Scripts2脚本或挂载额外Engine | `references/script-execution.md` | 明确目标与命令、URI分发不是完成、常驻Engine不走一次性CLI |
+
+这里的参考均通过 `skill://obsidian-excalidraw/<相对路径>`读取。缺依赖/交互条件要精确报告，不捏造工具、不把面板启动说成能力完成。用户只要求效果时使用已有机制；用户明确要开发脚本时修脚本并重跑，而不是只手工修画布。图片/交互/查阅/动画不因默认原生shape优先被忽略。
 
 ## MCP 路径：自然语言到真实操作
 

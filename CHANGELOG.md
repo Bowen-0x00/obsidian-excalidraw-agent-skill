@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0 — Scripts2 capability coverage
+
+- Added Skill references for trusted URI/EA execution, web-image acquisition and native asset insertion, interaction/navigation engines, visual effects/lists, mindmaps/WaveDrom/GIF/Git boundaries, layout/arrow/animation and Anki/Eagle export.
+- Documented which features are Bridge adapters versus host-only Engines/UI actions, including hover, line highlight, zoom hide, detail, checkbox, layer, outline, thumbnail, Smart List, Bullet, shadow, callout, code highlight and animation.
+- Corrected the Bridge mindmap state contract from `closed` to the installed Engine's actual `close` state; stale `closed` requests are rejected instead of silently diverging.
+- Verified in an isolated real Obsidian host: official Python image download to a vault attachment/native image, checkbox Shift-click, selection-mode hover, zoom hide transitions, mindmap layout/collapse, WaveDrom/callout/code/shadow PNG and arrow-animation pixels across frames plus stop cleanup. Final full PNG was inspected with zero diagnostics and completed review; all 24 regressions pass. Optional thumbnail UI opened; detail/outline/thumbnail navigation and other unexercised host actions remain explicitly limited.
+- Added SVG-path component authoring from both real Digital/Microarch generators: native DOM bounds, normalized path/viewBox versus target size, line carriers, grouping/labels/anchors and per-component library boundaries. Verified two native grouped components, negative coordinates, curved/arc paths and full inspected PNG; do not treat the source scripts' regex shifter as a universal SVG parser or copy their destructive whole-canvas rebuild into general editing.
+
 ## 0.7.0 — User-maintained library descriptions and catalogs
 
 - Preserve optional item/library description metadata in Bridge library summaries; include descriptions in item search and distinguish missing metadata from empty text.

@@ -38,6 +38,8 @@
 
 或`box:{x,y,width,height}`或明确x/y/length。side=`top/bottom/left/right`。来源四个`Scripts2/brace/Action-Add-*-Brace-Path.md`，复用Q/L路径，top/left的负坐标整体归一化到viewBox，不只改carrier bbox。使用单个原生line+svgPathShape/svgViewBox，保持shape编辑与样式；不是图片。
 
+任意SVG path符号/可复用组件的通用流程见[svg-components](svg-components.md)：复用真实Digital/Microarch生成脚本，DOM测量、归一化校验、源viewBox与目标尺寸分离、line carrier和独立文字/anchor分组。不是给drawing_primitives添加不存在的kind=svg；普通path使用drawing_apply的create_svg_path。
+
 ## callout
 
 ```json
@@ -67,7 +69,7 @@
 
 原生text，set_feature checkbox维护Markdown `- [x]`/`- [ ]`前缀及customData.isCheckbox。改变checked使用同一text ID的set_feature，不重建。不能把checkbox误塞到rectangle，不能只画一个不可交互勾图标。
 
-来源：`checkbox/Action-Toggle-Checkbox.md:89–117`、`Feature-Checkbox-Engine.md`，Canvas/PNG效果要实际观察。
+来源：`checkbox/Action-Toggle-Checkbox.md:89–117`、`Feature-Checkbox-Engine.md`。真实交互是先hover命中文本，再Shift+点击切换；PNG只证明当前状态。需要真实view验证与读回，不能把metadata存在称为交互通过，详见`interaction-navigation.md`。
 
 ## 高级连接
 
