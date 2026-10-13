@@ -53,6 +53,12 @@
 
 > presentation风格制作1200×760原生frame页“可编辑图形+真实视觉反馈”：四区分别是需求→绘图→PNG→修正小流程、clk与A/B/C data的真实WaveDrom、Python源码高亮、Callout“可继续编辑”。保存真实源和frame成员，首次PNG就等待资源，实际看图后review。
 
+### 9. 已有组的旋转与缩放
+
+> 打开我指定的已有画布，读取元素groupIds，找到“组件A、组件B和它们的内部箭头”所在组。用原生选区变换绕共同中心顺时针旋转90°，再保持中心放大1.5倍；节点文字与箭头标签同步缩放，保留ID和双向绑定。外部节点不动，跨组连接正确跟随。读取最终状态，导出PNG并实际检查；不要逐项angle/width/height拼装变换，不清空重建。
+
+该补充场景由当前Agent直接调用真实Bridge完成，不是前八张的独立OMP生成会话。真实PNG与可编辑画布作为本地验证产物保留；Frame不能旋转，表格/泳道特殊手势Hook不作为MCP几何变换承诺。
+
 ## 录GIF步骤
 
 1. 先打开Obsidian目标vault和Agent窗口，确认Skill/MCP已连接；开始录屏时不要展示connection.json、token或用户私有目录。

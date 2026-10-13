@@ -11,7 +11,7 @@ Create and edit diagrams in **Obsidian Excalidraw-ymjr** from natural-language r
 - Flowcharts, architecture diagrams, UML, swimlanes, mindmaps, circuits, waveforms and editable presentation pages.
 - Web images, formulas and your own libraries; reusable components built from SVG paths.
 - Visual effects, interaction and navigation supplied by the modified plugin and its drawing scripts. Availability depends on the installed host capabilities.
-- Measured text, layout planning, relationship/geometry checks, PNG inspection and targeted edits that preserve unrelated content.
+- Measured text, layout planning, relationship/geometry checks, PNG inspection and targeted edits that preserve unrelated content; native common-center group rotation and proportional selection scaling.
 
 ## Editable diagrams, multiple styles, remote development
 

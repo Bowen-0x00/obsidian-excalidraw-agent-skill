@@ -97,6 +97,34 @@ class GeometryRegressionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             _point(box, "left", [0, float("nan")])
 
+    def test_quarter_turn_obstacle_uses_world_bounds(self):
+        import math
+        elements = [
+            {"id": "rotated", "type": "rectangle", "x": 0, "y": 0, "width": 160, "height": 40,
+             "angle": math.pi / 2},
+            {"id": "obstacle", "type": "rectangle", "x": 65, "y": 70, "width": 30, "height": 25},
+        ]
+        result = run_geometry_diagnostics(elements)
+        self.assertTrue(any(issue["code"] == "BODY_OVERLAP" for issue in result["issues"]))
+        self.assertEqual(result["unsupportedChecks"], [])
+
+    def test_rotated_negative_arrow_points_cross_actual_obstacle(self):
+        import math
+        elements = [
+            {"id": "arrow", "type": "arrow", "x": -100, "y": -50, "width": 120, "height": 0,
+             "angle": math.pi / 2, "points": [[0, 0], [-120, 0]]},
+            {"id": "obstacle", "type": "rectangle", "x": -172, "y": -100, "width": 24, "height": 28},
+        ]
+        result = run_geometry_diagnostics(elements)
+        self.assertTrue(any(issue["code"] == "ARROW_CROSSES_NODE" for issue in result["issues"]))
+        self.assertEqual(result["unsupportedChecks"], [])
+
+    def test_arbitrary_rotation_remains_unknown(self):
+        result = run_geometry_diagnostics([
+            {"id": "rotated", "type": "rectangle", "x": 0, "y": 0, "width": 160, "height": 40, "angle": 0.3},
+        ])
+        self.assertEqual(result["status"], "unknown")
+
 
 class ReviewBudgetRegressionTests(unittest.TestCase):
     def make_ledger(self, directory, rounds=5):

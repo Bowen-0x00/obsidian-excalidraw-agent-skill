@@ -12,6 +12,27 @@ Bridge horizontal/vertical算法按外包围盒总跨度与总尺寸计算等边
 
 复杂组先显式求group/container/bound-text闭包、计算每组真实bounds，再translate整组并去重绑定text位移，或在受信宿主复用原Action的算法。文字已跟随容器移动时不能二次移动；箭头绑定/锁定图元须读回校验。对角线/文字排版看`Action-Distribute-Diagonally.md`与`Action-Distribute-Text.md`，不造第三个direction；没有对应adapter就受信脚本复用，不假称Bridge支持。paste auto-distribute是粘贴Hook，不能当全画布自动布局。
 
+## 原生选区旋转与缩放
+
+Bridge 0.13.0新增`rotate`、`scale_selection`，通过现有`drawing_apply`批量提交，没有另造MCP工具或复制缩放算法。宿主`App.selectionTool.ts::maybeHandleResize` → `resizeElements.ts::transformElements` → `rotateSingleElement/rotateMultipleElements/resizeSingleElement/resizeMultipleElements`；实际安装包入口是`excalidrawAPI.App.maybeHandleResize`，不可用时报`NATIVE_TRANSFORM_UNAVAILABLE`，不回退逐项改JSON。
+
+```json
+{"op":"rotate","groupId":"真实原生group ID","degrees":90}
+{"op":"scale_selection","targets":["节点A ID","节点B ID","内部箭头ID"],"factor":1.5,"fromCenter":true}
+{"op":"patch_element","target":"单节点ID","patch":{"angle":1.5707963267948966}}
+```
+
+- `groupId`与`targets`二选一。targets是精确选区；groupId读取当前`groupIds`，包括嵌套组中的成员，不用logicalId代替。绑定text由owner处理一次；单独选绑定text会提升到owner。
+- `rotate.degrees`是相对角度，正数顺时针；`element.angle`及patch.angle是绝对弧度。共同中心由真实边界求出；不是各自绕自身中心修改angle。
+- `factor>0`，默认中心缩放；`fromCenter:false`保留未旋转多选边界左上角，单个已旋转元素则对应其本地西北角。位置、点列、形状与文字同缩放，字号/最小尺寸/anchored资源遵从原生规则；不提供镜像或非等比整组缩放。
+- 内部箭头保留双向绑定；节点的外部箭头更新端点，外部节点保留。若明确选中箭头但没有选其绑定端点，报`TRANSFORM_PARTIAL_BINDING`；原生变换若改变连接目标则报`TRANSFORM_BINDING_CHANGED`，不静默丢业务关系。
+- 原生Frame不允许旋转；缩放包含frame children及绑定文字。锁定选区或被更新邻边/文字报`ELEMENT_LOCKED`。最小尺寸导致无变更报`NATIVE_TRANSFORM_NO_CHANGE`。
+- 执行器同步切换到隔离Scene副本，恢复App scene/state/selection/Hook后才提交变更，保留同一事务revision检查与undo。失败不提交之前暂存的变换。返回`transforms`包含center、selectedIds、updatedIds、degrees/factor和真实实现来源。
+- `afterTransformElements`宿主Hook可能异步写live API，因此准备阶段不触发。表格行列边界联动、泳道吞并/剥离等Engine特定手势**不是**这两个原生几何操作的承诺；相关元数据不自动重解释。
+- 90°整数倍的世界坐标bbox/直线点列纳入现有碰撞检查；任意非直角旋转与曲线仍unknown，不伪造check=pass。完成后read/check→PNG→实际看图→review。
+
+真实宿主验证：同组双节点+内部标签箭头绕共同中心顺时针90°，再放大1.5倍，节点文字20→30；外部节点及文字不变，外部箭头跟随；另验证绝对π弧度、已旋转单节点缩放、负坐标freedraw点列/压力、SVG path源保留、Frame children缩放、锁定/失败不提交与undo。PNG均实际查看，非对所有扩展Engine作全面手势兼容保证。
+
 ## Arrow特殊属性
 
 | 属性/功能 | 真实入口/字段 | 限制与检查 |

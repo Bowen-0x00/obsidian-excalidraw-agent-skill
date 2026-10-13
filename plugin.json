@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "obsidian-excalidraw-agent-skill",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "Complete native Obsidian Excalidraw drawing MCP, bundled Bridge/Engines, first-time connection and PNG-reviewed Agent Skill.",
   "author": {"name": "Bowen-0x00"},
   "homepage": "https://github.com/Bowen-0x00/obsidian-excalidraw-agent-skill",

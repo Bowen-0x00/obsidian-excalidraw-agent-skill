@@ -131,6 +131,11 @@ def drawing_apply(
     """Apply an array of operations to the canvas in a single staged transaction.
 
     Returns transactionId, new revision, created/updated/deleted element IDs.
+    Selection transforms: rotate accepts targets[] OR groupId plus relative degrees
+    (positive clockwise); scale_selection accepts targets[] OR groupId plus factor>0,
+    fromCenter defaults true. Both reuse the installed manual native transform.
+    patch_element.patch.angle is an absolute radian value and follows bound text.
+    Frames cannot rotate; selected arrows must include their bound endpoints.
     """
     return client.apply(
         context_token=context_token,

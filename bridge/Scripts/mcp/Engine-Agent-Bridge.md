@@ -2,14 +2,14 @@
 name: Excalidraw Agent Bridge
 description: Local authenticated MCP bridge for Obsidian Excalidraw.
 author: local
-version: 0.12.1
+version: 0.13.0
 autorun: false
 ---
 /*
 ```javascript
 */
 
-const BRIDGE_VERSION = "0.12.1";
+const BRIDGE_VERSION = "0.13.0";
 const PROTOCOL_VERSION = "3";
 const DEFAULT_PORT = 27124;
 
@@ -6091,6 +6091,8 @@ function bindingObject(
         "patch_custom_data",
         "translate",
         "resize",
+        "rotate",
+        "scale_selection",
         "center_in",
         "set_text",
         "bind_text",
@@ -6112,6 +6114,14 @@ function bindingObject(
         "align",
         "distribute",
       ],
+      selectionTransforms: {
+        angleUnit: "element.angle is radians; rotate.degrees is a relative signed degree change; positive is clockwise",
+        targets: "Choose exact native targets[] OR one native groupId; bound text follows its container",
+        rotate: { op: "rotate", groupId: "native-group-id", degrees: 90 },
+        scale: { op: "scale_selection", groupId: "native-group-id", factor: 1.5, fromCenter: true },
+        implementation: "Installed editor's manual transform handler runs synchronously against an isolated native Scene; native binding/text updates are staged before commit",
+        limitations: "Frame rotation is rejected. Partial selected-arrow bindings are rejected rather than detached. Host afterTransformElements hooks are not dispatched during staging; Engine-specific table/swimlane membership gestures are not reproduced.",
+      },
 
       features:
         runtime.features,
@@ -7381,6 +7391,7 @@ function bindingObject(
     );
   
     const refs = {};
+    const transforms = [];
     const affectedIds = new Set();
     const created = [];
     const updated = [];
@@ -9038,6 +9049,178 @@ function bindingObject(
   
       return arrow.id;
     }
+    function transformSelection(operation) {
+      const projected = projectedElements(beforeElements);
+      const byId = new Map(projected.filter((element) => !element.isDeleted).map((element) => [element.id, element]));
+      const hasGroup = operation.groupId !== undefined;
+      assert(hasGroup !== (operation.targets !== undefined), "INVALID_TRANSFORM_SELECTION",
+        "Supply exactly one groupId or targets array.");
+      let ids;
+      if (hasGroup) {
+        assert(typeof operation.groupId === "string" && operation.groupId.length > 0,
+          "INVALID_GROUP_ID", "groupId must be a native group ID.");
+        ids = [...byId.values()].filter((element) => element.groupIds?.includes(operation.groupId)).map((element) => element.id);
+        assert(ids.length > 0, "GROUP_NOT_FOUND", "No active elements belong to that group.", 404);
+      } else {
+        assert(Array.isArray(operation.targets) && operation.targets.length > 0,
+          "INVALID_TRANSFORM_SELECTION", "targets must be a nonempty array.");
+        ids = [...new Set(operation.targets.map((target) => resolveReference(target, refs)))];
+      }
+      const selection = new Set(ids);
+      // A bound label is transformed by its owner, never twice.
+      for (const id of selection) {
+        const element = byId.get(id);
+        assert(element, "ELEMENT_NOT_FOUND", `Element not found: ${id}`, 404);
+        if (element.type === "text" && element.containerId) selection.add(element.containerId);
+        if (element.type === "frame" || element.type === "magicframe") {
+          for (const child of byId.values()) if (child.frameId === id) selection.add(child.id);
+        }
+      }
+      for (const id of selection) {
+        const element = byId.get(id);
+        assert(element, "ELEMENT_NOT_FOUND", `Element not found: ${id}`, 404);
+        stage(id);
+        if (operation.op === "rotate") {
+          assert(element.type !== "frame" && element.type !== "magicframe",
+            "FRAME_ROTATION_UNSUPPORTED", "Native Excalidraw frames cannot rotate.");
+        }
+        if (element.type === "arrow") {
+          for (const binding of [element.startBinding, element.endBinding]) {
+            assert(!binding || selection.has(binding.elementId), "TRANSFORM_PARTIAL_BINDING",
+              "The native gesture would detach a selected arrow from an unselected endpoint; select both endpoints or transform only the node.");
+          }
+        }
+      }
+      const selected = [...selection].map((id) => byId.get(id)).filter((element) =>
+        !(element.type === "text" && element.containerId && selection.has(element.containerId)));
+      const radians = operation.op === "rotate" ? (finiteNumber(operation.degrees, "degrees") % 360) * Math.PI / 180 : 0;
+      const factor = operation.op === "scale_selection" ? positiveNumber(operation.factor, "factor") : 1;
+      assert(operation.fromCenter === undefined || typeof operation.fromCenter === "boolean",
+        "INVALID_TRANSFORM_ANCHOR", "fromCenter must be boolean.");
+      if ((operation.op === "rotate" && Math.abs(radians % (Math.PI * 2)) < 1e-12) ||
+        (operation.op === "scale_selection" && factor === 1)) return;
+      const view = getActiveView();
+      const api = getApi();
+      const host = api.App;
+      const library = view.packages?.excalidrawLib;
+      const manual = host?.maybeHandleResize || host?.selectionTool?.maybeHandleResize;
+      assert(typeof manual === "function" && typeof host?.scene?.constructor === "function" &&
+        typeof library?.getCommonBounds === "function", "NATIVE_TRANSFORM_UNAVAILABLE",
+        "The installed editor does not expose the native manual selection transform path.", 409);
+      const boundsElements = [...selected];
+      for (const element of selected) {
+        for (const binding of element.boundElements || []) {
+          if (binding.type === "text" && byId.has(binding.id)) boundsElements.push(byId.get(binding.id));
+        }
+      }
+      const bounds = library.getCommonBounds(selected.length === 1
+        ? [{ ...selected[0], angle: 0 }] : boundsElements);
+      const center = { x: (bounds[0] + bounds[2]) / 2, y: (bounds[1] + bounds[3]) / 2 };
+      const fromCenter = operation.fromCenter !== false;
+      let pointer;
+      if (operation.op === "rotate") {
+        const angle = radians + (selected.length === 1 ? selected[0].angle : 0);
+        pointer = { x: center.x + Math.sin(angle) * 100, y: center.y - Math.cos(angle) * 100 };
+      } else {
+        const width = bounds[2] - bounds[0];
+        const height = bounds[3] - bounds[1];
+        assert(width > 0 && height > 0, "EMPTY_TRANSFORM_BOUNDS", "Selection scaling requires nonzero width and height.");
+        pointer = fromCenter
+          ? { x: center.x + width * factor / 2, y: center.y + height * factor / 2 }
+          : { x: bounds[0] + width * factor, y: bounds[1] + height * factor };
+        if (selected.length === 1) {
+          const angle = selected[0].angle;
+          const dx = pointer.x - center.x;
+          const dy = pointer.y - center.y;
+          pointer = { x: center.x + dx * Math.cos(angle) - dy * Math.sin(angle),
+            y: center.y + dx * Math.sin(angle) + dy * Math.cos(angle) };
+        }
+      }
+      const originals = new Map(projected.map((element) => [element.id, clone(element)]));
+      const scene = new host.scene.constructor(projected);
+      const old = { scene: host.scene, state: host.state, setState: host.setState,
+        ownSetState: Object.prototype.hasOwnProperty.call(host, "setState"),
+        activeResizeHandle: host.activeResizeHandle, dispatch: window.EA_Core?.dispatchSync };
+      try {
+        let handled;
+        try {
+          host.scene = scene;
+          host.state = { ...old.state, selectedElementIds: Object.fromEntries(selected.map((element) => [element.id, true])),
+            selectedElementsAreBeingDragged: true, croppingElementId: null, isResizing: true,
+            objectsSnapModeEnabled: false, gridSize: null };
+          host.setState = (update) => {
+            const patch = typeof update === "function" ? update(host.state) : update;
+            host.state = { ...host.state, ...patch };
+          };
+          if (old.dispatch) {
+            window.EA_Core.dispatchSync = function (name, ...args) {
+              // Host Engine callbacks can write through the live API; do not fire them during staging.
+              if (name === "afterTransformElements") return;
+              return old.dispatch.call(this, name, ...args);
+            };
+          }
+          const proportionalByDefault = selected.some((element) => element.type === "image") ||
+            (selected.length === 1 && selected[0].type === "stickynote");
+          handled = manual({
+            origin: { x: bounds[2], y: bounds[3] }, originInGrid: { x: bounds[2], y: bounds[3] },
+            lastCoords: pointer, originalElements: originals,
+            resize: { handleType: operation.op === "rotate" ? "rotation" : "se",
+              offset: { x: 0, y: 0 }, center },
+          }, { shiftKey: operation.op === "scale_selection" && !proportionalByDefault,
+            altKey: operation.op === "scale_selection" && fromCenter, ctrlKey: true, metaKey: true });
+        } finally {
+          host.scene = old.scene;
+          host.state = old.state;
+          if (old.ownSetState) host.setState = old.setState; else delete host.setState;
+          host.activeResizeHandle = old.activeResizeHandle;
+          if (old.dispatch) window.EA_Core.dispatchSync = old.dispatch;
+        }
+        assert(handled, "NATIVE_TRANSFORM_REJECTED", "The native editor rejected this selection transform.");
+        const changedIds = [];
+        for (const element of scene.getElementsIncludingDeleted()) {
+          const original = originals.get(element.id);
+          if (element.version !== original.version) {
+            if (element.type === "arrow") {
+              for (const end of ["startBinding", "endBinding"]) {
+                assert(element[end]?.elementId === original[end]?.elementId,
+                  "TRANSFORM_BINDING_CHANGED", "The native gesture would change a connection target; the transaction was not committed.");
+              }
+            }
+            const compound = original.customData?.agentPrimitive?.compoundBounds;
+            if (compound && selection.has(element.id)) {
+              const dx = compound.x + compound.width / 2 - center.x;
+              const dy = compound.y + compound.height / 2 - center.y;
+              const cosine = Math.cos(radians);
+              const sine = Math.sin(radians);
+              const width = (Math.abs(cosine) * compound.width + Math.abs(sine) * compound.height) * factor;
+              const height = (Math.abs(sine) * compound.width + Math.abs(cosine) * compound.height) * factor;
+              const anchor = operation.op === "scale_selection" && !fromCenter
+                ? { x: bounds[0], y: bounds[1] } : center;
+              const cx = operation.op === "rotate" ? center.x + dx * cosine - dy * sine
+                : anchor.x + (compound.x + compound.width / 2 - anchor.x) * factor;
+              const cy = operation.op === "rotate" ? center.y + dx * sine + dy * cosine
+                : anchor.y + (compound.y + compound.height / 2 - anchor.y) * factor;
+              element.customData.agentPrimitive.compoundBounds =
+                { x: cx - width / 2, y: cy - height / 2, width, height };
+            }
+            stage(element.id);
+            ea.copyViewElementsToEAforEditing([element], element.type === "image");
+            invalidateShapeCache(ea.getElement(element.id));
+            markUpdated(element.id);
+            changedIds.push(element.id);
+          }
+        }
+        assert(changedIds.length > 0, "NATIVE_TRANSFORM_NO_CHANGE",
+          "The native transform made no change; text minimum sizes or anchored resources may prevent scaling.");
+        transforms.push({ op: operation.op, groupId: operation.groupId || null,
+          selectedIds: selected.map((element) => element.id), center,
+          ...(operation.op === "rotate" ? { degrees: operation.degrees } : { factor, fromCenter }),
+          updatedIds: changedIds, implementation: "native.manual-selection-transform" });
+      } finally {
+        scene.destroy();
+      }
+    }
+
   
     let currentPhase = "staging";
     let currentOpIndex = 0;
@@ -9061,6 +9244,10 @@ function bindingObject(
         );
 
         switch (operation.op) {
+        case "rotate":
+        case "scale_selection":
+          transformSelection(operation);
+          break;
           case "create_draw":
             createDraw(operation);
             break;
@@ -9119,11 +9306,12 @@ function bindingObject(
           const element = stage(id, Boolean(operation.patch && operation.patch.locked === false));
           const oldX = element.x;
           const oldY = element.y;
+          const requestedAngle = operation.patch?.angle;
+          if (requestedAngle !== undefined) finiteNumber(requestedAngle, "patch.angle (radians)");
   
-          patchElementFields(
-            element,
-            operation.patch || {},
-          );
+          const fields = { ...(operation.patch || {}) };
+          delete fields.angle;
+          patchElementFields(element, fields);
   
           if (
             operation.patch?.x !==
@@ -9190,6 +9378,10 @@ function bindingObject(
           );
   
           markUpdated(id);
+          if (requestedAngle !== undefined) {
+            transformSelection({ op: "rotate", targets: [id],
+              degrees: (requestedAngle - element.angle) * 180 / Math.PI });
+          }
           break;
         }
   
@@ -10881,6 +11073,7 @@ function bindingObject(
       updated,
       deleted,
       selected: selection,
+      transforms,
       validation:
         postValidation,
       existingSceneIssueCount: {

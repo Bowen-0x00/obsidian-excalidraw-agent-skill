@@ -132,7 +132,9 @@ description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架�
 - `set_text {target: body或text ID, text:完整新标签}`；长文本先`drawing_measure(..., width=目标有效宽度)`，使用返回的换行text与真实尺寸；必要时resize容器。
 - `translate {targets:[ID],dx,dy,includeBoundText:true}`；同时移动容器和已包含的bound text时去重，避免二次位移。
 - `resize {target,width,height}`；读取最终容器与邻边状态，不能仅扩大text bbox假装容器已适配。
-- `patch_element {target,patch:{x/y/width/height/points/合法样式}}`；线的points是局部坐标，首点[0,0]，其余可负。
+- `rotate {groupId:真实group ID,degrees:90}`或`rotate {targets:[ID...],degrees:90}`：相对旋转，正数顺时针，默认选区共同中心。二选一，不把各元素单独angle+=90当整组旋转。
+- `scale_selection {groupId:真实group ID,factor:1.5,fromCenter:true}`或明确`targets`：复用宿主手动多选缩放，统一缩放位置、尺寸、点列和文字；不是逐个改width/height。默认中心不动；fromCenter:false固定多选边界左上角，单个已旋转元素固定其本地西北角。详见`references/layout-export-animation.md`。
+- `patch_element {target,patch:{x/y/width/height/angle/points/合法样式}}`；angle是绝对**弧度**，如π/2=90°，走原生旋转维护绑定文字及相邻箭头。线的points是局部坐标，首点[0,0]，其余可负。
 - `connect {from,to,start:{anchor,mode:"orbit"},end:{anchor,mode:"orbit"},waypoints:[scene点],label?,elbowed:true,style?}`。
 - `rebind_arrow {arrow:箭头ID,startTarget:节点ID,endTarget:节点ID,start:{anchor,mode:"orbit"},end:{anchor,mode:"orbit"},preservePoints:true}`：更新双向绑定；另用patch_element更新局部points。不能直接patch startBinding/endBinding/boundElements。`unbind_arrow {arrow:箭头ID,end:"start"|"end"|"both"}`按实际capabilities使用。
 - `patch_element {target:箭头绑定text ID,patch:{labelPosition:0.2}}`：保持原生绑定而调标签路径位置；实际PNG复核，不能只改x/y却被引擎重新居中。
@@ -141,6 +143,7 @@ description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架�
 - `delete {targets:[过时元素ID],cascadeBoundText:true}`：只删除明确被本次修复替代的箭头/图元，默认连带删除其绑定文字并解除相关引用。删除旧关系后核对新关系仍存在；不能为了消除交叉删除用户业务关系。
 
 不要将反馈四舍五入的坐标整条回写。不要为了消除穿线删掉跨组关系、缩短业务内容或移用户锁定元素。REVISION_CONFLICT时重新读受影响数据，不覆盖用户新编辑。
+整组选取先读取groupIds；显式targets不会自动扩展所有同组元素。绑定文字随容器且不重复变换；Frame缩放包含子元素但不能旋转。选中箭头却遗漏其绑定端点会拒绝，不静默解绑；只选节点时外部箭头跟随而外部节点不变。选区/受影响绑定文字或邻边锁定则整笔拒绝。MCP staging不触发可能写live API的afterTransformElements宿主Hook，不宣称复现泳道吞并/剥离或表格边界联动。任意角度可执行；只有90°整数倍纳入现有几何检查，其余仍unknown并需PNG。
 
 ## 扩展与边界
 

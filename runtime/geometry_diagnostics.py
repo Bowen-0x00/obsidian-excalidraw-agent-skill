@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import Any
 
 
@@ -81,6 +82,33 @@ def _construction_unit(el: dict[str, Any]) -> str | None:
         return "primitive:" + str(primitive["instanceId"])
     return None
 
+def _scene_points(el: dict[str, Any]) -> list[tuple[float, float]]:
+    x, y = float(el.get("x", 0)), float(el.get("y", 0))
+    local_points = el.get("points") or [[0, 0], [el.get("width", 0), el.get("height", 0)]]
+    points = [(x + float(p[0]), y + float(p[1])) for p in local_points]
+    if not points:
+        return []
+    cx = (min(p[0] for p in points) + max(p[0] for p in points)) / 2
+    cy = (min(p[1] for p in points) + max(p[1] for p in points)) / 2
+    angle = float(el.get("angle", 0))
+    cosine, sine = math.cos(angle), math.sin(angle)
+    return [(cx + (px - cx) * cosine - (py - cy) * sine,
+             cy + (px - cx) * sine + (py - cy) * cosine) for px, py in points]
+
+
+def _scene_box(el: dict[str, Any]) -> dict[str, Any]:
+    """World AABB; quarter turns retain the existing exact box-check scope."""
+    x, y = float(el.get("x", 0)), float(el.get("y", 0))
+    width, height = float(el.get("width", 0)), float(el.get("height", 0))
+    cx, cy = x + width / 2, y + height / 2
+    angle = float(el.get("angle", 0))
+    cosine, sine = abs(math.cos(angle)), abs(math.sin(angle))
+    rotated_width = width * cosine + height * sine
+    rotated_height = width * sine + height * cosine
+    return {**el, "x": cx - rotated_width / 2, "y": cy - rotated_height / 2,
+            "width": rotated_width, "height": rotated_height}
+
+
 
 def _body_obstacles(active_elements: list[dict[str, Any]]) -> list[dict[str, Any]]:
     bodies = []
@@ -92,13 +120,12 @@ def _body_obstacles(active_elements: list[dict[str, Any]]) -> list[dict[str, Any
         if primitive.get("role") == "body" and primitive.get("compoundBounds"):
             bodies.append({**element, **primitive["compoundBounds"]})
         elif element.get("type") == "line" and element.get("polygon"):
-            points = element.get("points") or []
+            points = _scene_points(element)
             if points:
-                xs = [element["x"] + point[0] for point in points]
-                ys = [element["y"] + point[1] for point in points]
+                xs, ys = [p[0] for p in points], [p[1] for p in points]
                 bodies.append({**element, "x": min(xs), "y": min(ys), "width": max(xs) - min(xs), "height": max(ys) - min(ys)})
         elif element.get("type") in ("rectangle", "diamond", "ellipse", "embeddable", "image"):
-            bodies.append(element)
+            bodies.append(_scene_box(element))
     anchored_units = {_construction_unit(element) for element in bodies
                       if _construction_unit(element) is not None and (element.get("customData") or {}).get("agentDiagram", {}).get("role") == "library-anchor"}
     return [element for element in bodies if _construction_unit(element) not in anchored_units
@@ -367,14 +394,11 @@ def check_arrow_crossing(
 
     for arrow in arrows:
         arrow_id = arrow.get("id", "")
-        ax = float(arrow.get("x", 0))
-        ay = float(arrow.get("y", 0))
-        points = arrow.get("points") or [[0, 0], [arrow.get("width", 0), arrow.get("height", 0)]]
 
-        if len(points) < 2:
+        scene_pts = _scene_points(arrow)
+        if len(scene_pts) < 2:
             continue
 
-        scene_pts = [(ax + float(p[0]), ay + float(p[1])) for p in points]
         segments = [(scene_pts[k], scene_pts[k + 1]) for k in range(len(scene_pts) - 1)]
 
         # Endpoints
@@ -436,12 +460,13 @@ def check_arrow_label_occlusion(
                 arrow_labels.append(el)
 
     body_obstacles = [
-        el for el in active_elements
+        _scene_box(el) for el in active_elements
         if el.get("type") in ("rectangle", "diamond", "ellipse")
         and not _is_container_element(el)
     ]
 
     for label in arrow_labels:
+        label = _scene_box(label)
         lid = label.get("id", "")
         lx = float(label.get("x", 0))
         ly = float(label.get("y", 0))
@@ -488,14 +513,14 @@ def check_unsupported_geometry(active_elements: list[dict[str, Any]]) -> list[di
     for el in active_elements:
         el_id = el.get("id", "")
         angle = float(el.get("angle", 0))
-        if abs(angle) > 1e-4:
+        if abs(math.remainder(angle, math.pi / 2)) > 1e-4:
             unsupported.append({
                 "elementId": el_id,
                 "type": "rotated_element",
                 "angle": round(angle, 4),
                 "reason": (
                     f"Element {el_id} is rotated ({angle:.2f} rad). "
-                    "Rotated collision geometry cannot be certified by 2D AABB checker; "
+                    "Non-quarter-turn collision geometry cannot be certified by 2D AABB checker; "
                     "requires visual PNG verification."
                 ),
             })

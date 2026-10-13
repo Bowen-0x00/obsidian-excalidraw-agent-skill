@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.3 — Native selection rotation and scaling
+
+- Added Bridge 0.13.0 rotate (relative signed degrees, clockwise positive) and scale_selection (uniform factor, center or corner anchor), using the installed editor's actual manual transform handler against an isolated native Scene before transactional commit.
+- Absolute patch_element.angle remains radians and now updates bound text and attached arrows through the native rotation path. Preserve native IDs, groups, frames, SVG paths and freedraw pressures; reject locked affected elements, Frame rotation and partial-arrow binding changes rather than silently detaching relationships.
+- Added world-coordinate quarter-turn geometry checks; arbitrary angles and curved paths remain explicitly unsupported by the existing exact-check scope. Documented the staging boundary: host afterTransformElements Engine hooks are not replayed.
+- Verified real Obsidian group rotation by 90°, 1.5× scaling with text 20→30 and unchanged external node, single-node absolute rotation/scaling, SVG/freedraw/frame children, staging failure, locks and undo; inspected actual PNGs.
+
 ## 0.8.2 — Real style showcase and waveform export readiness
 
 - Ran OMP with the installed Skill to create eight editable diagrams across Visio architecture/UML, Rough.js flows, professional swimlanes, blueprint library composition, native freehand strokes and a presentation containing WaveDrom/code/callout. Actual PNGs were inspected; architecture layout and MUX input ports were repaired in place.

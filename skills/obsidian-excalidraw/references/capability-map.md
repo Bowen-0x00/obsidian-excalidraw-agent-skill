@@ -14,6 +14,7 @@
 | Shadow/callout/code highlight/rich text/gradient | 简略提及，参数单位与状态/来源不清 | [visual-content](visual-content.md)和native-features：受控配置、源码与PNG |
 | List/bullet | 只提演示页bullet，遗漏Smart List与序号放置 | visual-content：渲染型list和椭圆+bound text的bullet区分 |
 | Distribute/arrow | 基础API存在，但组闭包、特殊拖拽/定长/测量缺指引 | [layout-export-animation](layout-export-animation.md)：两种算法差异、真实customData、交互验证 |
+| 整组旋转/缩放 | 逐项angle/width/height不等于共同中心变换 | layout-export-animation：Bridge0.13.0 rotate/scale_selection复用真实手动入口，原生文字/点列/关联维护；宿主特定Hook边界 |
 | Animation/step appear | 只支持静态frames，缺动态图展示 | layout-export-animation：flow/dash/arrow、逐笔播放与分步hide，真实停止清理 |
 | Export联动 | 只写PNG反馈，没覆盖Anki/Eagle副作用 | layout-export-animation：真实外部应用入口/授权/结果，不擅自发送用户数据 |
 | 脚本执行 | URI开发能力此前是独立导出文件夹 | [script-execution](script-execution.md)：Skill内的统一可信URI/EA/Engine路径 |
