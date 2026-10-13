@@ -85,7 +85,7 @@ uv run --frozen python launcher.py remote-tunnel --host Redhat --remote-port 281
 
 Deployment installs a Python 3.11+ venv, the drawing client and full Skill under the remote user's account; the remote machine needs Python/pip, SSH and OMP, not uv, Obsidian or a display. Dependencies are installed from official PyPI without changing global pip configuration. Existing OMP model/auth/settings and unrelated MCP servers are preserved; customized managed runtime/Skill files are not silently overwritten.
 
-On the remote machine, restart OMP or `/mcp reload`, then ask it to use `skill://obsidian-excalidraw` and the `excalidraw-local` MCP server. `drawing_setup(status)` reports `mode=remote`, `rendering_location=host` and the host vault identity from the provisioned connection. Remote `connect`/`start` are intentionally rejected: start the GUI/Bridge and choose the vault on the graphical host.
+On the remote machine, restart OMP or use `/reload-plugins` to discover both the new Skill and MCP; `/mcp reload` alone reconnects MCP but does not discover a newly copied Skill. Then ask it to use `skill://obsidian-excalidraw` and `excalidraw-local`. `drawing_setup(status)` reports `mode=remote`, `rendering_location=host` and the host vault identity from the provisioned connection. Remote `connect`/`start` are intentionally rejected: start the GUI/Bridge and choose the vault on the graphical host.
 
 From the host, open an interactive remote OMP with `ssh -t -o ClearAllForwardings=yes -o ForwardX11=no Redhat omp`. For non-interactive `omp -p` runs over SSH, use `ssh -n` so OMP receives stdin EOF instead of waiting indefinitely for piped input. These per-command forwarding options do not stop the separate drawing tunnel.
 

@@ -85,7 +85,7 @@ uv run --frozen python launcher.py remote-tunnel --host Redhat --remote-port 281
 
 部署会在远端用户目录安装 Python 3.11+ venv、绘图客户端和完整 Skill。远端只需 Python/pip、SSH、OMP，不需要 uv、Obsidian 或显示器。依赖从官方 PyPI 安装，不修改全局 pip 设置。保留既有 OMP 模型、鉴权、设置与其他 MCP server；已修改的受管运行时/Skill 文件不会静默覆盖。
 
-远端重启 OMP 或执行 `/mcp reload`，然后要求使用 `skill://obsidian-excalidraw` 和 `excalidraw-local` MCP。`drawing_setup(status)` 返回 `mode=remote`、`rendering_location=host` 以及首连配置的宿主 vault 身份。远端 `connect`/`start` 被明确禁止：开启 GUI/Bridge、切换 vault 都在本机完成。
+远端重启 OMP，或执行 `/reload-plugins` 同时发现新Skill与MCP；单独 `/mcp reload` 仅重连MCP，不会发现刚复制的新Skill。然后要求使用 `skill://obsidian-excalidraw` 和 `excalidraw-local`。`drawing_setup(status)` 返回 `mode=remote`、`rendering_location=host` 以及首连配置的宿主 vault 身份。远端 `connect`/`start` 被明确禁止：开启 GUI/Bridge、切换 vault 都在本机完成。
 
 从本机进入远端交互 OMP：`ssh -t -o ClearAllForwardings=yes -o ForwardX11=no Redhat omp`。脚本方式通过 SSH 执行 `omp -p` 时用 `ssh -n`，使OMP得到stdin EOF，不会一直等待管道输入。这些单次命令的转发选项不会停止单独运行的绘图隧道。
 
