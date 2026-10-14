@@ -2,14 +2,14 @@
 name: Excalidraw Agent Bridge
 description: Local authenticated MCP bridge for Obsidian Excalidraw.
 author: local
-version: 0.13.1
+version: 0.13.2
 autorun: false
 ---
 /*
 ```javascript
 */
 
-const BRIDGE_VERSION = "0.13.1";
+const BRIDGE_VERSION = "0.13.2";
 const PROTOCOL_VERSION = "3";
 const DEFAULT_PORT = 27124;
 
@@ -5502,7 +5502,6 @@ function bindingObject(
       y: feedbackNumber(element.y),
       width: feedbackNumber(element.width),
       height: feedbackNumber(element.height),
-      version: element.version ?? 0,
     };
     if (element.angle) item.angle = feedbackNumber(element.angle);
     if (element.angle || Array.isArray(element.points)) item.bounds = feedbackBounds([element]);
@@ -6209,7 +6208,6 @@ function bindingObject(
             "parent",
             "groupIds",
             "frameId",
-            "version",
             "locked",
             "features",
           ],

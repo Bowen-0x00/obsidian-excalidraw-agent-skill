@@ -38,12 +38,13 @@ description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架�
 - Bridge所有请求共享串行队列与EA workbench，包含异步图片/PNG导出；不会交错污染工作台，但不是多线程同时渲染，慢导出会让其他请求等待。一次plan→apply→check→PNG不是跨请求原子操作。
 - 同一文件不建议多Agent同时写，即使token不同也是同一内容；相同baseRevision的竞争只允许首个提交，其余REVISION_CONFLICT。重新读后重新规划，不自动覆盖。复杂compose/present分阶段提交，保留失败时已执行集合。
 - Bridge0.13.1起revert只找**本文件**最近事务，不再被别的画布最后一笔阻挡；仍需revision未变，历史全Bridge最多20笔，不保证无限撤销。默认PNG路径唯一；明确out_path不要让两个Agent共用文件。
+new-tab是Agent默认的独立视图选择，不表示分屏无用：需要人工并排比较时可手动分屏，或使用确保新建独立leaf的宿主API。当前插件new-pane会受openInAdjacentPane设置影响，可能复用别的图；不为自动绘图擅改用户的全局分屏偏好。
 
 ## 完整摘要与 PNG 坐标反馈
 
 `drawing_read(context_token)`默认返回全部未删除元素，`coverage:"complete"`、count/total、file/revision、precision:2以及`bounds:{minX,maxX,minY,maxY,width,height}`；空画布bounds:null。bounds使用PNG相同的原生世界边界计算，处理负坐标、旋转与负local points，不是简单max(x+width)；不含导出padding、阴影/箭头装饰或frame标题的额外像素边缘。
 
-元素必含id/type/x/y/width/height/version；坐标与尺寸**最多两位小数的JSON数字**，不补无意义的`.00`。有文字/标签时含text；有关系时含bindings.boundElements/startBinding/endBinding/containerId；按需保留groupIds/frameId/parent/locked、angle、fontSize和扩展类型。可选字段缺省表示空关系、空组、无frame、angle0或locked:false。旋转/点列元素另有原生世界bounds。
+元素必含id/type/x/y/width/height；坐标与尺寸**最多两位小数的JSON数字**，不补无意义的`.00`。有文字/标签时含text；有关系时含bindings.boundElements/startBinding/endBinding/containerId；按需保留groupIds/frameId/parent/locked、angle、fontSize和扩展类型。可选字段缺省表示空关系、空组、无frame、angle0或locked:false。旋转/点列元素另有原生世界bounds。默认摘要不含元素version：正常写入由全图baseRevision防止覆盖；确需expectedVersion时按ID读取detail:"full"，不修改原生版本机制。
 
 摘要不回传脚本、大options、完整点列或压力数组；用pointCount。超过160字符的text截断并标textTruncated/textLength，不把摘要截断当作原文字丢失；按ID用detail:"full"取得完整内容/精确坐标。四舍五入仅用于反馈，绝不回写原场景。大场景可offset/limit分页，coverage:"page"+total/truncated；ids查询coverage:"ids"，不是全图证明。
 

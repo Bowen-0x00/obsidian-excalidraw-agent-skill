@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.5 — Lean summaries and explicit deployment verification
+
+- Omit per-element version from default read/PNG summaries: mandatory canvas baseRevision already protects normal writes. Native versions and optional expectedVersion remain available in full element reads.
+- Clarify native new-tab versus new-pane: dedicated tabs avoid the installed plugin's adjacent-pane reuse policy; deliberate manual split views remain useful without changing user preferences.
+
 ## 0.8.4 — Compact coordinate feedback and concurrent canvases
 
 - Return complete scene summaries with native world minX/maxX/minY/maxY bounds, file/revision/count/coverage and feedback-only two-decimal coordinates. Preserve exact values in full reads; flag capped text, summarize dense geometry by pointCount and omit empty optional fields.
