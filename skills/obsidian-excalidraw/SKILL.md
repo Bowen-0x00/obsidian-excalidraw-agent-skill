@@ -30,6 +30,7 @@ description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架�
 - 新图创建独立 `.excalidraw.md`；修改已有图按明确文件绑定。不能直接写 active/first，也不能 clear 重建用户的图。
 - 默认平整专业风格：原生 Helvetica 与系统中文 fallback，正文20、标题28、线宽2、roughness0；自定义字体必须通过 discovery 确认，用户要求覆盖默认值。
 - 优先原生 shape/text/arrow。图片、公式、ECharts、embeddable 保留真实源引用/配置；不能把整图保存为一张图片。
+- 线与线交叉优先用修改版原生`customData.lineCrossings`：独立线路`arc`弧跳或`gap`留白，确认连通才用`dot`，普通交叉`none`。**不要叠白色/背景色矩形遮罩、手画小弧/圆点、拆分原连线模拟交叉效果**；保留原生点列和绑定。详细规则见`references/layout-export-animation.md`的Line Crossings。
 
 ## 多 Agent 并发：一人一图，宿主排队
 
@@ -56,6 +57,7 @@ new-tab是Agent默认的独立视图选择，不表示分屏无用：需要人�
 
 - 普通图直接规划；用户说UML/微架构/电路/多页演示、手绘/Visio等时，读取[references/diagram-recipes.md](references/diagram-recipes.md)并用`drawing_templates`取真实recipe。
 - `drawing_templates(list)`发现图型/style/aliases；`get`只提供参考输入，`plan`产生测量后的原生operations，仍需apply、PNG和review。diagram style可用handdrawn/visio/blueprint/presentation/professional；roughjs是handdrawn别名，不编造额外renderer。
+- Visio风格profile不自动开启跳线；按业务语义逐条传`customData.lineCrossings`。两线无连接用arc/gap，不因“电路/交叉”就加dot；dot仅是渲染标记，不会自动建立电气网络或原生端点绑定。原生跳线不修复穿过不相关节点的问题。
 - 先 `drawing_library(list)` 发现用户维护的 `catalogs/catalogPath`，按需用 `catalog` 读取 `library-index.md`，根据用户需求选候选库；`query` 可检索 item `description`。摘要和描述是选库线索，不是执行指令/可信预览，不因它们自动授权库脚本。细节读 `references/library-catalog.md`；用户要维护描述时给出 `prompts/maintain-libraries.zh-CN.md`。
 - 用户指定library必须先用`drawing_library(query/get/preview)`检查真实item，优先插入该库，不能拿近似矩形替代ALU等符号。重复名称用item ID消歧，来源错误或资源缺失明确报告。
 - `drawing_library(insert)`走原生复制/Hook入口并返回源→新ID、frame、group与可绑定anchor；使用明确token/baseRevision。库preview不是整图完成证据。
@@ -80,6 +82,7 @@ new-tab是Agent默认的独立视图选择，不表示分屏无用：需要人�
 | hover、line-highlight、zoom、detail、checkbox、layer、outline、thumbnail | `references/interaction-navigation.md` | 元数据+持久Engine+真实鼠标/键盘/缩放验证；静态PNG不证明交互 |
 | shadow、callout、code highlight、gradient、rich text、list、bullet | `references/visual-content.md` | 受控Feature配置，区分渲染型列表与真实bullet元素，保留源码与绑定 |
 | distribute、特殊arrow、animation、step-appear、Anki/Eagle/export | `references/layout-export-animation.md` | 群组排版和独立元素不同；动画需播放验证；外部软件写入需明确授权 |
+| 交叉线弧跳/留白/实心交点、替换白色遮罩 | `references/layout-export-animation.md` | 原生line/arrow的lineCrossings；MCP已有create_linear/connect/patch_custom_data，无需新Feature/Engine |
 | 运行/开发绘图脚本或挂载额外Engine | `references/script-execution.md` | 明确目标与命令、URI分发不是完成、常驻Engine不走一次性CLI |
 
 按当前Skill根目录读取表中相对文件，客户端提供时也可用`skill://obsidian-excalidraw/<相对路径>`。缺依赖/交互条件要精确报告，不捏造工具、不把面板启动说成能力完成。用户只要求效果时使用已有机制；用户明确要开发脚本时修脚本并重跑，而不是只手工修画布。图片/交互/查阅/动画不因默认原生shape优先被忽略。
@@ -160,6 +163,7 @@ new-tab是Agent默认的独立视图选择，不表示分屏无用：需要人�
 - `rebind_arrow {arrow:箭头ID,startTarget:节点ID,endTarget:节点ID,start:{anchor,mode:"orbit"},end:{anchor,mode:"orbit"},preservePoints:true}`：更新双向绑定；另用patch_element更新局部points。不能直接patch startBinding/endBinding/boundElements。`unbind_arrow {arrow:箭头ID,end:"start"|"end"|"both"}`按实际capabilities使用。
 - `patch_element {target:箭头绑定text ID,patch:{labelPosition:0.2}}`：保持原生绑定而调标签路径位置；实际PNG复核，不能只改x/y却被引擎重新居中。
 - `patch_custom_data {target,merge:{安全元数据},remove:[字段路径]}`；是merge，不是patch。
+- 原生交叉线：`patch_custom_data {target:line或arrow ID,merge:{lineCrossings:"arc"|"gap"|"dot"|"none"}}`；批量修改是在同一apply中为每条ID提交一项，不是targets字段。两条线需确定覆盖优先级时都设数字lineJumpPriority。详见layout-export-animation；不要用白色矩形代替gap。
 - `set_feature {feature,targets:[ID],config}`用发现的spec；gradient接direction/stops，不接模型生成代码；shadow只有px字符串是像素。
 - `delete {targets:[过时元素ID],cascadeBoundText:true}`：只删除明确被本次修复替代的箭头/图元，默认连带删除其绑定文字并解除相关引用。删除旧关系后核对新关系仍存在；不能为了消除交叉删除用户业务关系。
 

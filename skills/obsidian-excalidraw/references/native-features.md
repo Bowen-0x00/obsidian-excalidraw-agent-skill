@@ -81,6 +81,8 @@ routing=`straight/orthogonal/curve`；代码读取当前精确节点geometry，�
 
 来源：`connection/Action-Advanced-Connector.md`，不是调用其交互面板。曲线精确碰撞检查尚有unknown，必须明确限制；不能用“curve看起来绕开”冒充硬检查通过。library line素材先用返回anchorElementId，不能直接绑定不支持的line target。
 
+两根业务线相交时使用原生`customData.lineCrossings`，不手画桥弧/白色矩形遮罩；arc/gap表示不连接，dot只作已确认连接的视觉标记，仍保留真实绑定。输入路由与逐IDpatch范例见[layout-export-animation](layout-export-animation.md)的Line Crossings；不要假设primitive连接或diagram.edges会转发任意customData。
+
 ## 合法包含与叠放
 
 多个面组成一个cuboid、一个库item的装饰/框/文字属于明确construction unit，metadata记agentPrimitive/agentLibrary.instanceId。只有单位内部叠放合法；不同单位之间仍检查，不能仅因groupIds相同就关闭碰撞检查。异常或复杂几何unknown不能冒充通过。

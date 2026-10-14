@@ -16,6 +16,8 @@
 
 `roughjs`/`rough-js`是`handdrawn`的已声明别名；`drawing_templates(list)`同时返回aliases。自然语言中的“手画/handdraw白板笔迹”用原生`draw`/freedraw，**不是第二个Rough.js renderer或名为handdraw的profile**；可混用freedraw轮廓、原生文字及有binding的arrow。不要为证明多风格把所有场景都画成同一种矩形。
 
+Visio/电路/微架构中的必要线—线交叉，采用修改版原生lineCrossings：独立线路arc/gap，明确连通才dot，不用白色遮罩模拟断开。visio profile不自动推断交叉语义；规划后按关系ref补patch_custom_data，详见layout-export-animation的Line Crossings。
+
 演示与GIF适合1280×900左右的可读构图；极宽/极长全图在auto PNG中会缩小文字。先按语义组织少量列/行/分区，不通过删业务关系或截短标签压尺寸。`layout.nodeGap>=32`、`rankGap>=40`；默认值优先，紧凑布局需遵守真实planner边界。
 
 ## 流程图

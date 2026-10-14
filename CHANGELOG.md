@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.6 — Native Visio-style line crossing guidance
+
+- Route arc/gap/dot/none through the updated host's native customData.lineCrossings with existing create_linear/connect/patch_custom_data operations; stop using white/background masks, manually drawn bridge arcs/dots or split wire geometry to simulate crossings.
+- Document paired numeric lineJumpPriority, planner/primitive metadata forwarding boundaries, semantic versus binding distinction, full-scene PNG verification and safe migration of identified legacy decorations.
+- Verified actual native rendering on colored background and bound elbow arrows, metadata-only changes retaining IDs/points/bindings/counts. Keep the observed T-junction PNG-dot limitation explicit rather than claiming every case works.
+
 ## 0.8.5 — Lean summaries and explicit deployment verification
 
 - Omit per-element version from default read/PNG summaries: mandatory canvas baseRevision already protects normal writes. Native versions and optional expectedVersion remain available in full element reads.

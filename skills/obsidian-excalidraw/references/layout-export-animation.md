@@ -33,6 +33,64 @@ Bridge 0.13.0新增`rotate`、`scale_selection`，通过现有`drawing_apply`批
 
 真实宿主验证：同组双节点+内部标签箭头绕共同中心顺时针90°，再放大1.5倍，节点文字20→30；外部节点及文字不变，外部箭头跟随；另验证绝对π弧度、已旋转单节点缩放、负坐标freedraw点列/压力、SVG path源保留、Frame children缩放、锁定/失败不提交与undo。PNG均实际查看，非对所有扩展Engine作全面手势兼容保证。
 
+## 原生 Line Crossings：弧跳、留白、交点
+
+这是更新后的Excalidraw-ymjr**渲染器**能力，不是额外Engine、素材或MCP Feature。作用于原生`line`/`arrow`的`customData.lineCrossings`；原始points、ID和绑定保持不变，交叉邻居移动后由宿主重算呈现。原生几何优先，**禁止默认叠白色/背景色矩形遮罩、手画桥弧/圆点或切成多条线模拟断开**；gap是实际抬笔留白，彩色背景不穿帮。
+
+| 值 | 表达 | 选择规则 |
+|---|---|---|
+| `arc` | 跨越方绘制弧跳 | 业务/电气上不连接；默认垂直线跨过水平线 |
+| `gap` | 让路方在交叉处留白 | 不连接；默认水平线让路，建议相交两线都标gap |
+| `dot` | 实心交点 | 仅当用户语义确认在此连接/汇流；**视觉标记不新增端点绑定或netlist关系** |
+| `none` | 普通交叉，无跳线处理 | 显式关闭此样式；不是“保证两线物理不连接”的语义替代 |
+
+### 现有MCP调用，不新增DSL
+
+`drawing_apply`的原生创建可以直接传customData。两条线都声明相同模式，不依赖侧栏“下一笔继承”的会话状态：
+
+```json
+[
+  {"op":"create_linear","kind":"line","ref":"horizontal","x":0,"y":120,"points":[[0,0],[300,0]],"style":{"strokeWidth":2,"roughness":0},"customData":{"lineCrossings":"arc"}},
+  {"op":"create_linear","kind":"arrow","ref":"vertical","x":150,"y":0,"points":[[0,0],[0,240]],"endArrowhead":"arrow","style":{"strokeWidth":2,"roughness":0},"customData":{"lineCrossings":"arc"}}
+]
+```
+
+连接已知节点时，把同一字段放在connect的**顶层customData**，不是style，不是`set_feature`：
+
+```json
+{"op":"connect","ref":"bus","from":"@source","to":"@target","elbowed":true,"style":{"strokeWidth":2,"roughness":0},"customData":{"lineCrossings":"gap"}}
+```
+
+已有连线按明确ID做merge，保留其他扩展与绑定；批量是多个操作，并非patch_custom_data支持targets：
+
+```json
+[
+  {"op":"patch_custom_data","target":"水平线ID","merge":{"lineCrossings":"gap"}},
+  {"op":"patch_custom_data","target":"垂直线ID","merge":{"lineCrossings":"gap"}}
+]
+```
+
+关闭用`merge:{"lineCrossings":"none"}`，或`remove:["lineCrossings"]`；不要替换整份customData。迁移旧遮罩图时先确认哪些ID确为模拟交叉的装饰，仅移除这些冗余遮罩/假弧/假点，保留原业务线、标签和用户主动叠放内容，不全图clear重建。
+
+当前planner的`diagram.edges`和`drawing_primitives`连接输入**不会自动转发任意edge.customData**。不要把字段塞进图描述后当已生效：保留完整plan.operations，再附`patch_custom_data {target:"@edge:关系逻辑ID",merge:{lineCrossings:"arc"}}`，或apply后用真实refs/ID修改；primitive按其返回ref处理。使用`drawing_templates(style="visio")`也不会自动加交叉语义。
+
+### 优先级与适用边界
+
+- `customData.lineJumpPriority`是数字；当前源码只有**两条线都提供数字且不同**时才按较大值跨越，否则回到垂直/水平规则，同向或斜线再按ID确定。要水平线弧跳，就给水平线10、垂直线0，并把两者lineCrossings设为arc；不要只给一根线10就声称强制优先级成功。
+- arc桥弧/gap半宽当前默认8个scene单位，近邻交点可能缩小；不是PNG固定像素，也没有已暴露的radius配置。不要靠装饰图元改半径。
+- 首选直线/折线/正交elbow箭头。靠近端点/拐角、极短线段、平行或共线重叠有排除规则；曲线、block-arrow和svgPathShape走特殊渲染分支，不保证与普通点列有相同交叉效果，不把所有line载体都设为走线。
+- T型分支由几何端点与线段位置识别，不应强行桥接；用户提供规范描述了自动圆点，源码也有junction记录，**本轮真实PNG的T分支未显示圆点**。不可把自动圆点当已验证的导出保证；需要这一语义时实际查看并报告差异，不悄悄补一个假圆点或修改用户插件。
+- `dot`不修改startBinding/endBinding/boundElements，不能用它代替connect/rebind的业务关系。`arc/gap`也只解决线—线交叉，不免除穿节点、标签遮挡、箭头端点错误等检查。
+- 侧栏Line Crossings可改选中line/arrow，并通过`currentItemLineCrossings`影响后续手绘线；Agent自动创建仍逐条显式传值，避免修改全局绘制偏好。Native CLI与Bridge schema不同，先读其schema确认customData是否允许；未确认时走已验证MCP，不照抄op到原生CLI。
+
+### 验证与能力来源
+
+先按目标ID读full，确认line/arrow、原始points和业务绑定；apply后重新读回customData及关系，再全图PNG实际查看。交叉配对需要场景上下文，ids局部PNG必须包含两根相交线，单根预览不能证明全图无交叉。没有新renderer的旧宿主可能保存字段却不显示效果；字段能写≠能力已生效，不静默退回遮罩技巧。
+
+本轮已在真实更新宿主验证：arc/gap/dot/none、两线数字priority反转；浅蓝背景下gap露出原背景、无交叉遮罩；connect创建的双向绑定elbow箭头弧跳→gap切换；patch前后ID/points/绑定与元素数量保持。PNG实际查看；T分支圆点缺口单独保留。没有以这轮PNG证明SVG/所有特殊箭头或交互帧率。
+
+来源：用户提供的Line Crossings规范；内核`packages/element/src/crossings.ts`（检测/优先级/path）、`shape.ts`（普通/elbow分支）、`renderElement.ts`（Canvas交点）、`packages/excalidraw/actions/actionProperties.tsx::actionChangeLineCrossings`及`App.tsx`（UI继承）。文档中的8px/60FPS不是Agent必须硬编码的布局常数或已测性能承诺。
+
 ## Arrow特殊属性
 
 | 属性/功能 | 真实入口/字段 | 限制与检查 |
