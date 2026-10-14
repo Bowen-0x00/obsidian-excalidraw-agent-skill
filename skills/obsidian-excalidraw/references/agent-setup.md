@@ -114,6 +114,12 @@ uv run --frozen python launcher.py remote-tunnel --host drawing-host --remote-po
 
 使用与宿主MCP相同的私有状态目录。远端需要Python 3.11+、pip、SSH与OMP；部署保留其模型/其他服务器配置。隧道命令持续运行，只绑定loopback，隔离无关转发/X11。断线后重启；换宿主vault后重新部署并重启远端MCP。remote setup中选vault/启动Bridge必须在GUI宿主完成。
 
+## 多 Agent 共用连接
+
+先由协调者配置并启动一次Bridge，Agent分别create/bind不同文件并保存各自contextToken/revision；子Agent不重复connect/start。客户端可并发请求，但Bridge的原生执行/导出共享串行队列；慢任务只阻塞等待，不应串文件。不要共享输出路径或同文件写作权。
+
+同文件竞争使用乐观revision，旧写入返回REVISION_CONFLICT。Bridge0.13.1撤销按文件最近事务隔离，仍有revision与全局20笔历史边界。默认drawing_read给全画布两位小数摘要/世界min-max边界，PNG同时携带同revision的canvasSummary与像素→场景transform。完整约定见SKILL的“多 Agent 并发”和“完整摘要与 PNG 坐标反馈”。
+
 ## 更新与卸载
 
 - 克隆安装：关闭本包MCP进程，`git pull`→`uv sync --frozen`→同步已复制Skill→重启客户端MCP。

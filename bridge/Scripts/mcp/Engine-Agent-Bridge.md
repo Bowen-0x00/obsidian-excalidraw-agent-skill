@@ -2,14 +2,14 @@
 name: Excalidraw Agent Bridge
 description: Local authenticated MCP bridge for Obsidian Excalidraw.
 author: local
-version: 0.13.0
+version: 0.13.1
 autorun: false
 ---
 /*
 ```javascript
 */
 
-const BRIDGE_VERSION = "0.13.0";
+const BRIDGE_VERSION = "0.13.1";
 const PROTOCOL_VERSION = "3";
 const DEFAULT_PORT = 27124;
 
@@ -5446,7 +5446,7 @@ function bindingObject(
     const features = {};
     if (cd.gradient) features.gradient = true;
     if (cd.shadow) features.shadow = true;
-    if (cd.swimlane) features.swimlane = typeof cd.swimlane === "object" ? cd.swimlane : { color: cd.swimlane };
+    if (cd.swimlane) features.swimlane = true;
     if (cd.echarts) features.echarts = { type: cd.echarts.type || "custom" };
     if (cd.bold) features.bold = true;
     if (cd.wavedrom) features.wavedrom = true;
@@ -5454,77 +5454,102 @@ function bindingObject(
     if (cd.callout) features.callout = true;
     if (cd.isCheckbox) features.checkbox = true;
     if (cd.svgPathShape) features.svgPathShape = true;
-    if (cd.parent) features.parent = cd.parent;
-    if (cd.agentDiagram) features.agentDiagram = cd.agentDiagram;
+    if (cd.agentDiagram) {
+      features.agentDiagram = Object.fromEntries(
+        ["diagramId", "logicalId", "role"]
+          .filter((key) => cd.agentDiagram[key] !== undefined)
+          .map((key) => [key, cd.agentDiagram[key]]),
+      );
+    }
     return features;
   }
 
+  function feedbackNumber(value) {
+    return Number(value.toFixed(2));
+  }
+
+  function feedbackBounds(elements) {
+    if (elements.length === 0) return null;
+    // Same native world-coordinate geometry used by PNG export, including rotation and negative points.
+    const box = ea.getBoundingBox(elements);
+    return {
+      minX: feedbackNumber(box.topX),
+      maxX: feedbackNumber(box.topX + box.width),
+      minY: feedbackNumber(box.topY),
+      maxY: feedbackNumber(box.topY + box.height),
+      width: feedbackNumber(box.width),
+      height: feedbackNumber(box.height),
+    };
+  }
+
+  function feedbackBinding(binding) {
+    if (!binding) return null;
+    return {
+      elementId: binding.elementId,
+      ...(binding.mode !== undefined ? { mode: binding.mode } : {}),
+      ...(binding.fixedPoint ? { fixedPoint: binding.fixedPoint.map(feedbackNumber) } : {}),
+      ...(typeof binding.focus === "number" ? { focus: feedbackNumber(binding.focus) } : {}),
+      ...(typeof binding.gap === "number" ? { gap: feedbackNumber(binding.gap) } : {}),
+    };
+  }
+
+  function compactElementSummary(element, byId) {
+    const label = elementLabel(element, byId);
+    const item = {
+      id: element.id,
+      type: element.type,
+      x: feedbackNumber(element.x),
+      y: feedbackNumber(element.y),
+      width: feedbackNumber(element.width),
+      height: feedbackNumber(element.height),
+      version: element.version ?? 0,
+    };
+    if (element.angle) item.angle = feedbackNumber(element.angle);
+    if (element.angle || Array.isArray(element.points)) item.bounds = feedbackBounds([element]);
+    if (label !== null) item.text = label.slice(0, 160);
+    const bindings = {};
+    if (element.boundElements?.length) bindings.boundElements = clone(element.boundElements);
+    if (element.startBinding) bindings.startBinding = feedbackBinding(element.startBinding);
+    if (element.endBinding) bindings.endBinding = feedbackBinding(element.endBinding);
+    if (element.containerId) bindings.containerId = element.containerId;
+    if (Object.keys(bindings).length) item.bindings = bindings;
+    if (element.customData?.parent) item.parent = element.customData.parent;
+    if (element.groupIds?.length) item.groupIds = clone(element.groupIds);
+    if (element.frameId) item.frameId = element.frameId;
+    if (element.isDeleted) item.isDeleted = true;
+    if (element.locked) item.locked = true;
+    const features = getElementFeatureSummary(element);
+    if (Object.keys(features).length) item.features = features;
+    if (label !== null && label.length > 160) {
+      item.textTruncated = true;
+      item.textLength = label.length;
+    }
+    if (element.type === "text") {
+      item.fontSize = feedbackNumber(element.fontSize);
+    }
+    if (Array.isArray(element.points)) item.pointCount = element.points.length;
+    if (element.type === "arrow") {
+      item.startArrowhead = element.startArrowhead ?? null;
+      item.endArrowhead = element.endArrowhead ?? null;
+      item.elbowed = Boolean(element.elbowed);
+    }
+    return item;
+  }
+
   function allElementsSummaryResponse() {
-    const allElements =
-      getViewElements();
-
-    const elements =
-      allElements.filter(
-        (element) =>
-          !element.isDeleted,
-      );
-
-    const byId = new Map(
-      allElements.map((element) => [
-        element.id,
-        element,
-      ]),
-    );
-
+    const allElements = getViewElements();
+    const elements = allElements.filter((element) => !element.isDeleted);
+    const byId = new Map(allElements.map((element) => [element.id, element]));
     return {
       file: activeFilePath(),
-      revision:
-        sceneRevision(allElements),
+      revision: sceneRevision(allElements),
       count: elements.length,
-      elements:
-        elements.map((element) => {
-          const item = {
-            id: element.id,
-            type: element.type,
-            x: element.x,
-            y: element.y,
-            width: element.width,
-            height: element.height,
-            angle: element.angle ?? 0,
-            text: elementLabel(
-              element,
-              byId,
-            ),
-            bindings: {
-              boundElements: clone(element.boundElements || []),
-              startBinding: clone(element.startBinding || null),
-              endBinding: clone(element.endBinding || null),
-              containerId: element.containerId ?? null,
-            },
-            parent: element.customData?.parent ?? null,
-            groupIds: clone(element.groupIds || []),
-            frameId: element.frameId ?? null,
-            version: element.version ?? 0,
-            versionNonce: element.versionNonce ?? 0,
-            isDeleted: false,
-            locked: Boolean(element.locked),
-            features: getElementFeatureSummary(element),
-          };
-
-          if (LINEAR_TYPES.has(element.type)) {
-            item.points = clone(element.points || []);
-          }
-          if (element.type === "freedraw") {
-            item.pressures = clone(element.pressures || []);
-            item.simulatePressure = Boolean(element.simulatePressure);
-          }
-          if (element.type === "arrow") {
-            item.endArrowhead = element.endArrowhead ?? null;
-            item.elbowed = Boolean(element.elbowed);
-          }
-
-          return item;
-        }),
+      total: elements.length,
+      scope: "all",
+      coverage: "complete",
+      precision: 2,
+      bounds: feedbackBounds(elements),
+      elements: elements.map((element) => compactElementSummary(element, byId)),
     };
   }
 
@@ -5698,6 +5723,9 @@ function bindingObject(
   ) {
     if (detail === "full") {
       return clone(element);
+    }
+    if (detail === "summary") {
+      return compactElementSummary(element, byId);
     }
   
     const result = {
@@ -5937,6 +5965,7 @@ function bindingObject(
     );
   
     return {
+      file: activeFilePath(),
       revision:
         sceneRevision(elements),
       total,
@@ -6156,6 +6185,12 @@ function bindingObject(
         contentMeasure:
           "/v3/content/measure",
       },
+      concurrency: {
+        execution: "All authenticated requests share one serial queue and EA workbench; agents may submit concurrently, native execution does not overlap",
+        target: "Each agent must create/bind its own file and retain its contextToken; focus changes do not retarget pinned requests",
+        sameCanvas: "Optimistic baseRevision checks; stale writes fail with REVISION_CONFLICT, not last-writer-wins",
+        undo: "Latest transaction per file, protected by revision; history retains at most 20 transactions across the Bridge",
+      },
 
       readEndpoints: {
         allElementsSummary: {
@@ -6175,11 +6210,14 @@ function bindingObject(
             "groupIds",
             "frameId",
             "version",
-            "versionNonce",
             "locked",
             "features",
           ],
           includesDeleted: false,
+          precision: 2,
+          bounds: "Native scene minX/maxX/minY/maxY/width/height; null for empty canvas; all active elements, excludes export padding/effect margins",
+          compact: "Empty optional fields omitted; text capped at 160 with textTruncated/textLength; pointCount instead of points/pressures; full detail retains exact native values",
+          preview: "PNG returns canvasSummary for the same file/revision with crop bounds and sceneOrigin/scale",
         },
         fullElementsById: {
           path: "/v3/elements/get",
@@ -11112,13 +11150,16 @@ function bindingObject(
   async function undoTransaction(
     payload,
   ) {
-    const transaction =
-      state.transactions.at(-1);
+    const filePath = activeFilePath();
+    const transactionIndex = state.transactions.findLastIndex(
+      (entry) => entry.filePath === filePath,
+    );
+    const transaction = state.transactions[transactionIndex];
   
     assert(
       transaction,
       "NO_TRANSACTION",
-      "There is no Agent transaction to undo.",
+      "There is no Agent transaction to undo on this canvas.",
       404,
     );
   
@@ -11127,7 +11168,7 @@ function bindingObject(
         payload.transactionId ===
           transaction.id,
         "TRANSACTION_MISMATCH",
-        "Only the most recent Agent transaction can be undone.",
+        "Only the most recent Agent transaction on this canvas can be undone.",
         409,
       );
     }
@@ -11163,7 +11204,7 @@ function bindingObject(
       true,
     );
   
-    state.transactions.pop();
+    state.transactions.splice(transactionIndex, 1);
   
     return {
       undoneTransactionId:
@@ -11229,7 +11270,7 @@ function bindingObject(
     const createdPath = await ea.create({
       filename,
       foldername,
-      onNewPane: true,
+      silent: true,
     });
 
     assert(
@@ -11238,6 +11279,11 @@ function bindingObject(
       "ea.create did not return a valid file path.",
       500,
     );
+    const createdFile = plugin.app.vault.getAbstractFileByPath(createdPath);
+    assert(createdFile, "FILE_NOT_FOUND", `Created drawing not found: ${createdPath}`, 404);
+    // "new-pane" may reuse an adjacent leaf and invalidate another agent's context.
+    // Use the native file opener's explicit new-tab path and preserve the creation hook.
+    plugin.openDrawing(createdFile, "new-tab", true, undefined, true);
 
     const view = await findAndConfirmView(createdPath, 5000);
     ea.setView(view);
@@ -11295,7 +11341,7 @@ function bindingObject(
           400,
         );
 
-        await plugin.openDrawing(file, "new-pane", true);
+        await plugin.openDrawing(file, "new-tab", true);
         view = await findAndConfirmView(filePath, 5000);
       }
     } else {
@@ -12868,6 +12914,7 @@ function bindingObject(
       width,
       height,
       bounds: sceneBounds,
+      canvasSummary: allElementsSummaryResponse(),
       transform: {
         scale: actualScale,
         padding,
@@ -13503,21 +13550,21 @@ function bindingObject(
       case "/v3/elements/summary":
         return withTargetView(
           payload.contextToken,
-          false,
+          true,
           () => allElementsSummaryResponse(),
         );
 
       case "/v3/elements/query":
         return withTargetView(
           payload.contextToken,
-          false,
+          true,
           () => queryElements(payload),
         );
 
       case "/v3/elements/get":
         return withTargetView(
           payload.contextToken,
-          false,
+          true,
           () =>
             queryElements({
               filter: {
@@ -13584,14 +13631,14 @@ function bindingObject(
       case "/v3/transactions/undo":
         return withTargetView(
           payload.contextToken,
-          false,
+          true,
           () => undoTransaction(payload),
         );
 
       case "/v3/render":
         return withTargetView(
           payload.contextToken,
-          false,
+          true,
           () => renderCanvas(payload),
         );
 

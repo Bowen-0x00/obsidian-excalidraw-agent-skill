@@ -71,7 +71,11 @@ def drawing_read(
 ) -> dict[str, Any]:
     """Read canvas elements: complete summary, specific element IDs, or paginated query.
 
-    Returns elements with native coordinates, types, bindings, groups, frames, and features.
+    Summary returns every active element, file/revision, native scene bounds
+    (minX/maxX/minY/maxY/width/height), precision=2 and complete coverage.
+    Coordinates/sizes are rounded only for feedback. Long text is capped at 160
+    with textTruncated/textLength; points/pressures become pointCount.
+    Optional empty fields are omitted. Use detail="full" for exact values by ID.
     """
     return client.read(
         context_token=context_token,
@@ -174,6 +178,9 @@ def drawing_preview(
     """Render canvas to PNG, returning ImageContent and JSON metadata with previewId and artifact path.
 
     Never outputs raw base64 string in text.
+    Includes canvasSummary: all active elements and scene bounds rounded to two
+    decimals from the same file/revision as the PNG. Use transform.sceneOrigin
+    and transform.scale to map PNG pixels to scene coordinates.
     """
     res = client.preview(
         context_token=context_token,

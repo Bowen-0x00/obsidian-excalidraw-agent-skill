@@ -31,6 +31,26 @@ description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架�
 - 默认平整专业风格：原生 Helvetica 与系统中文 fallback，正文20、标题28、线宽2、roughness0；自定义字体必须通过 discovery 确认，用户要求覆盖默认值。
 - 优先原生 shape/text/arrow。图片、公式、ECharts、embeddable 保留真实源引用/配置；不能把整图保存为一张图片。
 
+## 多 Agent 并发：一人一图，宿主排队
+
+- 可并发规划/提交**不同画布**；由一个协调者完成连接/启动，工作Agent只status，不并发connect/start/reload切服务。
+- 每个Agent用唯一filename创建，或明确file_path绑定；保留自己的file/contextToken/revision。Bridge0.13.1用独立new-tab而不是可能复用相邻面板的new-pane，第三张图不自动替换前图。请求绑定具体view+文件，不随当前焦点切换；用户主动关闭/切文件后token仍会失效，按原file重新bind。
+- Bridge所有请求共享串行队列与EA workbench，包含异步图片/PNG导出；不会交错污染工作台，但不是多线程同时渲染，慢导出会让其他请求等待。一次plan→apply→check→PNG不是跨请求原子操作。
+- 同一文件不建议多Agent同时写，即使token不同也是同一内容；相同baseRevision的竞争只允许首个提交，其余REVISION_CONFLICT。重新读后重新规划，不自动覆盖。复杂compose/present分阶段提交，保留失败时已执行集合。
+- Bridge0.13.1起revert只找**本文件**最近事务，不再被别的画布最后一笔阻挡；仍需revision未变，历史全Bridge最多20笔，不保证无限撤销。默认PNG路径唯一；明确out_path不要让两个Agent共用文件。
+
+## 完整摘要与 PNG 坐标反馈
+
+`drawing_read(context_token)`默认返回全部未删除元素，`coverage:"complete"`、count/total、file/revision、precision:2以及`bounds:{minX,maxX,minY,maxY,width,height}`；空画布bounds:null。bounds使用PNG相同的原生世界边界计算，处理负坐标、旋转与负local points，不是简单max(x+width)；不含导出padding、阴影/箭头装饰或frame标题的额外像素边缘。
+
+元素必含id/type/x/y/width/height/version；坐标与尺寸**最多两位小数的JSON数字**，不补无意义的`.00`。有文字/标签时含text；有关系时含bindings.boundElements/startBinding/endBinding/containerId；按需保留groupIds/frameId/parent/locked、angle、fontSize和扩展类型。可选字段缺省表示空关系、空组、无frame、angle0或locked:false。旋转/点列元素另有原生世界bounds。
+
+摘要不回传脚本、大options、完整点列或压力数组；用pointCount。超过160字符的text截断并标textTruncated/textLength，不把摘要截断当作原文字丢失；按ID用detail:"full"取得完整内容/精确坐标。四舍五入仅用于反馈，绝不回写原场景。大场景可offset/limit分页，coverage:"page"+total/truncated；ids查询coverage:"ids"，不是全图证明。
+
+`drawing_preview`除真实PNG外同时返回**同file/revision的canvasSummary**，格式就是上述完整摘要；局部PNG也附全图摘要。外层bounds/transform描述本次导出区域，不与canvasSummary.bounds混淆。PNG像素到scene坐标：`sceneX=sceneOrigin.x+pixelX/scale`、`sceneY=sceneOrigin.y+pixelY/scale`；图片阅读工具若缩小显示，先把显示位置换回PNG原像素。比如原PNG应右移60px、scale=1.5，就用`translate {targets:[id],dx:40,dy:0,includeBoundText:true}`；不要用截图像素直接写x。
+
+先从PNG+text/type/ID识别对象，再按摘要估计偏移，必要时按ID读full；优先translate相对位移以保留原坐标精度。标签是绑定text时应移动容器或使用正确labelPosition，不重复移动owner和text。按最新revision提交，重新PNG查看。
+
 ## 按需选择图型、风格、图元和素材
 
 - 普通图直接规划；用户说UML/微架构/电路/多页演示、手绘/Visio等时，读取[references/diagram-recipes.md](references/diagram-recipes.md)并用`drawing_templates`取真实recipe。
@@ -67,7 +87,7 @@ description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架�
 
 1. 若有 `drawing_setup`，先调用 `status`。未连接时，在用户目标已明确或仅有一个合法 vault 时调用 `connect`；多 vault 歧义才询问。它部署 bundle、生成私有凭据、通过实际 Advanced URI 启动；没装 Advanced URI 则报告返回的准确手动命令，不能声称启动成功。已配置但 Obsidian 重启后用 `start`。然后 `drawing_context(action="discover")` 核对 Bridge、字体与 Engines。无效令牌、缺插件/画布不能假装已有连接。
 2. `drawing_context(action="create", filename=描述性名称, foldername="Agent-Diagrams")` 得到 `contextToken`、真实文件与revision。修改已有图则 `action="bind", file_path=明确vault相对路径`。之后所有操作传该token。
-3. `drawing_read(context_token)` 读取完整摘要；不是几个选中元素。保留初始状态。
+3. `drawing_read(context_token)`读取完整两位小数摘要和全图min/max边界；不是几个选中元素。保留file/revision与初始状态。
 4. 组织简短图描述并调用 `drawing_plan(context_token, diagram)`。规划器使用真实字体/内容尺寸，负责换行、节点尺寸、分层和避障；不要按字数猜宽。
    - `kind`: flowchart/architecture/swimlane/freeform。
    - `nodes`: `id, shape, label, variant?`，shape用rectangle/ellipse/diamond；`content`支持image/latex/echarts/embeddable；其它复杂几何用实际native operations。
@@ -108,7 +128,7 @@ description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架�
    - `expected`示例：`{"type":"label_equals","id":"实际节点或文字ID","text":"完整内容"}`、`{"type":"edge_label","from":"起点ID","to":"终点ID","text":"通过"}`；节点字段是`id`，不是`target`。
 2. `drawing_preview(context_token, base_revision=check.revision, scale="auto", padding=20)`：默认预算避免大scale与包缓存内输出。除非用户明确指定外部交付路径，不传out_path，使用本机持久化artifact目录；不要把PNG写进版本化安装包。全图用于整体结构；小字/扩展内容再用ids局部PNG。`complete=false`或资源错误不能当成功。
 3. **实际查看返回的PNG**。MCP返回image block；CLI输出则用当前Agent真实的图像读取工具打开out_path。没有图像查看能力就记录visual_reviewed=false并明确限制，不要求所有客户端都有名为read的工具。
-4. 检查：内容与方向、长中文完整、文字是否在形状有效区域、表头/正文分离、对齐与间距、连线路径/箭头头/标签、图片/公式/图表/嵌入是否真出现、整体层级与配色。用返回的bounds/transform关联PNG位置和元素ID。
+4. 检查：内容与方向、长中文完整、文字是否在形状有效区域、表头/正文分离、对齐与间距、连线路径/箭头头/标签、图片/公式/图表/嵌入是否真出现、整体层级与配色。用同revision的canvasSummary识别ID和位置，再用transform.sceneOrigin/scale把PNG偏移换算为scene位移；无需从图片猜完整坐标。
    - **程序check=pass仍可能缺标签或不好看**。逐项核对用户要求的所有节点全文与分支标签；不要仅核对edge.from/to存在。普通节点内容用`label_equals`，分支标签用`edge_label`语义断言。
    - 长中文菱形不要横向撑成整张图的主视觉。优先增加合法换行与适度高度，保留至少正文内边距；检查决策宽度是否远大于同类节点、是否因此产生多余空白。
    - “通过/未通过”应贴近决策出口对应路径且左右归属明确，不贴到整张图的最外缘。可对绑定text的`labelPosition`（0–1的路径比例）作局部调整；默认0.28是起点，不是所有路线都理想。

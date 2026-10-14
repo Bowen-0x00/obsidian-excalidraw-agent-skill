@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.4 — Compact coordinate feedback and concurrent canvases
+
+- Return complete scene summaries with native world minX/maxX/minY/maxY bounds, file/revision/count/coverage and feedback-only two-decimal coordinates. Preserve exact values in full reads; flag capped text, summarize dense geometry by pointCount and omit empty optional fields.
+- Include the all-canvas compact summary alongside each PNG at the same revision, with sceneOrigin/scale for pixel-to-scene adjustments. Summary/get/query/render/undo require an explicit canvas token.
+- Scope undo lookup to the target file's latest transaction rather than the Bridge-global latest transaction, retaining revision protection and the existing shared 20-transaction history limit.
+- Open created or rebound canvases in explicit native new tabs: the host's new-pane path can reuse an adjacent view and invalidate an earlier Agent context when a third canvas opens.
+- Document separate-file Agent ownership, shared serial execution, same-file revision conflicts and one-time coordinator setup. Verified real concurrent clients, stale-write rejection, cross-file undo, unchanged native precision, negative/rotated bounds, empty/deleted scenes and bounded dense-stroke/long-text feedback.
+
 ## 0.8.3 — Native selection rotation and scaling
 
 - Added Bridge 0.13.0 rotate (relative signed degrees, clockwise positive) and scale_selection (uniform factor, center or corner anchor), using the installed editor's actual manual transform handler against an isolated native Scene before transactional commit.

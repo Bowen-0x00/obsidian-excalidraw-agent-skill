@@ -241,12 +241,12 @@ class DrawingClient:
             ]
             if not pages:
                 context = self.request("POST", "/v3/context", {"contextToken": context_token, "includeElements": False})
-                return {"revision": context["revision"], "total": 0, "elements": [], "coverage": "complete"}
+                return {"file": context["file"], "revision": context["revision"], "total": 0, "elements": [], "coverage": "ids"}
             revision = pages[0]["revision"]
             if any(page["revision"] != revision for page in pages):
                 raise BridgeError("Canvas changed during ID traversal", code="REVISION_CONFLICT", status=409)
             elements = [element for page in pages for element in page["elements"]]
-            return {"revision": revision, "total": len(elements), "elements": elements, "coverage": "complete"}
+            return {"file": pages[0]["file"], "revision": revision, "total": len(elements), "elements": elements, "coverage": "ids"}
         if detail == "summary" and offset is None and limit is None:
             result = self.request("POST", "/v3/elements/summary", {"contextToken": context_token})
             return {**result, "coverage": "complete"}
@@ -265,7 +265,7 @@ class DrawingClient:
                 raise BridgeError("Canvas changed during complete traversal", code="REVISION_CONFLICT", status=409)
             elements.extend(page["elements"])
             if not page["truncated"]:
-                return {"revision": revision, "total": page["total"], "elements": elements, "coverage": "complete"}
+                return {"file": page["file"], "revision": revision, "total": page["total"], "elements": elements, "coverage": "complete"}
             if not page["elements"]:
                 raise BridgeError("Incomplete element page", code="INVALID_RESPONSE", status=502)
             cursor += len(page["elements"])
@@ -436,7 +436,7 @@ class DrawingClient:
         receipts = artifact_directory() / "previews"
         receipts.mkdir(parents=True, exist_ok=True)
         (receipts / f"{preview_id}.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
-        return {**metadata, "_base64": b64_str}
+        return {**metadata, "canvasSummary": res["canvasSummary"], "_base64": b64_str}
 
     def review(
         self,
@@ -478,7 +478,7 @@ class DrawingClient:
         context_token: str,
         transaction_id: str | None = None,
     ) -> dict[str, Any]:
-        """Undo the most recent transaction or a specific transaction ID."""
+        """Undo the target file's latest transaction, optionally verifying its ID."""
         payload: dict[str, Any] = {"contextToken": context_token}
         if transaction_id:
             payload["transactionId"] = transaction_id
