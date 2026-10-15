@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "Bowen-0x00/obsidian-excalidraw-scripts",
-  "sourceCommit": null,
+  "sourceCommit": "2834d1a9051727f3c6b91d585597f6d83df5f6e2",
   "files": {
     "bridge/Scripts/hover/Feature-Hover-Engine.md": {
       "source": "Scripts/hover/Feature-Hover-Engine.md",
@@ -10,8 +10,8 @@
     },
     "bridge/Scripts/shadow/Feature-Shadow-Engine.md": {
       "source": "Scripts/shadow/Feature-Shadow-Engine.md",
-      "sha256": "81304427f791accc55313bb08f2fbcd374db2b00f7574087754d7da3bbc54d73",
-      "version": "1.0.0"
+      "sha256": "45fbd9add4ca6a79614a28a3d98d421553c0bf1ac170619b37b0380ccf813636",
+      "version": "1.0.1"
     },
     "bridge/Scripts/gradient/Feature-Gradient-Engine.md": {
       "source": "Scripts/gradient/Feature-Gradient-Engine.md",
@@ -50,8 +50,8 @@
     },
     "bridge/Scripts/mindmap/Feature-Mindmap-Engine.md": {
       "source": "Scripts/mindmap/Feature-Mindmap-Engine.md",
-      "sha256": "42952e532ed6cba18fcdd759d0ab472ed5e42b81597503e06b253ee9653caa16",
-      "version": "1.0.2"
+      "sha256": "e9725173a512701990b089087581a2d825fd7a37cfc7b37c5c53f09aeb7190d1",
+      "version": "1.1.2"
     },
     "bridge/Scripts/text/Feature-Text-Render-Engine.md": {
       "source": "Scripts/text/Feature-Text-Render-Engine.md",

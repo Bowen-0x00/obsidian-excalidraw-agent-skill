@@ -2,7 +2,7 @@
 name: Shadow 渲染引擎 (视觉层)
 description: 后台引擎：提供多图层阴影渲染。精准读取元素的静态 shadow 配置，并与 Hover 引擎无缝联动。
 author: ymjr
-version: 1.0.0
+version: 1.0.1
 license: MIT
 usage: 后台常驻引擎。读取并解析元素上的 `customData.shadow` 配置数组，利用 Canvas Context 原生绘制支持模糊和无限叠加的阴影效果。
 features:
