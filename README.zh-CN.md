@@ -170,6 +170,17 @@ Agent-Drawing/mcp/Start-Agent-Drawing
 
 克隆安装用 `git pull`、`uv sync --frozen`，同步已复制的 Skill 并重启 MCP。OMP 安装用 marketplace update / plugin upgrade，具体命令见接入说明。包更新后，重新连接**同一 vault**更新受管脚本；用户修改过的文件不会静默覆盖。
 
+### 共享 Engine 的单一源头与自动同步
+
+- 共享 Engine 只在 [Scripts 仓库](https://github.com/Bowen-0x00/obsidian-excalidraw-scripts)维护；本仓库保存可复现的发行快照。[shared-scripts.json](bridge/shared-scripts.json)显式列出源/目标文件，不按同名全量扫描。Agent 专用 Bridge、启动脚本不参与导入。
+- [shared-scripts.lock.json](bridge/shared-scripts.lock.json)记录源 commit、各脚本版本和 UTF-8/LF 内容 SHA-256；初始旧快照来源未知用null，首次实际更新才固定完整导入commit，不伪造历史来源。
+- Scripts 的main push自动检测清单内文件并通知；本仓库[同步工作流](.github/workflows/sync-shared-scripts.yml)从最新源main提取快照，校验完整输入、只编译不执行Engine代码、运行同步器及现有回归，然后创建/更新同一个`automation/shared-script-engines` PR。支持Actions页面Run workflow，另有每6小时兜底；迟到通知合并到最新快照。
+- 无关修改、内容相同直接跳过，不滚动改lock，也不重写内容已相同的开放PR。删除/改名、符号链接、清单缺失或共享副本被单独修改会明确失败，不静默覆盖。同步分支有人工作业/越界文件时停止；被拒绝关闭或孤立的分支须先明确处理，不能悄悄复活拒绝变更。已合并PR留下且未再修改的bot分支可复用作下一次更新。
+- 两仓库各配置同名Actions secret `SKILL_SYNC_TOKEN`。推荐专用、有限期的fine-grained token，只授权目标Agent仓库的Contents读写、Pull requests读写及Metadata读取；来源公开不需私有源访问。凭据只通过secret传递，不写YAML/日志/仓库、不向不可信PR提供。轮换时两处都替换，不必放宽仓库默认workflow权限。
+- 自动做到PR，不自动合并发布。维护者检查API/Hook变化，并在真实Obsidian验相关功能后合并/升级发行包；GitHub CI不是GUI/交互/PNG兼容证明。同步PR不会部署vault、不覆盖用户改动、不重载已注册Engine，也不自动更新本地/Redhat客户端。
+
+本地入口：`python scripts/sync_shared_scripts.py check`检查副本；`plan`/`apply`配`--source-dir`和`--source-commit`（完整40位commit）进行预览/导入。验证用`node scripts/check_shared_scripts.mjs`、`python -m unittest discover -s scripts/tests -v`及原有runtime回归。增加共享Engine时明确修改manifest、lock与bundle清单；共享修复回到Scripts源头，不双写两套代码。
+
 Bridge 是有 vault 读写权限的可信本地代码，仅监听 loopback 并鉴权，不是沙箱。不要公开私有连接文件；外部素材中的可执行代码需明确授权。Anki/Eagle 写入、额外 Engine 挂载和动画播放不是普通 PNG 导出的默认副作用。模型服务会接收它处理的提示与图片。
 
 原创包代码采用 [MIT](LICENSE)，内嵌库保留 [第三方许可证](THIRD_PARTY_NOTICES.md)。本项目与 Obsidian、上游 Excalidraw 无官方关联。

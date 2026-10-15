@@ -20,6 +20,8 @@
 !/runtime/tests/*.py
 !/bridge/
 !/bridge/bundle.json
+!/bridge/shared-scripts.json
+!/bridge/shared-scripts.lock.json
 !/bridge/Scripts/
 !/bridge/Scripts/**/
 !/bridge/Scripts/**/*.md
@@ -50,6 +52,14 @@
 !/skills/obsidian-excalidraw/references/typography.md
 !/skills/obsidian-excalidraw/prompts/
 !/skills/obsidian-excalidraw/prompts/maintain-libraries.zh-CN.md
+!/.github/
+!/.github/workflows/
+!/.github/workflows/*.yml
+!/scripts/
+!/scripts/*.py
+!/scripts/*.mjs
+!/scripts/tests/
+!/scripts/tests/*.py
 
 # Never stage runtime configuration, credentials or user output.
 .env

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Shared Engine source locking and automatic update PRs
+
+- Declare the 16 shared Engine source/target mappings and LF-normalized content/version locks. Preserve the legacy snapshot without inventing a source commit; imported updates pin a real published source tree.
+- Add manifest-aware Scripts push notifications and a target receiver with manual/scheduled fallback. Validate all inputs before import, reject shared-copy drift/deletions/renames, skip unrelated/no-op updates, and reuse a scoped bot PR without overwriting human edits.
+- Add nonexecuting JavaScript syntax checks, isolated importer behavior regressions and secret-free integrity CI. Source code is never executed merely because it was published upstream.
+- Keep Agent Bridge/bootstrap ownership, package release, vault deployment and loaded-Engine compatibility as separate responsibilities. Document scoped encrypted credentials, rotation and the real-host acceptance gate.
+
 ## 0.8.16 — Editable PPT block arrow sizing
 
 - Add general-purpose filled/outline block arrow selection and sizing guidance for flow, architecture, teaching and comparison diagrams. Separate path length, scene-unit shaft width, head scale and outline stroke; include short/wide versus long/slim examples and same-ID width-only edits.

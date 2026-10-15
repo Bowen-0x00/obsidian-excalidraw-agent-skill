@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repository": "Bowen-0x00/obsidian-excalidraw-scripts",
+    "branch": "main"
+  },
+  "files": [
+    {"source":"Scripts/hover/Feature-Hover-Engine.md","target":"bridge/Scripts/hover/Feature-Hover-Engine.md"},
+    {"source":"Scripts/shadow/Feature-Shadow-Engine.md","target":"bridge/Scripts/shadow/Feature-Shadow-Engine.md"},
+    {"source":"Scripts/gradient/Feature-Gradient-Engine.md","target":"bridge/Scripts/gradient/Feature-Gradient-Engine.md"},
+    {"source":"Scripts/swimlane/Feature-Swimlane-Engine.md","target":"bridge/Scripts/swimlane/Feature-Swimlane-Engine.md"},
+    {"source":"Scripts/callout/Feature-Callout-Engine.md","target":"bridge/Scripts/callout/Feature-Callout-Engine.md"},
+    {"source":"Scripts/checkbox/Feature-Checkbox-Engine.md","target":"bridge/Scripts/checkbox/Feature-Checkbox-Engine.md"},
+    {"source":"Scripts/code-highlight/Feature-Code-Highlight-Engine.md","target":"bridge/Scripts/code-highlight/Feature-Code-Highlight-Engine.md"},
+    {"source":"Scripts/echarts/Feature-Echarts-Engine.md","target":"bridge/Scripts/echarts/Feature-Echarts-Engine.md"},
+    {"source":"Scripts/layer/Feature-Layer-Engine.md","target":"bridge/Scripts/layer/Feature-Layer-Engine.md"},
+    {"source":"Scripts/mindmap/Feature-Mindmap-Engine.md","target":"bridge/Scripts/mindmap/Feature-Mindmap-Engine.md"},
+    {"source":"Scripts/text/Feature-Text-Render-Engine.md","target":"bridge/Scripts/text/Feature-Text-Render-Engine.md"},
+    {"source":"Scripts/wave-drom/Feature-Wavedrom-Engine.md","target":"bridge/Scripts/wave-drom/Feature-Wavedrom-Engine.md"},
+    {"source":"Scripts/library/Feature-Library-Engine.md","target":"bridge/Scripts/library/Feature-Library-Engine.md"},
+    {"source":"Scripts/export/Feature-Export-Embeddable.md","target":"bridge/Scripts/export/Feature-Export-Embeddable.md"},
+    {"source":"Scripts/table/Feature-Table-Engine.md","target":"bridge/Scripts/table/Feature-Table-Engine.md"},
+    {"source":"Scripts/arrow/Feature-Arrow-Head-Resize-Engine.md","target":"bridge/Scripts/arrow/Feature-Arrow-Head-Resize-Engine.md"}
+  ]
+}

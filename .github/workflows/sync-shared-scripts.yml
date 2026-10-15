@@ -1,0 +1,49 @@
+name: Sync shared script Engines
+
+on:
+  repository_dispatch:
+    types: [shared-scripts-updated]
+  workflow_dispatch:
+  schedule:
+    - cron: '23 */6 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shared-script-snapshot
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: Bowen-0x00/obsidian-excalidraw-scripts
+          ref: main
+          fetch-depth: 0
+          path: .upstream-scripts
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.13'
+      - name: Install locked runtime dependencies
+        run: |
+          python -m pip install uv
+          uv sync --frozen
+      - name: Validate and publish a scoped update PR
+        env:
+          GH_TOKEN: ${{ secrets.SKILL_SYNC_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo 'Missing SKILL_SYNC_TOKEN; configure a scoped token for target Contents and Pull requests write.' >&2
+            exit 1
+          fi
+          python scripts/publish_shared_scripts.py

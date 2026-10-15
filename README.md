@@ -167,6 +167,28 @@ To ask an Agent to curate descriptions and summaries, copy [the library maintena
 
 For a checkout, use `git pull` and `uv sync --frozen`, refresh copied Skill files, then restart MCP. For OMP, use marketplace update / plugin upgrade as documented in Agent setup. Reconnect the **same vault** after package updates to update managed host scripts. Customized files are not silently overwritten.
 
+### Shared Engine source and automatic update PRs
+
+- [`bridge/shared-scripts.json`](bridge/shared-scripts.json) is the explicit import allowlist. Shared Engines are maintained only in [Scripts](https://github.com/Bowen-0x00/obsidian-excalidraw-scripts); `mcp/Start-Agent-Drawing.md` and `mcp/Engine-Agent-Bridge.md` belong to this Agent repository and are never imported.
+- [`bridge/shared-scripts.lock.json`](bridge/shared-scripts.lock.json) records the exact source commit, each source path, script version and SHA-256 of UTF-8/LF content. The initial legacy baseline has `sourceCommit: null` because historical provenance is unknown, not fabricated; the first actual update pins the complete imported snapshot.
+- Scripts `main` pushes notify this repository only for declared inputs (or notification workflow changes). The receiving [workflow](.github/workflows/sync-shared-scripts.yml) also supports **Run workflow** and a six-hour fallback. It imports the latest source `main` commit, coalescing delayed notifications, validates the complete input, compiles Engine JavaScript without executing it, runs importer and runtime regressions, then creates/updates **one** `automation/shared-script-engines` PR.
+- Unrelated source changes and identical content are no-ops, including no lock commit churn or rewriting an already-current open PR. Deleted/renamed inputs, missing declarations, symlinks and independently edited shared copies fail visibly before copying. A bot branch containing human commits or out-of-scope files is not overwritten; a rejected/orphaned sync branch must be resolved/deleted before rerunning. An unchanged branch from a merged PR can be reused for the next update.
+- Configure `SKILL_SYNC_TOKEN` as an **Actions repository secret in both repositories**. Prefer a dedicated expiring fine-grained token limited to this Agent repository with **Contents: read/write**, **Pull requests: read/write**, and Metadata read; source scripts are public. It dispatches from Scripts and creates the target bot PR (so integrity CI runs normally). Never paste the token into workflow YAML, commit it, or enable secret-bearing jobs on untrusted PRs. Rotate by replacing both secrets. Repository-wide default workflow permissions need not be broadened.
+- PR creation is automatic; merging/releasing remains a maintainer gate. Exercise affected Hooks/APIs and real Obsidian interaction/PNG output before release. GitHub runners cannot prove GUI compatibility. The PR does not bump package versions, overwrite customized vault files, reload an already registered Engine, or deploy to local/remote clients.
+
+Local maintenance (the source checkout must contain the exact published commit):
+
+```sh
+python scripts/sync_shared_scripts.py check
+python scripts/sync_shared_scripts.py plan --source-dir /path/to/scripts --source-commit FULL_40_CHARACTER_COMMIT
+python scripts/sync_shared_scripts.py apply --source-dir /path/to/scripts --source-commit FULL_40_CHARACTER_COMMIT
+node scripts/check_shared_scripts.mjs
+python -m unittest discover -s scripts/tests -v
+uv run --frozen python -m unittest discover -s runtime/tests -v
+```
+
+To add an Engine, explicitly review the manifest, lock entry and `bridge/bundle.json` together; never auto-import every new script by matching filenames. Return shared code fixes upstream instead of editing the bundled copy independently.
+
 The Bridge is trusted local code with vault read/write access, not a sandbox. It listens on loopback and authenticates requests. Keep private connection files out of public repositories; executable library data requires explicit trust. Anki/Eagle writes, additional Engines and animation are not default side effects of PNG export. Your model provider receives the prompts and images it processes.
 
 Original package code is [MIT licensed](LICENSE); embedded libraries retain their [third-party licenses](THIRD_PARTY_NOTICES.md). This project is not affiliated with Obsidian or upstream Excalidraw.

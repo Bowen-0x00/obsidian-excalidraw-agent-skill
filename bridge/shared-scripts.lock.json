@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "repository": "Bowen-0x00/obsidian-excalidraw-scripts",
+  "sourceCommit": null,
+  "files": {
+    "bridge/Scripts/hover/Feature-Hover-Engine.md": {
+      "source": "Scripts/hover/Feature-Hover-Engine.md",
+      "sha256": "e0dd685a2098ca77cfc72f4aa407dabae57f0c164d0045e0ecefe10746422fb3",
+      "version": "1.0.0"
+    },
+    "bridge/Scripts/shadow/Feature-Shadow-Engine.md": {
+      "source": "Scripts/shadow/Feature-Shadow-Engine.md",
+      "sha256": "81304427f791accc55313bb08f2fbcd374db2b00f7574087754d7da3bbc54d73",
+      "version": "1.0.0"
+    },
+    "bridge/Scripts/gradient/Feature-Gradient-Engine.md": {
+      "source": "Scripts/gradient/Feature-Gradient-Engine.md",
+      "sha256": "4d88cf16e4c0658551cea755d4ff07d5a6d0457e6932445f230f89615ac41367",
+      "version": "1.0.0"
+    },
+    "bridge/Scripts/swimlane/Feature-Swimlane-Engine.md": {
+      "source": "Scripts/swimlane/Feature-Swimlane-Engine.md",
+      "sha256": "69dc9f89f7909a1a6b1d8365c829490a2cbf8efeb4d892dba34faaf557977d5f",
+      "version": "1.0.0"
+    },
+    "bridge/Scripts/callout/Feature-Callout-Engine.md": {
+      "source": "Scripts/callout/Feature-Callout-Engine.md",
+      "sha256": "78671d6c0ce4f1633daa8eac2193161cef802a2baadbfdc5a5d9ef867977063e",
+      "version": "1.0.0"
+    },
+    "bridge/Scripts/checkbox/Feature-Checkbox-Engine.md": {
+      "source": "Scripts/checkbox/Feature-Checkbox-Engine.md",
+      "sha256": "05a1d62c7ad1ab785f3f0ff04e97fa007eb982f99237cd024a7a76c9916564c2",
+      "version": "1.0.0"
+    },
+    "bridge/Scripts/code-highlight/Feature-Code-Highlight-Engine.md": {
+      "source": "Scripts/code-highlight/Feature-Code-Highlight-Engine.md",
+      "sha256": "d6244ec744806963e474c5c3ad0360cfa7e2a0f343faf63363bbafaa176c7744",
+      "version": "1.0.0"
+    },
+    "bridge/Scripts/echarts/Feature-Echarts-Engine.md": {
+      "source": "Scripts/echarts/Feature-Echarts-Engine.md",
+      "sha256": "9f646420fc38eb26a76269dc528bbf3d0c2afc20355a0f8b3db7d8fb73c42a4d",
+      "version": "1.0.0"
+    },
+    "bridge/Scripts/layer/Feature-Layer-Engine.md": {
+      "source": "Scripts/layer/Feature-Layer-Engine.md",
+      "sha256": "6ab01c72b56141df63ba32f08fc0c7ca23f48fdc676f495705e12ce04948febe",
+      "version": "1.0.0"
+    },
+    "bridge/Scripts/mindmap/Feature-Mindmap-Engine.md": {
+      "source": "Scripts/mindmap/Feature-Mindmap-Engine.md",
+      "sha256": "42952e532ed6cba18fcdd759d0ab472ed5e42b81597503e06b253ee9653caa16",
+      "version": "1.0.2"
+    },
+    "bridge/Scripts/text/Feature-Text-Render-Engine.md": {
+      "source": "Scripts/text/Feature-Text-Render-Engine.md",
+      "sha256": "ecf08f6402850dd4c69b74fb55a2db00eba92213a5a35f13aa5a500fbb27c249",
+      "version": "1.0.0"
+    },
+    "bridge/Scripts/wave-drom/Feature-Wavedrom-Engine.md": {
+      "source": "Scripts/wave-drom/Feature-Wavedrom-Engine.md",
+      "sha256": "4fb87275b736294d206d42fbebc319bcfbdc458273c089f3b8f7ffa62db2c829",
+      "version": "1.0.0"
+    },
+    "bridge/Scripts/library/Feature-Library-Engine.md": {
+      "source": "Scripts/library/Feature-Library-Engine.md",
+      "sha256": "0e9d54a90e67d53f8ee75864f787612c4c9c33e835901f7450431c8a5d761960",
+      "version": "1.0.0"
+    },
+    "bridge/Scripts/export/Feature-Export-Embeddable.md": {
+      "source": "Scripts/export/Feature-Export-Embeddable.md",
+      "sha256": "b3d834e572dc165abdbddfd634cfd010d5943232ea77ba7efbc23e6a22953155",
+      "version": "1.0.0"
+    },
+    "bridge/Scripts/table/Feature-Table-Engine.md": {
+      "source": "Scripts/table/Feature-Table-Engine.md",
+      "sha256": "54f1ef42398e24d7976778d2bf07331f4ce4a6405bac387d7d244e18fa8bfeb5",
+      "version": "1.0.0"
+    },
+    "bridge/Scripts/arrow/Feature-Arrow-Head-Resize-Engine.md": {
+      "source": "Scripts/arrow/Feature-Arrow-Head-Resize-Engine.md",
+      "sha256": "0a6700cf033c5bdcf7bcf1ad428ef05ada4c27c11c91e5a4cbfbeecc47cedaf0",
+      "version": "1.0.0"
+    }
+  }
+}
