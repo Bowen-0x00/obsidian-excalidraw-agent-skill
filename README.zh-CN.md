@@ -13,6 +13,7 @@
 - 使用修改版提供的视觉效果、交互和导航功能。具体支持取决于宿主插件与已启用的脚本。
 - 更新宿主支持原生Visio式弧跳、留白断线和实心交点；直接设置走线元数据，不再用白色矩形遮罩模拟。详见[排版与交叉线参考](skills/obsidian-excalidraw/references/layout-export-animation.md)。
 - 测量文字、规划布局、检查关系与几何约束，查看 PNG 后局部修正；复用原生手动变换实现整组绕共同中心旋转及等比缩放，保留其他内容。
+- 素材插入前先读真实尺寸并适配用途：先放大演示底板再填字，电路符号整体等比缩放并保留锚点/连接；区别于单元素resize和PNG导出倍率。远端本地PNG可经现有data:image入口传到宿主，与原生文字/frame混排。详见[尺寸适配](skills/obsidian-excalidraw/references/layout-export-animation.md)与[图片参考](skills/obsidian-excalidraw/references/images-assets.md)。
 - 多Agent分别绑定不同画布并发提交，宿主排队执行并拒绝过期写入；PNG同时反馈同revision的全图min/max边界和全部元素简略信息，坐标最多两位小数，不改原始精度。
 
 ## 可编辑、多风格与服务器绘图

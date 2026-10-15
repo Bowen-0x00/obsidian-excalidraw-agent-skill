@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.7 — Size-aware library workflow and remote PNG inputs
+
+- Require source bounds/frame inspection and an explicit target size before placing presentation templates or circuit symbols. Distinguish numeric library scale, relative native selection factor, single-element resize, layout allocation and PNG export scale; preserve aspect ratios and complete instance membership.
+- Surface sizing guidance directly in apply/library/compose/present MCP descriptions. Keep existing execution APIs: no new resize DSL, no silent auto-fit, no frame-only or transparent-anchor-only enlargement. Presentation scale is top-level; differing source sizes require separate sizing.
+- Verified through actual Redhat stdio MCP: a native library frame grew from 648.12×431.88 to 1280×852.93 with its decorations; editable SVG ALU 60×45 → library scale 2 → 120×90 → relative factor 2 → 240×180 retained its source, native IDs, anchor and updated external binding. Single resize produced 160×64 with font size 20 unchanged. A populated page scaled and restored with all text/IDs/internal bindings retained; final hard checks and inspected PNG passed.
+- Document remote PNG byte transport through existing data:image create_image inputs, total 4MiB request budgeting and independent page image/text editability. Two real remote PNGs persisted as host attachments with matching SHA-256; image/text/frame PNG inspection and review completed.
+
 ## 0.8.6 — Native Visio-style line crossing guidance
 
 - Route arc/gap/dot/none through the updated host's native customData.lineCrossings with existing create_linear/connect/patch_custom_data operations; stop using white/background masks, manually drawn bridge arcs/dots or split wire geometry to simulate crossings.

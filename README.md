@@ -13,6 +13,7 @@ Create and edit diagrams in **Obsidian Excalidraw-ymjr** from natural-language r
 - Visual effects, interaction and navigation supplied by the modified plugin and its drawing scripts. Availability depends on the installed host capabilities.
 - Native Visio-style line crossings in updated hosts: jump arcs, background-independent gaps and junction dots. Use native metadata rather than white masking rectangles; see the [layout and crossing reference](skills/obsidian-excalidraw/references/layout-export-animation.md).
 - Measured text, layout planning, relationship/geometry checks, PNG inspection and targeted edits that preserve unrelated content; native common-center group rotation and proportional selection scaling.
+- Size library assets for their intended use before filling text or wiring: fit the whole slide template or circuit instance, including its anchor. Distinguish single-element resize from native selection scaling and PNG export scale. Remote PNG bytes can use existing data:image inputs alongside native text/frames; see [sizing](skills/obsidian-excalidraw/references/layout-export-animation.md) and [images](skills/obsidian-excalidraw/references/images-assets.md).
 - Concurrent Agents on separate token-bound canvases, with serialized native execution and stale-write protection. Every PNG includes the same-revision compact element summary and scene min/max bounds; feedback coordinates use at most two decimals without changing native precision.
 
 ## Editable diagrams, multiple styles, remote development

@@ -54,7 +54,7 @@ Visio/电路/微架构中的必要线—线交叉，采用修改版原生lineCro
 
 `drawing_templates(get,name="microarchitecture"|"circuit")`提供数字电路库示例；示例中的library来源必须替换为用户机器上已发现的真实库。用户指定的目录原文可传给`drawing_library`，它会返回真实resolvedLibrary；找不到或同名歧义不能悄悄用其它库。
 
-可按文件名查找 `digital-circuit-components(svg).excalidrawlib`，但不能假设任何绝对路径或固定item数量。先通过 `drawing_library(list/query)` 发现安装库与真实vault相对路径；同名item用exact ID。顺序：query→get真实bounds/类型/资源→preview候选→compose或逐项native insert→连接与label→全图check/PNG。库素材svgPathShape仍是可编辑line carrier，不是整项PNG。
+可按文件名查找 `digital-circuit-components(svg).excalidrawlib`，但不能假设任何绝对路径或固定item数量。先通过 `drawing_library(list/query)` 发现安装库与真实vault相对路径；同名item用exact ID。顺序：query→get真实bounds/类型/资源→preview候选→**按角色/端口和目标内容区计算library.scale**→compose或native insert→以缩放后的几何连接与label→全图check/PNG。库素材svgPathShape仍是可编辑line carrier，不是整项PNG。node.size增加布局空位不会放大库符号；已导入尺寸不合适就对完整实例scale_selection，见[尺寸适配](layout-export-animation.md)。
 
 `drawing_compose(context_token,base_revision,diagram)`接受普通nodes和：
 
@@ -70,7 +70,7 @@ Visio/电路/微架构中的必要线—线交叉，采用修改版原生lineCro
 
 `drawing_templates(get,name="presentation")`提供同系列intro/slides页计划；先发现本机的 `presentation-bundle.excalidrawlib`，再将真实返回路径传给 `drawing_present`。本包不分发素材库，不假设本机已经安装这些模板。
 
-`drawing_present(context_token,base_revision,presentation)`逐页原生插入frame模板，保留装饰、组与源→native ID映射，再用原生text填标题/正文。不能手写frameId猜关联。title/body越界则拆页或缩小内容组织，不裁业务文字。每页返回frameId与elementIds，用这些IDs导出单页PNG；还需全图overview与所有页实际看图后review。
+`drawing_present(context_token,base_revision,presentation)`逐页原生插入frame模板，保留装饰、组与源→native ID映射，再用原生text填标题/正文。**先get源frame尺寸并计算presentation.scale，再填字；不能默认小底板scale=1然后把正文挤在上面。**各模板源尺寸不同则分次调用或逐项insert后适配；没有page.scale/width/height自动fit字段。不能手写frameId猜关联。title/body越界先检查底板尺寸、留白和布局，再按内容拆页，不裁业务文字。每页返回frameId与elementIds，用这些IDs导出单页PNG；还需全图overview与所有页实际看图后review。
 
 ```json
 {

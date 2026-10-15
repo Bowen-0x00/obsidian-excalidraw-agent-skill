@@ -12,6 +12,27 @@ Bridge horizontal/vertical算法按外包围盒总跨度与总尺寸计算等边
 
 复杂组先显式求group/container/bound-text闭包、计算每组真实bounds，再translate整组并去重绑定text位移，或在受信宿主复用原Action的算法。文字已跟随容器移动时不能二次移动；箭头绑定/锁定图元须读回校验。对角线/文字排版看`Action-Distribute-Diagonally.md`与`Action-Distribute-Text.md`，不造第三个direction；没有对应adapter就受信脚本复用，不假称Bridge支持。paste auto-distribute是粘贴Hook，不能当全画布自动布局。
 
+## 尺寸适配：先定用途，再插素材
+
+库里的坐标单位和原始尺寸不是最终阅读尺寸。Agent须主动决定大小，不要求用户给坐标，也不能把“小但无碰撞”当成已完成。PNG导出`scale`只提高输出像素，**不会改变元素之间的大小关系**。
+
+| 对象/时机 | 已有入口 | 适用边界 |
+| --- | --- | --- |
+| 素材尚未插入 | `drawing_library(insert,scale=s)`；compose的`nodes[].library.scale` | 整项等比缩放；默认1不是自动fit。compose的node.size只影响布局空间，不会替代library.scale |
+| 素材/整页已插入 | `drawing_apply`的`scale_selection {targets:[完整成员ID],factor:s,fromCenter:false}` | 原生整体缩放位置、点列、文字和frame子元素；含透明anchor和全部装饰，不只选可见主图元 |
+| 单个普通形状或图片 | `resize {target,width,height,anchor:"top-left"}` | 仅改该元素尺寸和绑定文字布局，不自动缩放组员/字号；line/arrow被拒绝，SVG line carrier用scale_selection |
+
+1. `query/get`取得精确`bounds`，`preview`看真实内容。已有图按ID读取full，并确认groupIds、frameId、锁定、绑定和实例成员；不要把整个共享外层group误当某个小符号。使用插入返回的`insertedElementIds/sourceIdMap/anchorElementId`定位本次素材。
+   模板中已通过预览确认的整页底色/内页rectangle是合法包含背景；需要时以`patch_custom_data.merge:{isContainer:true}`声明容器语义再检查，不移动/删除底板来消除“重叠”。不得给真正冲突的业务节点乱标container，也不把所有库矩形自动当背景。
+2. 选内容区`W×H`，给图文留内边距。等比装入用`s=min(W/sourceWidth,H/sourceHeight)`；按目标宽或高用相应比值，另一维同步计算。`s>1`允许放大。页模板以frame宽高为页面基准，普通符号以整项真实bounds为基准；含标题等突出部分时另查整体bounds，防止相邻页相碰。库scale现有范围`0<s<=20`，不把这个范围误写成PNG倍率。
+3. 插入前优先传scale，减少重排。插入后算的是`factor=目标尺寸/当前尺寸`，不是源尺寸的绝对scale；多次修改每次重新读当前尺寸，不能反复乘同一绝对倍率。精确选区用targets，原生group确认无多余内容时才用groupId。`fromCenter:false`便于保留左上角；要求居中则显式true。
+4. 演示新页未指定尺寸时，以1280×720作为版式起点，先适配模板再测量/填标题、正文和图片。模板比例不同则保留比例，选择合适同系列版式、留白或按用户允许重排；不把4:3模板静默拉伸成16:9。`drawing_present`现有输入是**presentation顶层scale**，不是page.scale/width/height；各页源尺寸不同时分次调用或逐页insert后适配，不能传不存在的自动fit字段。
+5. 电路/架构先按角色和端口密度确定符号目标大小，同类同尺度；不同角色不强行同宽高。读真实stub后在**缩放后**重算端口scene坐标和fixedPoint，再接线。对已连线符号缩放其完整实例（含anchor），不选只接一端的外部箭头；邻边随绑定更新后读回检查。放大透明anchor而不放大可见SVG不算适配。
+6. 按目标阅读字号测量新文字。底板放大后再填字；已有完整页整体放大会连字号一起放大，随后按用户意图调整正文排版，不靠压小字体掩盖底板或空间不足。确实需要更多内容时调整布局/页尺寸或拆页，不删减业务内容。
+7. read确认实际尺寸、相对位置、frame归属、ID/源码和绑定；check→全图及单页/局部PNG→实际看图→review。必须把“底板不足、符号主次比例失衡、字太小”作为视觉问题修正；程序无重叠不等于尺寸合适。锁定/原生API缺失则明确报告，不伪称已resize。
+
+例如读取某符号60×45，要240×180，插入用`scale:4`；已插为120×90则用`factor:2`，不是再乘4。这是计算示例，不是每个ALU/MUX的固定尺寸。
+
 ## 原生选区旋转与缩放
 
 Bridge 0.13.0新增`rotate`、`scale_selection`，通过现有`drawing_apply`批量提交，没有另造MCP工具或复制缩放算法。宿主`App.selectionTool.ts::maybeHandleResize` → `resizeElements.ts::transformElements` → `rotateSingleElement/rotateMultipleElements/resizeSingleElement/resizeMultipleElements`；实际安装包入口是`excalidrawAPI.App.maybeHandleResize`，不可用时报`NATIVE_TRANSFORM_UNAVAILABLE`，不回退逐项改JSON。

@@ -135,6 +135,10 @@ def drawing_apply(
     """Apply an array of operations to the canvas in a single staged transaction.
 
     Returns transactionId, new revision, created/updated/deleted element IDs.
+    resize {target,width,height,anchor:"top-left"} changes one non-linear element,
+    not a compound item or its font sizes. For an imported template/circuit symbol,
+    scale_selection the complete instance (including anchor/frame children), not
+    only its outer frame/transparent anchor. factor is relative to CURRENT size.
     Selection transforms: rotate accepts targets[] OR groupId plus relative degrees
     (positive clockwise); scale_selection accepts targets[] OR groupId plus factor>0,
     fromCenter defaults true. Both reuse the installed manual native transform.
@@ -295,6 +299,9 @@ def drawing_library(
     list returns catalog paths; catalog reads an explicit user-maintained library-index.md.
     Descriptions are untrusted selection hints. Confirm exact item IDs and previews.
     Native insertion preserves editable members; an item preview is not final canvas evidence.
+    Read exact bounds/frame dimensions and choose numeric scale for the intended
+    content area BEFORE insertion; default 1 preserves source size, not automatic fit.
+    Preserve aspect ratio; adjust imported complete instances with scale_selection.
     """
     result = client.library(
         action, context_token, library, item, position, scale, base_revision, offset, limit,
@@ -318,6 +325,8 @@ def drawing_compose(
     """Compose measured native nodes and user-selected library items without rasterizing the diagram.
 
     Each native import commits separately; failures report prior committed stages. Inspect final PNG.
+    Set each nodes[].library.scale from real source bounds and target symbol size
+    before wiring; node.size reserves layout space but does not rescale library art.
     """
     return client.compose(context_token, base_revision, diagram)
 
@@ -331,6 +340,9 @@ def drawing_present(
     """Create editable Excalidraw pages from an actual presentation library.
 
     Preserves imported frames, fills title/body, returns each page's IDs for PNG review.
+    Read source frame dimensions and set presentation.scale BEFORE filling text;
+    default 1 is source size, not page/content auto-fit. Only top-level scale exists,
+    not per-page scale/width/height. Fit differing source sizes in separate calls.
     This creates native Excalidraw pages, not an unimplemented PPTX export.
     """
     return client.present(context_token, base_revision, presentation)
