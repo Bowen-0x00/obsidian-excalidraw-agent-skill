@@ -10,6 +10,7 @@ Create and edit diagrams in **Obsidian Excalidraw-ymjr** from natural-language r
 
 - Flowcharts, architecture diagrams, UML, swimlanes, mindmaps, circuits, waveforms and editable presentation pages.
 - Web images, formulas and your own libraries; reusable components built from SVG paths.
+- Mixed prose/math is explicitly rendered, not left as `$...$` source in labels: reuse the host Extract-Latex Action or native text+LaTeX composition, then verify source TeX, layout, stacking and relationships. See the [inline formula workflow](skills/obsidian-excalidraw/references/visual-content.md).
 - Visual effects, interaction and navigation supplied by the modified plugin and its drawing scripts. Availability depends on the installed host capabilities.
 - Native Visio-style line crossings in updated hosts: jump arcs, background-independent gaps and junction dots. Use native metadata rather than white masking rectangles; see the [layout and crossing reference](skills/obsidian-excalidraw/references/layout-export-animation.md).
 - Measured text, layout planning, relationship/geometry checks, PNG inspection and targeted edits that preserve unrelated content; native common-center group rotation and proportional selection scaling.

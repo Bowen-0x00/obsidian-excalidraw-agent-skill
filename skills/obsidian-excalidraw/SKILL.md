@@ -30,6 +30,7 @@ description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架�
 - 新图创建独立 `.excalidraw.md`；修改已有图按明确文件绑定。不能直接写 active/first，也不能 clear 重建用户的图。
 - 默认平整专业风格：原生 Helvetica 与系统中文 fallback，正文20、标题28、线宽2、roughness0；自定义字体必须通过 discovery 确认，用户要求覆盖默认值。
 - 优先原生 shape/text/arrow。图片、公式、ECharts、embeddable 保留真实源引用/配置；不能把整图保存为一张图片。
+- **数学公式必须真实渲染**：`create_text/set_text/label`不会自动解析`$…$`、`$$…$$`。纯公式用`create_latex`/latex content；文字混排优先按[行内公式流程](references/visual-content.md)复用宿主`latex/Action-Extract-Latex.md`，或用现有原生text+LaTeX API分段组合。不能把`\gamma`、`\frac`、上下标源码留在普通文字里当完成；用户明确要展示源码/代码或货币符号时除外。
 - 线与线交叉优先用修改版原生`customData.lineCrossings`：独立线路`arc`弧跳或`gap`留白，确认连通才用`dot`，普通交叉`none`。**不要叠白色/背景色矩形遮罩、手画小弧/圆点、拆分原连线模拟交叉效果**；保留原生点列和绑定。详细规则见`references/layout-export-animation.md`的Line Crossings。
 
 ## 多 Agent 并发：一人一图，宿主排队
@@ -78,6 +79,7 @@ new-tab是Agent默认的独立视图选择，不表示分屏无用：需要人�
 | 需求 | 按需参考 | 执行重点 |
 | --- | --- | --- |
 | 从网上找图、照片、截图、图标并插入 | `references/images-assets.md` | 搜索真实来源→获取/解码图片→保存宿主附件→原生image→PNG；不能把远端路径当宿主路径 |
+| 文字与`$公式$`混排、上下标/希腊字母未渲染 | `references/visual-content.md` | 复用latex/Action-Extract-Latex；检查MathJax、选中真实text、转换副本后迁移group/frame/容器关系；远端无宿主脚本入口用create_latex+原生text组合 |
 | 用SVG path制作任意静态符号、独立组件/素材库 | `references/svg-components.md` | 两个Digital生成脚本的真实DOM测量/归一化、line carrier+svgViewBox、分色子图元/文字/组/anchor；不拿正则当通用SVG parser |
 | mindmap、折叠脑图、Markdown导入导出、WaveDrom波形、git/GIF | `references/special-diagrams.md` | 脑图树与实际ID、native close状态；波形源与runtime；git未发现专用脚本，不擅改成gif |
 | hover、line-highlight、zoom、detail、checkbox、layer、outline、thumbnail | `references/interaction-navigation.md` | 元数据+持久Engine+真实鼠标/键盘/缩放验证；静态PNG不证明交互 |
@@ -136,6 +138,7 @@ new-tab是Agent默认的独立视图选择，不表示分屏无用：需要人�
 3. **实际查看返回的PNG**。MCP返回image block；CLI输出则用当前Agent真实的图像读取工具打开out_path。没有图像查看能力就记录visual_reviewed=false并明确限制，不要求所有客户端都有名为read的工具。
 4. 检查：内容与方向、长中文完整、文字是否在形状有效区域、表头/正文分离、对齐与间距、连线路径/箭头头/标签、图片/公式/图表/嵌入是否真出现、整体层级与配色。用同revision的canvasSummary识别ID和位置，再用transform.sceneOrigin/scale把PNG偏移换算为scene位移；无需从图片猜完整坐标。
    - **程序check=pass仍可能缺标签或不好看**。逐项核对用户要求的所有节点全文与分支标签；不要仅核对edge.from/to存在。普通节点内容用`label_equals`，分支标签用`edge_label`语义断言。
+   - **公式源码泄漏是未完成问题**：检查所有普通text中的数学`$…$`/`$$…$$`及LaTeX命令，不把字面源码当公式。对照原文核对每个公式资源的源TeX与PNG中的根号、分式、上下标、希腊字母；转换后重新检查尺寸/行距和绑定。普通文字测量、几何check或rich_text不证明MathJax解析成功。用户要求显示源码/货币字面量不做误转换。
    - 长中文菱形不要横向撑成整张图的主视觉。优先增加合法换行与适度高度，保留至少正文内边距；检查决策宽度是否远大于同类节点、是否因此产生多余空白。
    - “通过/未通过”应贴近决策出口对应路径且左右归属明确，不贴到整张图的最外缘。可对绑定text的`labelPosition`（0–1的路径比例）作局部调整；默认0.28是起点，不是所有路线都理想。
    - 同层分支大小和基线一致；只为给标签空间才增间距，不能把“无重叠”做成过度疏散的大画布。初图用planner默认nodeGap/rankGap，先看PNG再有理由地覆盖。
@@ -176,7 +179,7 @@ new-tab是Agent默认的独立视图选择，不表示分屏无用：需要人�
 
 ECharts由真实options保留数据，泳道由真实Engine管理；customData.document/任意gradient代码不是默认接口。PNG对DOM内容需要捕获adapter；无法捕获会标incomplete，不能用边框或空白冒充正文。曲线/旋转检查若unknown，明确剩余限制或改为用户允许的可检查表达，不伪称全部校验通过。
 
-LaTeX先看discovery中的`latex.available`：当前插件源码可能通过独立Excalidraw Extras MathJax组件加载；缺依赖会明确LATEX_PREREQUISITE_MISSING，不要等待一个无人确认的弹窗或拿公式普通文本/假图片替代。
+LaTeX先看discovery中的`latex.available`：当前插件源码可能通过独立Excalidraw Extras MathJax组件加载；缺依赖会明确LATEX_PREREQUISITE_MISSING，不要等待一个无人确认的弹窗或拿公式普通文本/假图片替代。混排提取脚本也依赖此能力；它不在默认bundle/公开脚本MCP中，真实入口、删除原文字及关系恢复见[行内公式流程](references/visual-content.md)，不能只写“已支持LaTeX”而省掉转换。
 
 ## 交付
 

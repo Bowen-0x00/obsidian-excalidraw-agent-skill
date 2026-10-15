@@ -6,6 +6,7 @@
 |---|---|---|
 | 图片获取/插入 | 只提image类型，没有自然语言找图→附件→原生插入流程 | [images-assets](images-assets.md)：真实来源、许可、资源解码、宿主附件，EA/addImage或MCPcreate_image |
 | SVG path组件 | 只写brace/用户库导入，遗漏通用路径符号制作 | [svg-components](svg-components.md)：两个Digital生成脚本、DOM归一化、line载体、组件组和入库边界 |
+| 文字/公式混排 | 只写纯LaTeX能力，普通text中的`$…$`不会自动解析 | [visual-content](visual-content.md)：复用latex/Action-Extract-Latex，选真实text；原文副本转换、group/frame/绑定恢复，缺宿主入口时现有text+create_latex组合 |
 | Mindmap | 未说明父子/根ID、布局与折叠、Markdown导出 | [special-diagrams](special-diagrams.md)：现有mindmap Feature、实际MindmapAPI、open/close契约 |
 | WaveDrom | 已捆绑Engine但没有波形工作流 | special-diagrams：透明rectangle+JSON/JSON5源，set_feature wavedrom，真实PNG |
 | Git/GIF | git未发现专用脚本；gif实际另有Engine但未说明 | special-diagrams：Git只读历史→原生关系图；GIF多帧资源与step UI |

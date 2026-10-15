@@ -99,6 +99,9 @@ def drawing_measure(
     """Measure exact rendered text dimensions using native Excalidraw text measurement.
 
     If width is specified, wraps text across lines using native measurements.
+    This measures plain text, not MathJax: $...$ remains literal in text/labels.
+    Render formulas with create_latex (bare tex); mixed prose needs native text
+    plus formula images or the explicitly trusted host Extract-Latex Action.
     """
     return client.measure(
         context_token=context_token,
@@ -119,6 +122,8 @@ def drawing_plan(
     """Plan diagram layout (layered coordinates, node sizing, edge routing, containment) without writing to canvas.
 
     Delegates to diagram_layout.plan_diagram.
+    Plain node/edge labels do not parse $...$; use latex content for formulas,
+    or compose mixed prose from text plus real LaTeX images per the Skill.
     """
     return client.plan(
         context_token=context_token,
@@ -144,6 +149,10 @@ def drawing_apply(
     fromCenter defaults true. Both reuse the installed manual native transform.
     patch_element.patch.angle is an absolute radian value and follows bound text.
     Frames cannot rotate; selected arrows must include their bound endpoints.
+    create_text/set_text/label do NOT parse inline $...$ or $$...$$. Use create_latex
+    with bare tex and numeric scaleX/scaleY for actual formulas. Mixed prose must
+    use native text+formula composition or the trusted host Extract-Latex Action;
+    that Action replaces text IDs, so preserve owner/group/frame/bindings explicitly.
     """
     return client.apply(
         context_token=context_token,
@@ -161,6 +170,9 @@ def drawing_check(
     """Run geometry diagnostics and semantic checks on the current canvas.
 
     Detects text overflow, body overlap, arrow crossing unrelated nodes, label occlusion, and broken bindings.
+    Geometry pass does not certify MathJax or inline formula rendering. Inspect
+    the actual PNG and retained source TeX; literal math source in normal text
+    is not a rendered formula unless the user requested source/code.
     """
     return client.check(
         context_token=context_token,

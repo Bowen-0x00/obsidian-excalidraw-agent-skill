@@ -28,6 +28,7 @@ URI只分发，不等待Action的异步工作。`x-success`/Notice不能当保�
 - Native CLI的一次性`script`会清理请求所属EA及资源，**不能用它启动常驻Engine/动画/面板**。CLI仅用于完全await且无持久hook的单次编辑/导出；`trusted=true`、明确脚本文件和目标，按[native-cli](native-cli.md)核对运行时能力。
 - 本包Bridge保留`/v3/scripts/list/run`，但默认`ALLOWED_NAMED_SCRIPTS=[]`，也没有公开任意脚本MCP工具；不要捏造`drawing_run_script`、擅改白名单或用basename消歧同名脚本。
 - Action需要UI时：有真实宿主UI控制才操作准确按钮并观察；无UI控制则读取Action核心逻辑，编写用户授权的非交互EA脚本调用同一API/字段。不得启动面板后无限等用户，也不把未来adapter写成现成工具。
+- `latex/Action-Extract-Latex.md`是选中text的一次性Action，不是持久Engine或自动text渲染器。其原实现未await删除/末尾提交且会替换ID，不直接当已可靠完成的CLI脚本；选区、暂存副本、group/frame/标签关系恢复与MathJax前提按[visual-content](visual-content.md)执行。无远端脚本工具时用现有text+create_latex组合，不虚构调用。
 
 ## 非交互EA编辑基本约定
 

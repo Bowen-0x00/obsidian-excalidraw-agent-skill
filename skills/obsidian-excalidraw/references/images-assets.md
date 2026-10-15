@@ -68,6 +68,6 @@ requestUrl参数来自可信数据，不是任意JS。保存前应检查字节/�
 
 ## GIF、公式和Markdown图片
 
-GIF单张PNG只能显示一帧，多帧控制见[special-diagrams](special-diagrams.md)。LaTeX是含源公式的image资源，不拿普通文字或截图假装公式；先确认Extras MathJax。Markdown/PDF/SVG链接可能触发插件专用loader和远端访问，先读真实API/资源条件，不能把页面占位当正文。插入图片不会天然生成点击导航/hover，按需另设原生link或已确认的交互metadata。
+GIF单张PNG只能显示一帧，多帧控制见[special-diagrams](special-diagrams.md)。LaTeX是含源公式的image资源，不拿普通文字或截图假装公式；先确认Extras MathJax。**普通text中的`$…$`不会自动渲染**，文字混排按[visual-content](visual-content.md)复用`latex/Action-Extract-Latex.md`或现有text+create_latex组合，转换后检查源TeX、分组/frame/绑定和PNG。Markdown/PDF/SVG链接可能触发插件专用loader和远端访问，先读真实API/资源条件，不能把页面占位当正文。插入图片不会天然生成点击导航/hover，按需另设原生link或已确认的交互metadata。
 
 来源：插件`ExcalidrawAutomate.addImage`/`EmbeddedFilesLoader`、本包Bridge`createImage`与Native CLI`image`操作；网络获取是Agent或可信宿主HTTP能力，不是独立的绘图下载引擎。

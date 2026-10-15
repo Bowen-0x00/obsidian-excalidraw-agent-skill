@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.8 — Explicit mixed-text LaTeX rendering workflow
+
+- Reject literal math source in ordinary text/labels as a completed formula. Route mixed prose through the existing host latex/Action-Extract-Latex.md or existing native text+create_latex composition; no new parser, DSL, script allowlist or pretend MCP tool.
+- Document real Action behavior and boundaries: selected text only, single/double dollar parsing, measured fragments, source TeX resources, replacement IDs, no automatic wrapping/frame/group/binding migration, unawaited writes and behind-background stacking. Verify prerequisites, preserve originals during conversion, repair relationships/stacking, and inspect actual formula PNGs rather than trusting geometry pass.
+- Expose these boundaries in measure/plan/apply/check MCP descriptions. Preserve the user's original Action source and existing business canvases.
+- Verified the actual host Action on single-line/multiple-formula, multiline Chinese and double-dollar inputs: five real formula images with retained TeX. Verified safe replacement of a bound node label, group/frame restoration and actual stacking repair while preserving owner/downstream/arrow IDs, geometry and binding targets.
+
 ## 0.8.7 — Size-aware library workflow and remote PNG inputs
 
 - Require source bounds/frame inspection and an explicit target size before placing presentation templates or circuit symbols. Distinguish numeric library scale, relative native selection factor, single-element resize, layout allocation and PNG export scale; preserve aspect ratios and complete instance membership.
