@@ -13,7 +13,7 @@ description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架�
 - 已给定专业平整等方案时**直接执行，不为重复选型读取整份风格问卷**。正文20/标题28、roughness0、线宽2、矩形固定`roundness:{type:3,value:6,roundType:"arc"}`作为视觉起点；字体必须从当前宿主集合按角色与语言选定，不假设某个字体必有。标题粗体用真实text ID的`set_text_global_style`，非顶层bold。
 - 配色落实为实际hex；strict任务同时控制底色、正文、边框，不能偷偷补默认蓝色。手绘线条和字体独立选择；字体先discovery确认，颜色/字重/尺寸最终读回并查看PNG，不凭profile名称认定生效。
 - **创建文字、选/换字体先读[通用字体工作流](references/typography.md)**：接口取得当前完整集合和来源→Agent按证据判断用途/未知项→按正文/代码/标签/注释等角色选实际family→用该family测量、落地、看PNG。不是本地字体白名单，也不让profile/代码primitive的历史默认名称替代发现；注册、字形覆盖、加载和实际fallback分别验证。已有图未请求换字则继承。
-- 语义决定箭头：数据流triangle，少量PPT主阶段block_arrow_outline，UML用真实空心三角/菱形语义；不擅加双向。肘形转角`{type:2,value:6}`，硬直角value0，不等于样条曲线。详见[箭头/固定圆角](references/layout-export-animation.md)。
+- 语义决定箭头：数据流triangle，强调推进可用PPT宽箭`block_arrow/block_arrow_outline`（不限于PPT页），UML用真实空心三角/菱形；不擅加双向。**箭身宽走customData.blockArrowWidth，长度走端点/路径，头比例走arrowHeadSize，描边走strokeWidth**，按空间主动选粗短/细长；先核对runtime支持，详见[箭头选型与尺寸](references/layout-export-animation.md)。普通elbow转角`{type:2,value:6}`/value0不等于block分支曲线。
 
 ## 硬件任务必须先分流
 
@@ -38,7 +38,8 @@ inspect是合并**已有**步骤，不是原子跨请求事务：check/render前
 ## 图描述与常用操作
 
 - diagram：kind=flowchart/architecture/swimlane/freeform，nodes含唯一id/shape/label，edges含id/from/to/label/fromPort/toPort；containers/lanes保留归属，layout支持TB/LR、间距和可负origin。节点内容image/latex/echarts/embeddable及UML/电路等按下表读相应参考。
-- edge的startArrowhead/endArrowhead放**edge顶层**，显式null表示无头；style放stroke/roughness/roundness。三角头`triangle`不是filled_triangle；block_arrow_outline是整条宽线身，非单个头。不要假设高层转发任意customData，按refs补受支持操作。
+- edge的startArrowhead/endArrowhead放**edge顶层**，显式null表示无头；style放stroke/roughness/roundness。三角头triangle不是filled_triangle；两种block是整条宽箭身。高层不自动转发blockArrowWidth，按refs补patch_custom_data；set_arrow_style不接受该宽度字段。先发现实际头型集合，不能只因插件已更新就假设旧Bridge支持。
+- PPT两种宽箭都能独立设strokeColor（轮廓）与backgroundColor（内部填充），fillStyle另控填充方式；普通细线身主要用strokeColor，不套宽箭填充语义。outline默认画布底色而非天然透明；改宽/改色分别操作并看实际PNG，不能用描边宽代替箭身宽。
 - 需要先审查计划、手动坐标或复杂增量时，原有read/measure/plan/apply/check/preview/primitives等**全部保留**。plan.operations完整交给apply，尽量程序传递；原生CLI、EA与MCP schema不可混用。
 - 语义断言示例：`{type:"label_equals",id:真实节点或textID,text:全文}`、`{type:"edge_label",from:起点ID,to:终点ID,text:"通过"}`。普通check不等于所有业务语义已覆盖。
 - operations的`op`是执行动作；expected的`type`是断言种类；nodes的shape才是图元种类。三者不可混用。只按返回refs填写native IDs，不能把示例ID原样提交。用户没要求连线标签就不为装饰添加标签。

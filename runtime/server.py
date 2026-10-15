@@ -164,7 +164,7 @@ def drawing_plan(
     Plain node/edge labels do not parse $...$; use latex content for formulas,
     or compose mixed prose from text plus real LaTeX images per the Skill.
     Choose edge-level startArrowhead/endArrowhead explicitly by semantics (triangle
-    for data, block_arrow_outline for sparse PPT stages, UML-specific heads).
+    for data, block_arrow/block_arrow_outline for emphasis, UML-specific heads).
     Profiles do not auto-select heads/palettes. Use style.roundness {type,value}
     for fixed corners instead of relying on edge="round".
     Hardware microarchitecture is NOT ordinary service-graph layout. Read the
@@ -214,6 +214,10 @@ def drawing_apply(
     Low-level connect defaults elbowed=False and directly joins endpoints without
     waypoints; it does not auto-route. Hardware wires must use explicit orthogonal
     routes and verify every saved world-coordinate segment, not just angle/elbow flag.
+    PPT block_arrow/block_arrow_outline use customData.blockArrowWidth in scene
+    units for shaft thickness: patch_custom_data merge, not set_arrow_style width.
+    Path length, arrowHeadSize and outline strokeWidth are separate controls.
+    Read runtime head support and inspect the full visible envelope in PNG.
     """
     started = time.perf_counter()
     receipt = client.apply(context_token, base_revision, operations)

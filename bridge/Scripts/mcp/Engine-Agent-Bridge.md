@@ -2,14 +2,14 @@
 name: Excalidraw Agent Bridge
 description: Local authenticated MCP bridge for Obsidian Excalidraw.
 author: local
-version: 0.13.4
+version: 0.13.5
 autorun: false
 ---
 /*
 ```javascript
 */
 
-const BRIDGE_VERSION = "0.13.4";
+const BRIDGE_VERSION = "0.13.5";
 const PROTOCOL_VERSION = "3";
 const DEFAULT_PORT = 27124;
 
@@ -537,6 +537,7 @@ const ARROWHEADS = new Set([
   "triangle_outline",
   "diamond",
   "diamond_outline",
+  "block_arrow",
   "block_arrow_outline",
   null,
 ]);
@@ -1222,12 +1223,14 @@ const SKILL_SPECS = Object.freeze({
 
   "ppt-block-arrow": {
     name: "ppt-block-arrow",
-    title: "Create a PowerPoint-style block outline arrow",
+    title: "Create and size a PowerPoint-style filled or outline block arrow",
     requires: ["arrow_style"],
     workflow: [
       "Create an arrow.",
-      "Set endArrowhead to block_arrow_outline.",
-      "Optionally set arrowHeadSize from 0.125 to 8.",
+      "Choose block_arrow or block_arrow_outline for the required fill/outline appearance.",
+      "Set positive finite customData.blockArrowWidth in scene units via patch_custom_data; choose path length independently.",
+      "Use arrowHeadSize from 0.125 to 8 for head proportions, not shaft width or stroke thickness.",
+      "Read back width, path, head type and preserved bindings, then inspect the full visible arrow envelope in PNG.",
       "Validate and render.",
     ],
   },
@@ -3812,6 +3815,7 @@ function featureSchema(name) {
               "triangle_outline",
               "diamond",
               "diamond_outline",
+              "block_arrow",
               "block_arrow_outline",
               null,
             ],
@@ -3826,6 +3830,7 @@ function featureSchema(name) {
               "triangle_outline",
               "diamond",
               "diamond_outline",
+              "block_arrow",
               "block_arrow_outline",
               null,
             ],

@@ -62,7 +62,7 @@ const style = {
 
 加粗用现有`set_feature rich_text`/`set_text_global_style`对**真实text IDs**设置bold/fontWeight；不是create_text顶层bold或虚构fontFamily后缀。按discovery确认Engine，更新后重新测量/排版；“不加粗”也检查已有模板的`customData.bold`、`customData.font.weight`及局部boldPartial。body和标题分开处理。LaTeX image、SVG素材内部字和普通text是不同资源，不能用text加粗工具假称全部生效。
 
-明暗背景必须作用于真实画布或页面：现有MCP无通用“设置全局theme”工具时，使用用户允许且不遮挡内容的原生背景rectangle，明确`isContainer:true`、置于图元之后并纳入页面frame；导出时实际看到该背景。不擅改Obsidian全局主题/用户偏好，也不拿PNG暗色反转冒充源图dark。outline block箭头填的是画布背景、公式可能固定黑字，深色页必须检查实际呈现；必要时按用户允许用浅色公式panel或已确认API，而不是留下看不见的内容。
+明暗背景必须作用于真实画布或页面：现有MCP无通用“设置全局theme”工具时，使用用户允许且不遮挡内容的原生背景rectangle，明确`isContainer:true`、置于图元之后并纳入页面frame；导出时实际看到该背景。不擅改Obsidian全局主题/用户偏好，也不拿PNG暗色反转冒充源图dark。新版outline block未设显式backgroundColor时填画布背景，已设非transparent时优先该颜色；公式可能固定黑字，深色/容器页必须看实际呈现，不能当透明洞。PPT粗短/细长尺寸按[宽箭工作流](layout-export-animation.md)分别控制路径/箭身/头/描边；必要时按用户允许用浅色公式panel或已确认API，不留下看不见的内容。
 
 ### 选择后的验收
 

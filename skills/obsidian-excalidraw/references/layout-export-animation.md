@@ -114,36 +114,72 @@ Bridge 0.13.0新增`rotate`、`scale_selection`，通过现有`drawing_apply`批
 
 ## 箭头选型：关系语义先于装饰
 
-先区分四件事：`start/endArrowhead`决定端部语义；strokeWidth/arrowHeadSize决定细线及头大小；`block_arrow_outline`改变**整条线身**为宽箭头；elbowed/waypoints/roundness决定路由。它们不是同一个“箭头样式”。先应用本轮视觉偏好，再为每类关系选型，同类一致；已有图只改用户要求的线。
+先区分五件事：`start/endArrowhead`决定类型/方向；**`customData.blockArrowWidth`决定PPT宽箭身厚度**；`strokeWidth`决定轮廓描边；`arrowHeadSize`决定头部比例；原生points/绑定/waypoints决定长度与路由。宽度不是line元素的width/height，也不是PNG倍率。先按语义和本轮视觉偏好选型，同类一致；已有图只改用户要求的线。
 
 | 关系/用途 | 推荐起点 | 约束 |
 | --- | --- | --- |
 | 架构图、数据流、数据通路 | `startArrowhead:null,endArrowhead:"triangle"`，实线、细线身 | 实心三角指向数据去向；不是所有架构关系都是数据流，依赖/控制另用有图例的细虚线 |
-| PPT主步骤、少量粗流程推进 | `block_arrow_outline`，优先直线或少量清晰折点 | 是宽线身+轮廓箭头，不是“把细线尖放大”；不用于密集拓扑的每条边 |
+| 流程推进、架构主路径、阶段转换、教学/对比图的强调连接 | `block_arrow`实心或`block_arrow_outline`轮廓，宽短/细长按空间和层级选 | PPT是箭头视觉类型，**不限于PPT页或少数阶段图**；密集拓扑按角色控制粗细，不能全线粗化遮挡其它关系 |
 | 普通控制/依赖/轻量流程 | 普通`arrow`或小`triangle`；依赖可dashed | 明确线型含义，不能把所有实线自动改成虚线；分支仍要完整“通过/未通过”等标签 |
 | UML泛化/实现 | 指向父类/接口的一端`triangle_outline`；实现dashed | 不用实心数据流三角替换泛化；`from/to`仍保留真实业务方向 |
 | UML组合/聚合 | 整体端`diamond`/`diamond_outline`，另一端按语义null | 菱形不是“装饰性数据流箭头” |
 | 双向交换 | 语义确为双向时两端头，或两条有各自标签的有向边 | 不因布局对称强加双向；请求/响应不同标签优先分线 |
 | 无向连接/电路线 | 两端null；必要时用原生line | 不强加流向；circle/bar仅用于用户约定的端口/终止/棒端语义，不能冒充ER基数或电气连接 |
 
-当前Bridge支持：`arrow,bar,circle,circle_outline,triangle,triangle_outline,diamond,diamond_outline,block_arrow_outline,null`。宿主内核另有实心`block_arrow`、chevron等，不代表当前MCP白名单已开放；不传不存在的`"block"`、`"none"`、`"filled_triangle"`。需要这些额外头型时按已授权宿主API执行并核对真实PNG，不能静默用其它头型冒充。
+Bridge 0.13.5支持：`arrow,bar,circle,circle_outline,triangle,triangle_outline,diamond,diamond_outline,block_arrow,block_arrow_outline,null`。先用当前capabilities/feature schema核对，旧Bridge可能只开放outline；不要仅凭插件支持就向旧MCP提交未开放头型。chevron等其它内核类型仍不在此白名单；不传`"block"`、`"none"`或`"filled_triangle"`，不静默换头型冒充。
 
 ### 创建、增量修改与参数边界
 
 ```json
 {"op":"connect","ref":"data","from":"source ID","to":"target ID","start":{"anchor":"right","mode":"orbit"},"end":{"anchor":"left","mode":"orbit"},"startArrowhead":null,"endArrowhead":"triangle","arrowHeadSize":1,"elbowed":true,"style":{"strokeWidth":2,"roughness":0,"roundness":{"type":2,"value":6}}}
 {"op":"set_arrow_style","targets":["已有箭头ID"],"endArrowhead":"triangle","arrowHeadSize":1,"strokeWidth":2}
-{"op":"set_arrow_style","targets":["PPT主流程箭头ID"],"endArrowhead":"block_arrow_outline","strokeWidth":2}
-{"op":"patch_custom_data","target":"PPT主流程箭头ID","merge":{"blockArrowWidth":14}}
+{"op":"set_arrow_style","targets":["已有PPT箭头实际ID"],"endArrowhead":"block_arrow_outline","arrowHeadSize":0.8,"strokeWidth":2}
+{"op":"patch_custom_data","target":"已有PPT箭头实际ID","merge":{"blockArrowWidth":36}}
 ```
 
 - connect/create_linear的头型和arrowHeadSize在operation顶层；diagram/compose/primitives的连接头型也在每条edge/item顶层。不要只在style中塞endArrowhead指望高层默认覆盖正确。规划器默认arrow不表达用户意图，必须显式选择；高层不自动转发arrowHeadSize/blockArrowWidth，按返回native refs补`set_arrow_style/patch_custom_data`。
 - `set_arrow_style`只接受strokeWidth/startArrowhead/endArrowhead/arrowHeadSize/edge；颜色/虚实线用`patch_element.patch`，固定转角另patch.roundness。省略edge以保留已有固定radius；`edge:"round"`会重置为无value的默认圆角。更换头型保留ID/points/标签/双向绑定，不重建箭头或手贴三角形。
 - `arrowHeadSize`是0.125–8的**倍率**，不是px；这是接口边界，不是审美建议。细线从1起，建议0.75–1.25附近看PNG再调；线宽以1.5–2.5为常用起点。放大头不能解决路径太短；端部段要留头部、节点边距与标签净空。
-- 修改版宽箭身读取`customData.blockArrowWidth`（兼容字段arrowHeadLineWidth是同一宽度，不新增别名）。以14–24画布单位作为少量PPT大步骤的起点，按节点间距调整；不是强制常量。实际整箭分支以箭身宽计算头部比例，不能保证arrowHeadSize控制此分支的外观。两端block仅在确需双向时用。
-- outline宽箭头内部使用**画布背景色**，不是透明；彩色容器、暗色页需实际看PNG，不能把它当“自动继承所在容器背景”。宽箭头占据的面积大于centerline，几何check未认证完整厚线/箭头包络；必须视觉检查头、拐点、邻节点、标签和交叉。block分支不等同普通elbow/lineCrossings，不承诺相同的固定转角/跳线效果。
+- **箭身宽**：`customData.blockArrowWidth`为正有限数、单位是scene单位；选择明确值以免描边变化联动默认厚度。省略时当前实现为`max(16,strokeWidth*6)`。宿主UI滑杆当前4–120、步长2，这是**面板范围**，不是已证明的MCP/内核硬上限或建议全部用120。旧字段`arrowHeadLineWidth`只作兼容读取，写新图/本轮宽度用blockArrowWidth，不同时制造两个冲突来源。恢复默认时先读实际customData，只移除本轮需要的宽度字段；残留旧字段仍可能生效，不能把0当“默认宽度”。
+- **长度独立于宽度**：由真实起终点/点列/绑定路径确定，不能用arrow.width/height或resize把线身“压扁”。保持端点只调粗细用同ID的patch_custom_data；用户要求变短/变长才调整被授权的端点/节点/waypoints并复核绑定，不能为造粗短外观拉脱节点。只要改尺寸而非改方向，不新增startArrowhead或重建箭头。
+- **新版头部比例**：当前`getBlockArrowPolygon`使用`headWidth=blockArrowWidth*2.5*arrowHeadSize`，每个block头的长度为`min(headWidth*0.8,总路径长*0.45)`；改变箭身宽会连带改变头部，头倍率则可独立微调。45%是当前实现的防重叠截断，不是美观保证；粗短箭头可能头部主导，不能靠无限放大arrowHeadSize求显眼。该公式以当前真实版本为准，旧宿主需看样张，不把它当跨版本渲染契约。
+- **填充/描边**：block_arrow默认内部取strokeColor；outline默认内部取canvasBackgroundColor；新版两者在backgroundColor非transparent时都优先用显式backgroundColor，fillStyle参与填充。轮廓型不是天然透明洞，也不会自动继承所在容器背景。需要特定填充用patch_element.patch的backgroundColor/fillStyle，描边粗细仍用strokeWidth；改箭身宽不要顺手改颜色。浅/暗/彩色容器都看真实PNG。
+
+  | 颜色属性 | 普通细线箭头 | block_arrow / block_arrow_outline |
+  | --- | --- | --- |
+  | strokeColor | 线身和通常的头部颜色 | 外轮廓描边颜色；filled未设显式填充时也作为内部默认色 |
+  | backgroundColor | 不能用它代替线身颜色，不按宽箭内部填充解释 | 两种PPT箭头均支持独立内部填充色；非transparent时优先使用 |
+  | fillStyle | 不作为普通线身的粗细/颜色控制 | 宽箭多边形的填充方式；solid适合平整风格 |
+
+  改已有PPT箭头颜色用原生`patch_element`，例如`{"op":"patch_element","target":"实际箭头ID","patch":{"strokeColor":"#9a3412","backgroundColor":"#fed7aa","fillStyle":"solid"}}`；创建时这些字段在create_linear/connect的style中。它与`patch_custom_data.merge.blockArrowWidth`是不同职责；不能把backgroundColor塞进set_arrow_style或只加大strokeWidth冒充填充。颜色可以相同，也可以深色轮廓＋浅色内部；服从本次严格色板/对比需求，不硬编码示例配色。若已显式填同色，两种block类型外观接近是允许的，不凭名称认定一种永远实心、另一种永远透明。
+- **曲折/包络**：粗箭占据面积大于centerline；头部、miter拐点、描边与标签都需要净空。现有几何check未认证完整宽箭多边形包络，必须视觉检查邻节点、标签、重叠和导出裁切。当前block多点且roundness非null会走曲线插值，不能把roundness type2当普通elbow同样的固定圆角保证；硬折线用roundness:null并读回/看图。block分支与普通lineCrossings不同，不保证相同跳线效果。
 - 架构优先稳定的正交/直连，端口方向清晰、折点少；曲线只在业务/风格确需时用，精确曲线碰撞仍unknown。粗箭头不是总比细箭头好，密集架构只强调主数据通路；不要以“高级风格”删除业务边或遮盖交叉。
 - 读回必须核对实际start/endArrowhead、源码样式、ID/点列与绑定，再看PNG。Bridge0.13.3修正了旧重复校验函数无返回值导致`set_arrow_style`把头型写成undefined的问题；旧宿主需更新Bridge，不能将返回成功当视觉生效。
+
+### PPT宽箭尺寸工作流：粗短和细长都由Agent主动设计
+
+1. **确定角色与用途**：强调主路径、两模块间转化、阶段推进、对比关系还是装饰性指向；有真实关系时保留原生arrow及binding，不用矩形+三角形拼贴或整张图片。PPT箭头是可复用图元，不要求用户给长度/坐标/宽度。
+2. **先读空间再选比例**：看节点间净空、路径长度L、相邻对象/标签和目标阅读尺度。粗短侧重转化/强调，细长侧重跨区连接；同类关系统一W/描边/头比例，不机械全图同一个宽度。输出可见厚度约为`preview.actualScale*W`，不靠只提高PNG scale改变长宽比例。
+3. **长度、箭身、头和描边分别设定**：下表只是独立样张的起点，不是所有图的常量或用户现有端点的移动授权。极短路径容不下头/文字时先调整合法空间、适当减头或减宽；不能删标签/业务边求通过，也不把文字硬塞进狭窄箭头。
+
+| 视觉意图 | 独立示例起点（scene单位） | 调整重点 |
+| --- | --- | --- |
+| 粗短、强调转化 | L约160，W约36，arrowHeadSize约0.8，描边2 | 头/宽箭包络比centerline宽，给上下留白；标签通常放邻近净空 |
+| 细长、跨区推进 | L约420，W约12，arrowHeadSize约1，描边1.5–2 | 缩略后仍可见，避免长而细到像普通线；端点与头部清楚 |
+| 同一路径仅变粗/变细 | 保持points和bindings，只改W | 读回相同ID/端点/标签，不能通过改变strokeWidth冒充独立箭身调宽 |
+
+4. **通过现有入口创建/修改**：
+
+```json
+{"op":"create_linear","kind":"arrow","ref":"emphasis","x":100,"y":100,"points":[[0,0],[160,0]],"startArrowhead":null,"endArrowhead":"block_arrow","arrowHeadSize":0.8,"style":{"strokeWidth":2,"strokeColor":"#2563eb","backgroundColor":"transparent","fillStyle":"solid","roughness":0},"customData":{"blockArrowWidth":36}}
+```
+
+以上为示意坐标的新独立箭头；连接实际节点时用`connect`的真实from/to、端口与必要waypoints，并在顶层customData传宽度。高层diagram.edges/primitive不承诺转发此字段，先compose/plan再按返回ref补`patch_custom_data`。**set_arrow_style目前没有blockArrowWidth字段**，不能塞入后假称生效；用上面的set_arrow_style控制头/描边、patch_custom_data控制宽度，两个操作可同一apply事务提交。标签沿用原生绑定text，换宽不改全文与字体角色。
+5. **局部修改不变量**：先read(full)取目标ID、customData、points/angle、头型、stroke/background、锁定、标签与双向bindings；merge只改blockArrowWidth，保留所有无关字段。应用→保存后read，确认同ID、原路径/绑定/标签、实际宽值和描边独立，再当前revision check→PNG→实际看宽短/细长、头部、填充、净空与裁切→review。字段成功写入≠旧宿主已显示；不能隐藏不支持的实心头型或把check=pass当包络无重叠证明。
+   若宽值和绑定读回正确，但PNG中箭尖/箭身相对真实端口出现随宽度变化的位移或标签遮罩异常，记录宿主渲染/导出兼容问题及具体IDs；不能把“同points”当视觉端点正确，更不能偷偷移动端口/拆绑定来补偿。字段与配色/尺寸可分别验证，剩余视觉问题不标completed。
+
+能力来源：当前内核`packages/element/src/blockArrow.ts::getBlockArrowPolygon`、`shape.ts`的block分支、`packages/excalidraw/actions/actionProperties.tsx::actionChangeBlockArrowWidth`。Agent使用上述现有数据入口，不调用侧栏slider/修改currentItemBlockArrowWidth影响用户下一笔；不用重写renderer。
+
 
 ## 自定义固定圆角：不是只有round/sharp
 
@@ -166,7 +202,7 @@ Bridge 0.13.0新增`rotate`、`scale_selection`，通过现有`drawing_apply`批
 
 | 属性/功能 | 真实入口/字段 | 限制与检查 |
 |---|---|---|
-| 箭头端点与头类型 | Bridge `set_arrow_style`/`arrow_style`，startArrowhead/endArrowhead；arrow/bar/circle及outline/triangle/diamond/block_arrow_outline按runtime集合 | 保持原生绑定，不直接patch绑定内部字段；头大小不能遮标签 |
+| 箭头端点与头类型 | Bridge `set_arrow_style`/`arrow_style`；两种block类型按runtime集合；宽度走`patch_custom_data.merge.blockArrowWidth` | 保持原生绑定；宽度/头倍率/描边独立，完整包络须PNG复核 |
 | 头部大小 | `customData.arrowHeadSize`，Bridge校验0.125–8 | 这是真实ymjr倍数，不等于像素宽度 |
 | 特殊点拖拽约束 | `customData.fixedDragablePoints={dragablePointIndex,fixedPointsIndex,centerIndex}`，Arrow-Head-Resize Engine | 索引数组，-1表示末点；不是arrowHeadSize；必须与实际points一致 |
 | 定长旋转 | `customData.fixedLength=true`，Fixed-Length Engine的handlePointDragging | 以局部[0,0]为基准保持拖拽半径；不是任意复杂折线路径总长度锁定 |
@@ -175,7 +211,7 @@ Bridge 0.13.0新增`rotate`、`scale_selection`，通过现有`drawing_apply`批
 已有非交互样式示例：
 
 ```json
-{"op":"set_arrow_style","targets":["arrowId"],"endArrowhead":"block_arrow_outline","arrowHeadSize":2,"strokeWidth":2}
+{"op":"set_arrow_style","targets":["arrowId"],"endArrowhead":"block_arrow_outline","arrowHeadSize":1,"strokeWidth":2}
 ```
 
 fixedLength/measure特殊Engine不在默认bundle内；按[script-execution](script-execution.md)发现并挂载宿主真实脚本。原定长/测量Action是浮动面板，不能在无UI自动等待。`Feature-Measure-Engine`直接维护文字/索引，使用前核对宿主版本与既有绑定，读回关系；未验证就不声称真实测量交互通过。

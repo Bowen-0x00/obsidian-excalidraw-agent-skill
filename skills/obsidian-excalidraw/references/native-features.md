@@ -81,7 +81,7 @@ CPU/硬件数据通路先读[microarchitecture](microarchitecture.md)，不能�
 {"kind":"connection","id":"data-edge","from":"真实source ID","to":"真实target ID","routing":"orthogonal","start":{"anchor":"right","fixedPoint":[1,0.3]},"end":{"anchor":"left","fixedPoint":[0,0.7]},"label":"数据","startArrowhead":null,"endArrowhead":"triangle"}
 ```
 
-routing=`straight/orthogonal/curve`；代码读取当前精确节点geometry，正交路径避障；显式waypoints使用scene坐标。始终维护start/end与目标boundElements双向关系，标签原生绑定。native head包括arrow/bar/circle及outline/triangle/diamond等，block_arrow_outline以runtime支持为准。
+routing=`straight/orthogonal/curve`；代码读取当前精确节点geometry，正交路径避障；显式waypoints使用scene坐标。始终维护start/end与目标boundElements双向关系，标签原生绑定。native head包括arrow/bar/circle及outline/triangle/diamond；PPT实心block_arrow与轮廓block_arrow_outline先核对runtime集合，箭身宽按refs补patch_custom_data.blockArrowWidth（不是strokeWidth/几何width），细节见[箭头尺寸](layout-export-animation.md)。
 微架构信号默认只允许轴向直连或正交折线。低层connect缺省elbowed=false且无waypoints时直接连接两点，不会自动避障；两端不对齐须显式计算正交拐点。routing=orthogonal/flag并非审计替代品，应用保存后读full逐段核对世界dx/dy及首末端口方向，详见[microarchitecture](microarchitecture.md)。
 按[箭头语义与固定圆角](layout-export-animation.md)选择头型/线身，不默认所有关系arrow；本例triangle用于数据流，不推广到UML。profile只提供基础线型，不能代替每条关系的start/endArrowhead；固定肘形radius通过实际生成的connect.style.roundness或按refs patch，不把routing=curve当圆角。
 

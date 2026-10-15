@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.16 — Editable PPT block arrow sizing
+
+- Add general-purpose filled/outline block arrow selection and sizing guidance for flow, architecture, teaching and comparison diagrams. Separate path length, scene-unit shaft width, head scale and outline stroke; include short/wide versus long/slim examples and same-ID width-only edits.
+- Update the current renderer contract: blockArrowWidth controls shaft thickness; arrowHeadSize scales the block head, with native length capping. Both variants accept explicit backgroundColor/fillStyle. Document visual-envelope, spline/orthogonal, clipping and high-level customData forwarding limits rather than treating centerline checks as thick-arrow proof.
+- Bridge 0.13.5 adds block_arrow to the existing arrowhead whitelist/schema and updates the PPT recipe. Width uses existing patch_custom_data, not a new set_arrow_style field or a second renderer.
+- Explicitly distinguish strokeColor from backgroundColor/fillStyle on both PPT variants and ordinary thin-arrow line color. Real native PNGs verified separate dark outlines and light fills; width-only updates retained the original IDs, centerline points, labels, styles and bindings. Visual acceptance remains separate from metadata/binding checks.
+- Real bound-arrow PNGs also exposed a host export alignment discrepancy: at shaft width 36, the visible shaft center was about 36 scene units below the unchanged native centerline. Record this as a visual compatibility issue rather than marking the sample completed or moving binding ports to hide it; no plugin/kernel renderer was modified.
+
 ## 0.8.15 — Host-discovered fonts and Agent-selected text roles
 
 - Add a generic typography workflow: complete current-host discovery, task-scoped evidence/unknown inventory, bounded candidate sampling, language/role selection, explicit family measurement and application, and saved-text/PNG verification. No local font catalogue, mandatory font-file access, new classifier or typography DSL.

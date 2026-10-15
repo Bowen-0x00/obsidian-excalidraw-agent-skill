@@ -21,6 +21,7 @@
 - 硬件请求先按部件、端口、信号和阶段骨架规划，不套服务图快路径；保留ALU/RF/MUX/队列/阵列等独立对象与控制/反馈网络，不把“检查通过的阶段项目列表”当微架构交付。见[硬件微架构工作流](skills/obsidian-excalidraw/references/microarchitecture.md)。
 - 硬件Skill固化分阶段制作/最小补丁迭代及保存后的逐段正交审计；信号默认水平/竖直，根据实际端口选显式正交折线或原生elbow，不凭flag验收。此项是工作流指导，不是新增硬件自动布线器或drawing_check内建断言。
 - 字体按当前宿主动态发现，由Agent基于证据判断用途，再按正文/代码/标签/注释等角色选实际family、测量和PNG验证，不假设固定安装名单；发现不等于字形覆盖/无回退。详见[通用字体工作流](skills/obsidian-excalidraw/references/typography.md)。Bridge 0.13.4在现有discovery中优先返回真实getFontFamilies结果及来源/错误。
+- PPT实心/轮廓宽箭可用于流程、架构、教学和对比图，不限演示页。路径长度、原生customData.blockArrowWidth、头部倍率和轮廓描边分别控制；Agent按空间选择粗短/细长，仅调宽保留绑定，PNG检查完整包络。Bridge 0.13.5开放block_arrow与block_arrow_outline，见[箭头尺寸工作流](skills/obsidian-excalidraw/references/layout-export-animation.md)。
 
 ## 可编辑、多风格与服务器绘图
 
