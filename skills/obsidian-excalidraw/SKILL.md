@@ -17,11 +17,12 @@ description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架�
 ## 默认低往返路径（0.8.10起）
 
 **减少模型轮次，不减少绘图能力或验证。** 一次读齐本任务所需schema；可并行读取独立资料/只读状态。todo更新与下一步操作同一轮，不为一次进度更新单独等模型；用户显式要求计划时照做。
+对普通原生节点＋连线，且视觉方案已给定：本页字段足够时直接用快路径，**不要为了确认标题粗体、R6或triangle依次遍读diagram-recipes/workflow-details/visual-content/capability-map**。只有确实用到本页未定义的高级功能才打开对应参考；查接口问题优先读取该工具schema并修正字段，不扫整个能力库。
 
 1. 有drawing_setup先status；已连接时discovery核对字体/引擎。可同轮发独立只读请求。连接失败先按真实前提恢复，不能假设画布存在。远端只status，不connect/start/reload宿主。
 2. `drawing_context(create,filename,foldername)`或明确file_path绑定，取得token和revision。多Agent各自一图，只由协调者管理服务，宿主串行执行；同图竞争发生REVISION_CONFLICT就重新读，不覆盖用户新编辑。
 3. **普通节点/流程/架构优先`drawing_compose(context_token,base_revision,diagram)`**，即使没有素材库也适用。它在代码内完整plan→apply，复用同一测量/布局/绑定和事务，不让模型复制一大段plan.operations。库组合仍按阶段提交并报告已执行集合，不宣称跨阶段原子。
-4. 没有后续样式操作时，compose传`inspect:true`；还需标题粗体/局部样式时先compose，再一次`drawing_apply(...,operations=[全部必要修正],inspect:true,expected=[语义断言])`。例如`set_text_global_style {targets:[返回refs中diagram:title的实际ID],bold:true}`；不要多一次plan抄JSON。
+4. 没有后续样式操作时，compose传`inspect:true`；还需标题粗体/局部样式时先compose，再一次`drawing_apply(...,operations=[全部必要修正],inspect:true,expected=[语义断言])`。所有operations项都必须有`"op"`（**不是`type`**）；标题粗体的完整项是`{"op":"set_text_global_style","targets":["将此值替换为refs中diagram:title的实际text ID"],"bold":true}`。使用compose回执的最新revision；不要多一次plan抄JSON或读已知标题来确认字段。
 5. `inspect:true`返回实际**PNG ImageContent**及JSON：`composition`或`applied`回执、`check`完整诊断、`preview`注册预览（含同revision全图canvasSummary/路径/hash）、毫秒`timings`。内部真实full-read+结构/几何/语义check→按该revision导出，不缓存过期结果、不自动review。默认false保持原接口；check失败仍展示PNG供修复，不能当完成。
 6. **查看这张PNG**，核对内容、全文、方向、实际头型/圆角、样式、文字大小、留白、连线/端口、公式/资源是否真的出现。之后才`drawing_review(context_token,revision=preview.revision,preview_id=preview.previewId,visual_reviewed=true,visual_issues=[...],check_result=check)`；review仍按当前状态重新check。
 7. 有问题只改受影响元素/绑定文字/邻边，apply(inspect=true)得到下一轮PNG再看。默认最多5轮（初图计1），达到要求立即停止，连续两轮无改善或上限到达则needs_attention并报告剩余项；不换token重置预算。
@@ -34,6 +35,7 @@ inspect是合并**已有**步骤，不是原子跨请求事务：check/render前
 - edge的startArrowhead/endArrowhead放**edge顶层**，显式null表示无头；style放stroke/roughness/roundness。三角头`triangle`不是filled_triangle；block_arrow_outline是整条宽线身，非单个头。不要假设高层转发任意customData，按refs补受支持操作。
 - 需要先审查计划、手动坐标或复杂增量时，原有read/measure/plan/apply/check/preview/primitives等**全部保留**。plan.operations完整交给apply，尽量程序传递；原生CLI、EA与MCP schema不可混用。
 - 语义断言示例：`{type:"label_equals",id:真实节点或textID,text:全文}`、`{type:"edge_label",from:起点ID,to:终点ID,text:"通过"}`。普通check不等于所有业务语义已覆盖。
+- operations的`op`是执行动作；expected的`type`是断言种类；nodes的shape才是图元种类。三者不可混用。只按返回refs填写native IDs，不能把示例ID原样提交。用户没要求连线标签就不为装饰添加标签。
 - set_text用真实text/owner；translate保持精度并去重bound text；resize改单元素尺寸不等于整组缩放；scale_selection/rotate使用完整group或精确targets，维护绑定。细节及所有操作见[完整工作流](references/workflow-details.md)。
 
 ## 完整摘要与不可省略的质量门

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.11 — Make the fast-path operation contract explicit
+
+- Distinguish operations[].op from expected[].type with a complete title-bold example in the Skill and MCP description. Avoid an invalid operation followed by broad reference searches.
+- Keep already-specified ordinary graph styles on the concise path; advanced references remain available only when their capabilities are actually needed.
+- Preserve the first Gemini 0.8.10 measurement, including its slower invalid-parameter recovery, rather than presenting it as a speedup.
+
 ## 0.8.10 — Fewer round trips without weaker drawing checks
 
 - Prefer existing drawing_compose for ordinary measured native graphs as well as library composition, keeping plan→apply inside code instead of copying operation JSON through the model.

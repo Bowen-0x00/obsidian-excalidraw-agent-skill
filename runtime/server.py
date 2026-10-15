@@ -178,6 +178,9 @@ def drawing_apply(
     """Apply an array of operations to the canvas in a single staged transaction.
 
     Returns transactionId, new revision, created/updated/deleted element IDs.
+    Every operations item REQUIRES "op", NOT "type". Example title bold:
+    {"op":"set_text_global_style","targets":["actual native text ID"],"bold":true}
+    Use compose's refs["diagram:title"] and its current revision for post-styling.
     inspect=True also performs full geometry/structure/semantic checks and returns
     a registered PNG ImageContent, full canvasSummary and measured phase timings.
     It does NOT perform visual review. Use drawing_review only after seeing the PNG.
