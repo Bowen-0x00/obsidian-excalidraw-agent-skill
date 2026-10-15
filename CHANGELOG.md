@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.10 — Fewer round trips without weaker drawing checks
+
+- Prefer existing drawing_compose for ordinary measured native graphs as well as library composition, keeping plan→apply inside code instead of copying operation JSON through the model.
+- Add optional inspect=true and expected assertions to drawing_compose/drawing_apply. Return real PNG ImageContent, complete same-revision canvasSummary, full structure/geometry/semantic checks, original commit receipt and measured phase timings. Default false retains the old result. Visual review remains separate and rechecks current state.
+- Preserve committed receipts as structured MCP errors when inspection/export fails after mutation; reject changed revisions and keep diagnostic failures visible rather than marking completion.
+- Reduce the default Skill entry by moving detailed concurrency/summary/operation rules into workflow-details.md; retain all advanced routes and quality gates. Batch related schema reads and progress with real work, avoid repeating the visual questionnaire for specified styles.
+- Verified actual Obsidian stdio composition/inspection, semantic failure visibility, stale-write rejection, committed empty-export failure receipts, undo and legacy result shape. Existing 27 behavioral regressions passed.
+
 ## 0.8.9 — Visual choices, semantic arrows and fixed corner radii
 
 - Ask once at new-drawing startup for unspecified visual preferences using the client's real selection UI: native style, palette/strict allowed colors, background/lightness, categorical versus grayscale encoding, and installed font/title-weight strategy. Reuse explicit/session choices, preserve local edits, and honor “decide for me”; no fictitious Obsidian/MCP style dialog.

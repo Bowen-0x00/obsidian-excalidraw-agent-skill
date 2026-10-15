@@ -17,6 +17,7 @@ Create and edit diagrams in **Obsidian Excalidraw-ymjr** from natural-language r
 - Measured text, layout planning, relationship/geometry checks, PNG inspection and targeted edits that preserve unrelated content; native common-center group rotation and proportional selection scaling.
 - Size library assets for their intended use before filling text or wiring: fit the whole slide template or circuit instance, including its anchor. Distinguish single-element resize from native selection scaling and PNG export scale. Remote PNG bytes can use existing data:image inputs alongside native text/frames; see [sizing](skills/obsidian-excalidraw/references/layout-export-animation.md) and [images](skills/obsidian-excalidraw/references/images-assets.md).
 - Concurrent Agents on separate token-bound canvases, with serialized native execution and stale-write protection. Every PNG includes the same-revision compact element summary and scene min/max bounds; feedback coordinates use at most two decimals without changing native precision.
+- Lower-round-trip execution: ordinary graphs use existing `drawing_compose` for measured plan→apply without copying operations through the model. `inspect:true` on compose/apply adds full checks and the registered PNG ImageContent in one call; visual review and fresh revision guards remain mandatory. Advanced workflows stay available through the compact Skill's references.
 
 ## Editable diagrams, multiple styles, remote development
 

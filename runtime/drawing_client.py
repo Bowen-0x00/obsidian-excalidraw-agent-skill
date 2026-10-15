@@ -383,6 +383,23 @@ class DrawingClient:
         diagnostics.update(revision=scene["revision"], contextToken=context_token, coverage="complete", expected=expected or [])
         return diagnostics
 
+    def inspect(
+        self, context_token: str, base_revision: str,
+        expected: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """Check and render one exact revision; visual review remains a separate step."""
+        started = time.perf_counter()
+        checked = self.check(context_token, expected=expected)
+        checked_at = time.perf_counter()
+        if checked["revision"] != base_revision:
+            raise BridgeError("Canvas changed after mutation and before inspection",
+                              code="REVISION_CONFLICT", status=409,
+                              details={"expected": base_revision, "actual": checked["revision"]})
+        preview = self.preview(context_token, base_revision=checked["revision"])
+        return {"check": checked, "preview": preview,
+                "timings": {"checkMs": (checked_at - started) * 1000,
+                            "previewMs": (time.perf_counter() - checked_at) * 1000}}
+
     def preview(
         self,
         context_token: str,

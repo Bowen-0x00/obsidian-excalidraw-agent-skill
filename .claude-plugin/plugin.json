@@ -1,6 +1,6 @@
 {
   "name": "obsidian-excalidraw-agent-skill",
-  "version": "0.8.9",
+  "version": "0.8.10",
   "description": "Complete native Obsidian Excalidraw MCP, Bridge/Engines, setup and PNG-reviewed Agent Skill.",
   "author": { "name": "Bowen-0x00" },
   "homepage": "https://github.com/Bowen-0x00/obsidian-excalidraw-agent-skill",

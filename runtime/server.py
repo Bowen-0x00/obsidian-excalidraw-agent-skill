@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 from pathlib import Path
 from typing import Any, Literal
 
@@ -12,7 +13,7 @@ if _RUNTIME_DIR not in sys.path:
 from mcp.server.fastmcp import FastMCP
 from mcp.types import CallToolResult, ImageContent, TextContent
 
-from drawing_client import DrawingClient
+from drawing_client import BridgeError, DrawingClient
 
 mcp = FastMCP(
     "obsidian-excalidraw",
@@ -20,6 +21,9 @@ mcp = FastMCP(
 Obsidian Excalidraw MCP Server for professional diagramming.
 
 Workflow:
+Fast path: create -> drawing_compose(diagram) -> optional drawing_apply(post-style, inspect=True) -> view PNG -> drawing_review.
+drawing_compose(inspect=True) returns the checked PNG directly when no post-styling is needed.
+Granular plan/apply/check/preview and every advanced operation remain available; no validation or visual gate is skipped.
 1. drawing_context(action="discover"|"create"|"bind"): acquire contextToken for the active or newly created canvas.
 2. drawing_read(context_token, detail="summary"|"detail"|"full"): read all active elements or specific IDs.
 3. drawing_measure(context_token, text, font_family, font_size, line_height, width?): measure text dimensions using native Bridge renderer.
@@ -40,6 +44,32 @@ Optional native features:
 )
 
 client = DrawingClient()
+
+
+def _inspected_response(
+    kind: str, context_token: str, receipt: dict[str, Any], started: float,
+    expected: list[dict[str, Any]] | None,
+) -> CallToolResult:
+    mutation_ms = (time.perf_counter() - started) * 1000
+    try:
+        result = client.inspect(context_token, receipt["revision"], expected=expected)
+    except Exception as error:
+        failure = BridgeError(
+            str(error), code=getattr(error, "code", "INSPECTION_FAILED"),
+            status=getattr(error, "status", 500),
+            details={"phase": "inspection", kind: receipt, "atomic": False,
+                     "cause": getattr(error, "details", None)},
+        )
+        return CallToolResult(isError=True, content=[
+            TextContent(type="text", text=json.dumps(failure.to_dict(), ensure_ascii=False)),
+        ])
+    image = result["preview"].pop("_base64")
+    result[kind] = receipt
+    result["timings"].update(mutationMs=mutation_ms, totalMs=(time.perf_counter() - started) * 1000)
+    return CallToolResult(content=[
+        TextContent(type="text", text=json.dumps(result, ensure_ascii=False)),
+        ImageContent(type="image", data=image, mimeType="image/png"),
+    ])
 
 
 @mcp.tool()
@@ -142,10 +172,16 @@ def drawing_apply(
     context_token: str,
     base_revision: str,
     operations: list[dict[str, Any]],
-) -> dict[str, Any]:
+    inspect: bool = False,
+    expected: list[dict[str, Any]] | None = None,
+) -> Any:
     """Apply an array of operations to the canvas in a single staged transaction.
 
     Returns transactionId, new revision, created/updated/deleted element IDs.
+    inspect=True also performs full geometry/structure/semantic checks and returns
+    a registered PNG ImageContent, full canvasSummary and measured phase timings.
+    It does NOT perform visual review. Use drawing_review only after seeing the PNG.
+    A post-mutation inspection error retains the committed receipt; no false rollback.
     resize {target,width,height,anchor:"top-left"} changes one non-linear element,
     not a compound item or its font sizes. For an imported template/circuit symbol,
     scale_selection the complete instance (including anchor/frame children), not
@@ -163,11 +199,9 @@ def drawing_apply(
     patch_element.patch.roundness {type:3,value:6,roundType:"arc"} fixes rectangle
     corners; elbow arrows use type:2,value (0 for square turns). Preserve bindings.
     """
-    return client.apply(
-        context_token=context_token,
-        base_revision=base_revision,
-        operations=operations,
-    )
+    started = time.perf_counter()
+    receipt = client.apply(context_token, base_revision, operations)
+    return _inspected_response("applied", context_token, receipt, started, expected) if inspect else receipt
 
 
 @mcp.tool()
@@ -345,14 +379,23 @@ def drawing_compose(
     context_token: str,
     base_revision: str,
     diagram: dict[str, Any],
-) -> dict[str, Any]:
+    inspect: bool = False,
+    expected: list[dict[str, Any]] | None = None,
+) -> Any:
     """Compose measured native nodes and user-selected library items without rasterizing the diagram.
 
+    Prefer this also for ordinary native graphs: plan->apply stays in code, with
+    no need to copy operations through the model. inspect=True adds full checks
+    and registered PNG ImageContent/timings; actual visual review stays separate.
+    For title bold or other post-styling, compose first, then drawing_apply with
+    inspect=True to get the final checked PNG in that same call.
     Each native import commits separately; failures report prior committed stages. Inspect final PNG.
     Set each nodes[].library.scale from real source bounds and target symbol size
     before wiring; node.size reserves layout space but does not rescale library art.
     """
-    return client.compose(context_token, base_revision, diagram)
+    started = time.perf_counter()
+    receipt = client.compose(context_token, base_revision, diagram)
+    return _inspected_response("composition", context_token, receipt, started, expected) if inspect else receipt
 
 
 @mcp.tool()
