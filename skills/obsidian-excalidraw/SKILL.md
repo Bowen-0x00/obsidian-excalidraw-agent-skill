@@ -17,6 +17,7 @@ description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架�
 ## 硬件任务必须先分流
 
 CPU/流水线/微架构/硬件数据通路/阵列/缓存层级/寄存器堆/片上互连：**创建前必须读[microarchitecture](references/microarchitecture.md)**，先定独立部件、命名端口、信号表、时序边界与固定区域，再选图元/库和路由。不能走普通服务架构快路径后，把ALU/RF/MUX/Hazard等缩成“IF/ID/EX阶段：项目符号列表”；检查失败不得降粒度、删除反馈线、重放整图追加副本或换新图刷通过。`kind:"microarchitecture"`不是专用硬件布局器，container也不固定流水级列。
+硬件制作按专用参考的“契约→固定骨架→部件/端口→分批网络→保存后审计→全图/局部→最小补丁”执行。信号默认必须水平/竖直或正交elbow；两点起终点同时dx/dy非零就是斜线，不能只看angle0或check=pass。显式计算waypoints/逐段读回审计，保留ID和端点语义；符号多边形斜边不在此约束内。
 
 ## 默认低往返路径（0.8.10起）
 
@@ -49,6 +50,7 @@ inspect是合并**已有**步骤，不是原子跨请求事务：check/render前
 - 由PNG定位ID后局部改：scene坐标=sceneOrigin+原PNG像素/scale；阅读器缩放需先还原原像素。不能拿截图像素直接写x/y，不能手填boundElements/startBinding/endBinding或原生version/index。
 - 完成标准：用户内容/关系齐全、硬检查无错误、必需检查无unknown、资源complete、当前PNG实际看过、review=completed。几何pass仍可能标签丢失/文字太小/不美观；不能删业务边、裁全文或缩成不可读来“通过”。
 - 硬件图必须按专用部件/端口/关键网络清单验收，expected不得空却宣称“语义100%通过”。几何pass不等于微架构正确，review也不自动证明专业质量。overview有效字高≈actualScale×fontSize；缩成6px的小字条带必须调整或实际查看必要局部，不把complete=true当可读。
+- 微架构另有独立正交门：精确read世界点列，逐段排除dx/dy同时非零的信号线并报告ID/段索引；现有通用check不含这项保证。只修route不降粒度、不盲目重放；实际修复轮数累计，不能用新token重置。
 - 原生可编辑性优先：保留shape/text/arrow/frame/group、图片源/LaTeX源、SVG path、扩展配置；不能默认用整图图片替代。有分支时全文和“通过/未通过”标签都核对；长中文菱形适度换行，不横向撑成全图。
 - 数学`$…$`不在普通text中自动解析；用真实create_latex或宿主Extract-Latex/原生text+公式组合，保留源TeX，缺MathJax明确报告，不能留源码冒充公式。转换会替换text ID且影响frame/group/层级，先读[混排公式](references/visual-content.md)。
 - 线交叉用修改版lineCrossings的arc/gap/dot/none；dot不建立电气绑定。禁止白色遮罩、假小弧/圆点、拆线模拟交叉；样式和priority边界见排版参考。曲线/非直角旋转等精确检查仍可能unknown，不能伪称全通过。

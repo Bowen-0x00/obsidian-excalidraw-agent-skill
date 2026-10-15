@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.14 — Hardware production loop and orthogonal signal routing
+
+- Distill the actual component/port-first workflow into gated stages: intent contract, fixed geometry, components, signal batches, post-save audit, bounded previews and minimal repairs. Reject duplicate graph replay, layout simplification and check-only completion.
+- Require axis-aligned hardware signal segments and a separate full-precision saved-point audit. Distinguish symbol outline diagonals from wires, element angle from segment direction, and explicit orthogonal polylines from native automatic elbow mode. No new hardware router or built-in checker assertion is claimed.
+- Actual CPU repair found seven two-point diagonal arrows among 73 signals. Blind native-elbow conversion caused three node-crossing errors; explicit four-point H–V–H polylines preserved the port bindings and endpoint coordinates and passed the existing 227 assertions. All 351 element IDs and unrelated geometry/styles were retained. Overview and 1.6x detail PNGs were inspected; overall density remains a documented limitation, not a completed professional-quality claim.
+
 ## 0.8.13 — Hardware-specific planning and honest acceptance
 
 - Route CPU/pipeline/datapath/array/cache requests to microarchitecture.md before creation. Separate hardware components, named ports, signal classes, timing boundaries and fixed stage geometry from ordinary service-graph layout.

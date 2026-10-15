@@ -204,6 +204,9 @@ def drawing_apply(
     Select head/body/routing separately: set_arrow_style supports semantic heads;
     patch_element.patch.roundness {type:3,value:6,roundType:"arc"} fixes rectangle
     corners; elbow arrows use type:2,value (0 for square turns). Preserve bindings.
+    Low-level connect defaults elbowed=False and directly joins endpoints without
+    waypoints; it does not auto-route. Hardware wires must use explicit orthogonal
+    routes and verify every saved world-coordinate segment, not just angle/elbow flag.
     """
     started = time.perf_counter()
     receipt = client.apply(context_token, base_revision, operations)
@@ -402,6 +405,9 @@ def drawing_compose(
     Preserve independent hardware blocks, named ports and explicit stage geometry;
     never replace ALU/RF/MUX with stage bullet lists to make checks pass.
     A committed composition with failed check must be repaired by IDs, not replayed.
+    Hardware signals need axis-aligned straight links or explicit orthogonal routes.
+    Native elbow mode may reroute small port anchors: audit saved points, endpoints
+    and collisions. An explicit orthogonal polyline need not have elbowed=True.
     """
     started = time.perf_counter()
     receipt = client.compose(context_token, base_revision, diagram)

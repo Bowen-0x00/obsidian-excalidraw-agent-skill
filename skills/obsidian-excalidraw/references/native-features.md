@@ -79,6 +79,7 @@ CPU/硬件数据通路先读[microarchitecture](microarchitecture.md)，不能�
 ```
 
 routing=`straight/orthogonal/curve`；代码读取当前精确节点geometry，正交路径避障；显式waypoints使用scene坐标。始终维护start/end与目标boundElements双向关系，标签原生绑定。native head包括arrow/bar/circle及outline/triangle/diamond等，block_arrow_outline以runtime支持为准。
+微架构信号默认只允许轴向直连或正交折线。低层connect缺省elbowed=false且无waypoints时直接连接两点，不会自动避障；两端不对齐须显式计算正交拐点。routing=orthogonal/flag并非审计替代品，应用保存后读full逐段核对世界dx/dy及首末端口方向，详见[microarchitecture](microarchitecture.md)。
 按[箭头语义与固定圆角](layout-export-animation.md)选择头型/线身，不默认所有关系arrow；本例triangle用于数据流，不推广到UML。profile只提供基础线型，不能代替每条关系的start/endArrowhead；固定肘形radius通过实际生成的connect.style.roundness或按refs patch，不把routing=curve当圆角。
 
 来源：`connection/Action-Advanced-Connector.md`，不是调用其交互面板。曲线精确碰撞检查尚有unknown，必须明确限制；不能用“curve看起来绕开”冒充硬检查通过。library line素材先用返回anchorElementId，不能直接绑定不支持的line target。
