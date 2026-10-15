@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.12 — Preserve label readability on the fast path
+
+- Measure edge-label widths before automatic LR rank placement and reserve actual label space. Center labels on ordinary two-point links; preserve explicit labelPosition and decision/multi-segment placement rules.
+- A visually inspected Gemini run exposed labels overlapping endpoints despite check=pass. Preserve that run as a quality miss, not a successful quality-equivalent timing sample.
+- Verified the same generated labeled graph using actual host measurements: both labels remain between their endpoint nodes with at least 16 scene units of clearance; all content and bindings retained.
+
 ## 0.8.11 — Make the fast-path operation contract explicit
 
 - Distinguish operations[].op from expected[].type with a complete title-bold example in the Skill and MCP description. Avoid an invalid operation followed by broad reference searches.

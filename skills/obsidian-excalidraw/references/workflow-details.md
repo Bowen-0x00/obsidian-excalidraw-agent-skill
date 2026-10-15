@@ -111,7 +111,7 @@ new-tab是Agent默认的独立视图选择，不表示分屏无用：需要人�
    - **程序check=pass仍可能缺标签或不好看**。逐项核对用户要求的所有节点全文与分支标签；不要仅核对edge.from/to存在。普通节点内容用`label_equals`，分支标签用`edge_label`语义断言。
    - **公式源码泄漏是未完成问题**：检查所有普通text中的数学`$…$`/`$$…$$`及LaTeX命令，不把字面源码当公式。对照原文核对每个公式资源的源TeX与PNG中的根号、分式、上下标、希腊字母；转换后重新检查尺寸/行距和绑定。普通文字测量、几何check或rich_text不证明MathJax解析成功。用户要求显示源码/货币字面量不做误转换。
    - 长中文菱形不要横向撑成整张图的主视觉。优先增加合法换行与适度高度，保留至少正文内边距；检查决策宽度是否远大于同类节点、是否因此产生多余空白。
-   - “通过/未通过”应贴近决策出口对应路径且左右归属明确，不贴到整张图的最外缘。可对绑定text的`labelPosition`（0–1的路径比例）作局部调整；默认0.28是起点，不是所有路线都理想。
+   - “通过/未通过”应贴近决策出口对应路径且左右归属明确，不贴到整张图的最外缘。可对绑定text的`labelPosition`（0–1的路径比例）作局部调整；普通两点直连默认0.5，决策/多段路径默认0.28，显式位置保留。自动LR布局按实测标签宽预留rank间距；手动position/特殊端口仍需PNG复核，不宣称所有路线自动无冲突。
    - 同层分支大小和基线一致；只为给标签空间才增间距，不能把“无重叠”做成过度疏散的大画布。初图用planner默认nodeGap/rankGap，先看PNG再有理由地覆盖。
    - 组件库端口要实际贴合路径stub，不能因绑定落在透明anchor bbox就称连接正确；按当前svgViewBox/carrier尺寸计算端点。未声明电气引脚时不以“0.28/0.72”等固定示例取代真实图形。
 5. `drawing_review(context_token, revision=preview.revision, preview_id=preview.previewId, visual_reviewed=true, visual_issues=[...], check_result=check, changes_summary=本轮真实改动, max_rounds=5)`。

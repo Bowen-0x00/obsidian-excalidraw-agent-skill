@@ -344,6 +344,10 @@ def plan_diagram(client: Any, context_token: str, diagram: dict) -> dict:
             height = max(height, _number(requested.get("minHeight", requested.get("height", 1)), f"nodes.{name}.size.height", 1))
         boxes[name] = {"x": 0.0, "y": 0.0, "width": math.ceil(width), "height": math.ceil(height)}
     layers, feedback = _layers(nodes, edges)
+    if direction == "LR" and not lanes:
+        for edge in edges:
+            if edge.get("label") and edge["id"] not in feedback:
+                rank_gap = max(rank_gap, metrics.size(str(edge["label"]), 16, line_height)["width"] + 32)
     origin = layout.get("origin") or {"x": 0, "y": max((e.get("y", 0) + e.get("height", 0) for e in summary.get("elements", [])), default=-80) + 80}
     ox, oy = _number(origin.get("x", 0), "origin.x"), _number(origin.get("y", 0), "origin.y")
     if lanes:
@@ -506,7 +510,8 @@ def plan_diagram(client: Any, context_token: str, diagram: dict) -> dict:
                      "elbowed": True, "endArrowhead": edge.get("endArrowhead", "arrow"), "startArrowhead": edge.get("startArrowhead"),
                      "style": {**profile["edge"], **edge.get("style", {})}}
         if edge.get("label"):
-            operation["label"] = {"text": str(edge["label"]), "style": {**label_style(16), "labelPosition": edge.get("labelPosition", 0.28)}, "customData": metadata(edge["id"], "edge-label", str(edge["label"]))}
+            default_position = 0.5 if len(route) == 2 and nodes[edge["from"]].get("shape") != "diamond" else 0.28
+            operation["label"] = {"text": str(edge["label"]), "style": {**label_style(16), "labelPosition": edge.get("labelPosition", default_position)}, "customData": metadata(edge["id"], "edge-label", str(edge["label"]))}
         operations.append(operation)
         operations.append({"op": "patch_custom_data", "target": f"@edge:{edge['id']}", "merge": metadata(edge["id"], "edge")})
     if diagram.get("title"):
