@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.15 — Host-discovered fonts and Agent-selected text roles
+
+- Add a generic typography workflow: complete current-host discovery, task-scoped evidence/unknown inventory, bounded candidate sampling, language/role selection, explicit family measurement and application, and saved-text/PNG verification. No local font catalogue, mandatory font-file access, new classifier or typography DSL.
+- Preserve explicit user fonts and existing drawing styles; distinguish proportional/monospace/tabular digits, handwrite/code/display roles, registration/loading/coverage/fallback, and missing-font limitations. Explain single-font planner limits and measured native operations for mixed roles.
+- Remove assumed font names from Skill defaults and selection examples; code primitives must receive the Agent's resolved family instead of relying on their historical default. Add typography guidance to existing context/measure tool descriptions.
+- Bridge 0.13.4 obtains exact family names from the active package's getFontFamilies() when available. Existing fonts.registered remains the result field; source identifies native versus legacy registry evidence, and error reports failed/unavailable discovery rather than an apparently successful empty list.
+- Real-host verification exposed a first-measurement font-loading race: the same selected code family initially measured narrow/wide samples differently; after render, both measured 93.75 at size 20 and stabilized. Add bounded readiness/sample-render/remeasure guidance instead of classifying from a cold measurement.
+- Exercised native prose/code/identifier/annotation/Chinese samples and a same-ID bound-text font change; text and relationships were retained, checks passed and PNGs were inspected. Synthetic host-list/failure boundaries are separate smoke evidence, not claims of a second real host's font rendering or per-glyph fallback detection.
+
 ## 0.8.14 — Hardware production loop and orthogonal signal routing
 
 - Distill the actual component/port-first workflow into gated stages: intent contract, fixed geometry, components, signal batches, post-save audit, bounded previews and minimal repairs. Reject duplicate graph replay, layout simplification and check-only completion.

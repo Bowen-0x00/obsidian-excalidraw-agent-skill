@@ -2,14 +2,14 @@
 name: Excalidraw Agent Bridge
 description: Local authenticated MCP bridge for Obsidian Excalidraw.
 author: local
-version: 0.13.3
+version: 0.13.4
 autorun: false
 ---
 /*
 ```javascript
 */
 
-const BRIDGE_VERSION = "0.13.3";
+const BRIDGE_VERSION = "0.13.4";
 const PROTOCOL_VERSION = "3";
 const DEFAULT_PORT = 27124;
 
@@ -2535,37 +2535,41 @@ function iterableValues(value) {
   }
 }
 
-function registeredFonts() {
-  let api;
-
+function discoverFonts(api) {
+  let source = "unavailable";
   try {
-    api = getApi();
-  } catch {
-    return [];
+    const library = getActiveView().packages?.excalidrawLib;
+    if (typeof library?.getFontFamilies === "function") {
+      source = "ExcalidrawLib.getFontFamilies";
+      const families = library.getFontFamilies();
+      assert(
+        Array.isArray(families) &&
+          families.every((family) => typeof family === "string" && family.trim().length > 0),
+        "INVALID_FONT_DISCOVERY",
+        "getFontFamilies() must return an array of non-empty family names.",
+      );
+      return { registered: [...new Set(families)], source, error: null };
+    }
+
+    const registered = api?.App?.fonts?.registered;
+    if (!registered) {
+      return {
+        registered: [], source,
+        error: { code: "FONT_DISCOVERY_UNAVAILABLE", message: "No native family list or registered font table is available." },
+      };
+    }
+    source = "App.fonts.registered";
+    const keys = typeof registered.keys === "function"
+      ? iterableValues(registered.keys())
+      : iterableValues(registered).map((item) => Array.isArray(item) ? item[0] : item);
+    // Legacy table keys may be numeric IDs, not usable family names.
+    return { registered: [...new Set(keys.map(String))], source, error: null };
+  } catch (error) {
+    return {
+      registered: [], source,
+      error: { code: error.code || "FONT_DISCOVERY_FAILED", message: String(error.message || error) },
+    };
   }
-
-  const registered =
-    api.App?.fonts?.registered;
-
-  if (!registered) return [];
-
-  if (
-    typeof registered.keys ===
-    "function"
-  ) {
-    return iterableValues(
-      registered.keys(),
-    ).map(String);
-  }
-
-  return iterableValues(registered)
-    .map((item) => {
-      if (Array.isArray(item)) {
-        return String(item[0]);
-      }
-
-      return String(item);
-    });
 }
 
 function runtimeObjects() {
@@ -3336,8 +3340,7 @@ function runtimeCapabilitiesResponse() {
           api?.App?.fonts
             ?.registered,
         ),
-      registered:
-        registeredFonts(),
+      ...discoverFonts(api),
     },
 
     features,

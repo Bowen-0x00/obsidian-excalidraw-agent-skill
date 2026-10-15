@@ -52,11 +52,14 @@
 
 ## 代码高亮
 
-```json
-{"kind":"code","id":"python-example","x":0,"y":0,"text":"def add(a, b):\n    return a + b","language":"python","theme":"atom-one-light","fontFamily":"Cascadia","fontSize":18}
+先按[typography](typography.md)从当前宿主集合选出并验证`codeFamily`；它是Agent工作变量，不是固定字体名或新MCP字段。下面是构造item的JavaScript示意，不可把变量名作为family字符串提交：
+
+```javascript
+const item = {kind:"code",id:"python-example",x:0,y:0,text:"def add(a, b):\n    return a + b",language:"python",theme:"atom-one-light",fontFamily:codeFamily,fontSize:18};
 ```
 
 原生text+codeHighlight Engine，source保持完整。**不插入换行改变程序源码/缩进**；长行增加展示宽度或按用户已提供换行。highlight不是执行代码。编辑用set_text后再check/PNG；language/theme按runtime配置校验。
+显式传所选fontFamily，不依赖primitive历史默认名称；等宽、代码符号覆盖与手写是不同维度。若无可确认的代码候选，保留源码并报告缺口，不用数码显示体/空格补偿冒充代码等宽。样本测量不证明全部字形未fallback。
 本参考对应的Engine内置主题为atom-one-light和atom-one-dark；先确认本机runtime配置，其它theme必须有真实配置，不接受“名字看起来合法”就当有配色。
 
 来源：`code-highlight/Action-Toggle-Code-Highlight.md:99–130`、`Feature-Code-Highlight-Engine.md`；避免语言识别不明时弹UI，Agent明确language。

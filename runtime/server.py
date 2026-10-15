@@ -84,6 +84,10 @@ def drawing_context(
     Returns contextToken, file, revision, and capabilities.
     Before creating a new drawing, use the client's real choice UI for unspecified
     visual preferences per the Skill; do not re-ask specified choices or restyle edits.
+    capabilities.fonts.registered lists current host families; source/error expose
+    native getFontFamilies versus legacy registry evidence. Availability is not
+    glyph coverage or suitability. Follow typography.md to assess fonts and choose
+    explicit families by text role; do not assume a fixed installed font list.
     """
     return client.context(
         action=action,
@@ -131,6 +135,9 @@ def drawing_measure(
     """Measure exact rendered text dimensions using native Excalidraw text measurement.
 
     If width is specified, wraps text across lines using native measurements.
+    Pass the role-selected, currently discovered font_family explicitly. Equal
+    widths for a few samples do not prove full monospace or absence of fallback.
+    Remeasure after font/weight changes; dimensions alone do not verify rendering.
     This measures plain text, not MathJax: $...$ remains literal in text/labels.
     Render formulas with create_latex (bare tex); mixed prose needs native text
     plus formula images or the explicitly trusted host Extract-Latex Action.

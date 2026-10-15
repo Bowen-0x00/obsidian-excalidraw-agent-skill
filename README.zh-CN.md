@@ -20,6 +20,7 @@
 - 低往返执行：普通图使用已有`drawing_compose`在代码内测量plan→apply，不让模型抄整份operations；compose/apply可选`inspect:true`合并完整检查和注册PNG返回。版本保护、实际看图及review不省略，详细能力转为主Skill的按需参考，原接口保留。
 - 硬件请求先按部件、端口、信号和阶段骨架规划，不套服务图快路径；保留ALU/RF/MUX/队列/阵列等独立对象与控制/反馈网络，不把“检查通过的阶段项目列表”当微架构交付。见[硬件微架构工作流](skills/obsidian-excalidraw/references/microarchitecture.md)。
 - 硬件Skill固化分阶段制作/最小补丁迭代及保存后的逐段正交审计；信号默认水平/竖直，根据实际端口选显式正交折线或原生elbow，不凭flag验收。此项是工作流指导，不是新增硬件自动布线器或drawing_check内建断言。
+- 字体按当前宿主动态发现，由Agent基于证据判断用途，再按正文/代码/标签/注释等角色选实际family、测量和PNG验证，不假设固定安装名单；发现不等于字形覆盖/无回退。详见[通用字体工作流](skills/obsidian-excalidraw/references/typography.md)。Bridge 0.13.4在现有discovery中优先返回真实getFontFamilies结果及来源/错误。
 
 ## 可编辑、多风格与服务器绘图
 

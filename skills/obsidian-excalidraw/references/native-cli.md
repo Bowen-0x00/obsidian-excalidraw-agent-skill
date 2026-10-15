@@ -80,7 +80,7 @@ obsidian vault="目标vault" obsidian-excalidraw-plugin-ymjr:read path="Drawings
 原生 CLI 与 Bridge schema 不同：
 
 - Skeleton 样式是顶层字段，容器文字用 `label`；不是 Bridge operation 的 `style` 对象。
-- 当前 Native CLI 验证的 `fontFamily` 是已安装的数字 ID 1–10；不把本修改版其他 API 支持的字符串字体直接传入这个受限接口。自定义字体用已发现的可信 EA/MCP 路径。
+- Native CLI只接受其当前schema声明的fontFamily类型/范围；此前安装版本实测为数字ID 1–10，这不是跨宿主保证，也不证明这些ID对应哪些字体。先按[typography](typography.md)发现实际family，再用本机已验证映射；不能把MCP支持的字符串或另一版本的编号表硬传入受限接口。无法映射时使用已发现的可信EA/MCP入口，不绕过拒绝规则。
 - 受支持的基础类型为 rectangle、ellipse、diamond、text、arrow、line、frame、stickynote。frames 不嵌套，children 引用同批 ID。
 - `apply` 使用 `operations:[{op:"update",id:"实际ID",set:{...}}]`，不是 `patch_element/target/patch`。
 - 改标签更新实际 bound text ID。identity/version/binding/frame/资源内部字段及任意 `customData` 不在普通 update 接口中；不要绕过拒绝规则。

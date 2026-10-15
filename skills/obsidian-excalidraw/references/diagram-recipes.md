@@ -19,9 +19,10 @@
 | 色板 | 克制蓝绿 / 明亮多彩 / 莫兰迪低饱和 / 中性单色 / 自定义色板（仅客户端支持自定义内容时） | 每项附实际主色hex小列表和用途；选定后解析完整前景/底色，不只是配色名称 |
 | 背景/明暗 | 白底浅色 / 暖白浅色 / 深底高对比 / 沿用模板（确有模板） / 交给Agent | “亮色系”可能指鲜艳accent而不是白背景，色板与背景两题分别回答；暗色不靠导出时反转伪装 |
 | 颜色编码 | 按类别分色 / 单主色+灰度层级 / 纯灰度 / 严格限定给定颜色 | 类别/状态映射固定，灰度依赖形状/线型/文字冗余；strict需完整允许hex集合 |
-| 字体与字重 | 无衬线·标题加粗 / 无衬线·不加粗 / 中文文楷·标题加粗（真实安装时） / 手写字体·不加粗（真实安装时） / 自定义排版（客户端支持时） | 字体候选来自discovery；可将已发现其他字体替换为选项，未安装不供选择 |
+| 字体与字重 | 清晰正文·标题强调 / 清晰正文·常规字重 / 手写注释（有候选时） / 沿用原图或模板 / 交给Agent按角色选 | 先按[typography](typography.md)取得当前集合并判断候选；用户选意图，不必逐个字体作答，实际名称由Agent解析并验证 |
 
 默认“标题加粗”只针对标题/分区名，正文regular；不用全图粗体模拟专业感。用户单独指定“全部加粗/不加粗/某些强调”时以明确要求为准。中文和拉丁字母混用时以宿主实测宽度布局；手绘线条和手写字体是两个独立偏好，允许“手绘线条+无衬线字”，不能强绑。
+字体不是固定套餐：正文/代码/标识符/注释可按角色选择不同实际family；新宿主重新发现，未知项保留不确定性。按[typography](typography.md)分类与验证，不能把某台机器安装的名字、style profile或代码例子当全局保证。
 
 ### 色板起点：解析为实际允许颜色
 
@@ -41,18 +42,18 @@
 
 ### 偏好必须落实到现有API
 
-选择结果只是本次Agent的工作计划，不是新增MCP schema。Agent记录profile、canvas/surface/text/accent色值、颜色→业务角色映射、fontFamily、标题/正文大小、boldTargets、roundness及edge语义，并在真正调用前将它们展开成现有字段：
+选择结果只是本次Agent的工作计划，不是新增MCP schema。Agent记录profile、canvas/surface/text/accent色值、颜色→业务角色映射、实际family与文字角色、标题/正文大小、boldTargets、roundness及edge语义，再展开成现有字段。下例是**构造字段的JavaScript示意**：`bodyFamily`须先按typography流程解析为本次接口返回的精确名称，不得把变量名或占位文字作为family提交：
 
-```json
-{
+```javascript
+const style = {
   "profile":"professional",
-  "fontFamily":"Helvetica",
+  "fontFamily": bodyFamily,
   "fontSize":20,
   "shape":{"roughness":0,"fillStyle":"solid","strokeWidth":2,"roundness":{"type":3,"value":6,"roundType":"arc"},"backgroundColor":"#F1F5F9"},
   "text":{"strokeColor":"#0F172A","lineHeight":1.2},
   "edge":{"strokeColor":"#2563EB","strokeWidth":2,"roughness":0,"roundness":{"type":2,"value":6}},
   "container":{"backgroundColor":"#FFFFFF","strokeColor":"#475569","roundness":{"type":3,"value":6,"roundType":"arc"}}
-}
+};
 ```
 
 这是现有`diagram.style`的profile对象；**不是**调用`style:"morandi"`/`style:"dark"`。箭头头型仍逐edge显式指定；纯色板不自动决定UML语义。手绘选roughness1/hachure或用户指定solid，并独立控制字体；不能拿PNG滤镜替代原生属性。
@@ -65,7 +66,7 @@
 
 ### 选择后的验收
 
-创建前用一行简报已选方案（例如“专业平整／莫兰迪／暖白／按类别分色／Helvetica标题粗体／固定R6／数据流三角头”），无需再问“是否确认”。先画、看PNG，根据偏好做局部修正。读回检查精确hex、roughness/fill、实际字体/字重、radius和头型；PNG检查对比、层级、灰度可区分、边线/公式/图片可见。保留用户选择，后续修布局不能悄悄重置回默认蓝色/大圆角/普通箭头。
+创建前用一行简报已选方案（风格／色板／背景／颜色编码／本次选定实际family及角色／标题字重／固定圆角／语义头型），无需再问“是否确认”。读回检查精确hex、roughness/fill、实际字体/字重、radius和头型；PNG检查对比、层级、字形/回退、输出字高、边线/公式/图片可见。保留用户选择，后续修布局不能悄悄重置字体或默认蓝色/大圆角/普通箭头。
 
 这是Skill级启动交互，不是绘图服务器自行弹UI；支持ask的Agent应真实调用选择工具，只有文本客户端才用编号问题。未真实收到选择就不声称用户选过；没有运行实际绘图/PNG也不称视觉通过。
 已实测原生样式示例：专业蓝绿、明亮演示、暖白莫兰迪/已注册文楷、灰度hachure/不加粗、深底高对比。读回实际色值/字体/标题bold，PNG查看后把对比不足的莫兰迪/灰度边框改为允许的深中性色；这证明属性落地，不声称新建了独立的选择器UI或已替用户作出选择。
@@ -74,13 +75,13 @@
 
 | profile | 确定性规则 | 使用条件 |
 |---|---|---|
-| professional | roughness0、浅色solid、Helvetica与系统中文fallback、克制语义色 | 默认文档图 |
+| professional | roughness0、浅色solid、克制语义色；实际family另按当前集合解析 | 默认文档图 |
 | handdrawn | roughness1、hachure、手绘线边；布局/绑定仍确定 | 用户要手绘效果，不等于自由笔画 |
-| visio | roughness0、sharp边、1.5线宽、Helvetica与中文fallback | 正交工程图、UML；不声称输出.vsdx |
+| visio | roughness0、sharp边、1.5线宽；字体按角色/语言显式解析 | 正交工程图、UML；不声称输出.vsdx |
 | blueprint | 白底蓝线、清晰数据通路与端口 | 电路/微架构；默认保留库素材本身样式 |
-| presentation | 较大字号与标题层级、Helvetica与系统中文fallback | 原生frame演示页，指定库版式优先 |
+| presentation | 较大字号与标题层级；字体覆盖与阅读尺度需实测 | 原生frame演示页，指定库版式优先 |
 
-在普通图描述加`"style":"visio"`或`"style":"handdrawn"`。允许对象`{"profile":"visio","fontFamily":"Helvetica","shape":{"strokeWidth":2,"roundness":{"type":3,"value":6,"roundType":"arc"}}}`做显式覆盖。优先级：硬保护→用户显式局部/本轮视觉选择→原图未请求字段→role/variant→profile默认。已有图不自动全图换主题。库源样式默认原样保留；只有用户明确要求才对本次导入的副本重新样式。profile不是自动色板/箭头选择器，严格颜色需读回实际值。
+在普通图描述加`"style":"visio"`或`"style":"handdrawn"`。创建文字前将本次实际family显式写入style对象，例如JavaScript构造`{profile:"visio",fontFamily:bodyFamily,shape:{strokeWidth:2,roundness:{type:3,value:6,roundType:"arc"}}}`；`bodyFamily`不是新接口字段或可直接提交的字体名。底层profile有历史字体默认值，但它们不证明宿主可用，不能替代发现和角色选择。优先级：硬保护→用户显式局部/本轮视觉选择→原图未请求字段→role/variant→profile默认。已有图不自动全图换主题；库源样式默认保留，只有用户明确要求才对本次导入副本改样式。
 
 `roughjs`/`rough-js`是`handdrawn`的已声明别名；`drawing_templates(list)`同时返回aliases。自然语言中的“手画/handdraw白板笔迹”用原生`draw`/freedraw，**不是第二个Rough.js renderer或名为handdraw的profile**；可混用freedraw轮廓、原生文字及有binding的arrow。不要为证明多风格把所有场景都画成同一种矩形。
 

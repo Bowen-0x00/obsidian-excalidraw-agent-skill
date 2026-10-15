@@ -10,8 +10,9 @@ description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架�
 - 使用已发现的真实`drawing_*` MCP，前缀/schema以客户端为准；相对references路径属于当前Skill，客户端支持时才用`skill://obsidian-excalidraw/...`。
 - 新图用唯一文件名创建独立`.excalidraw.md`；已有图按明确file_path绑定，保留file/contextToken/revision。不能用active/first、clear重画或手拼整场景JSON。
 - 新图未指定视觉偏好时，用客户端真实ask工具**一轮**收集未定风格、色板/严格色值、背景明暗、彩色/灰度、已安装字体/字重；见[视觉偏好](references/diagram-recipes.md)。已指定、同套图已选、局部改图或“你决定/直接画”不重问；没有ask则用编号问题。
-- 已给定专业平整等方案时**直接执行，不为重复选型读取整份风格问卷**。回退：Helvetica/系统中文、正文20/标题28、roughness0、线宽2，矩形固定`roundness:{type:3,value:6,roundType:"arc"}`；标题粗体用真实text ID的`set_text_global_style`，非顶层bold。
+- 已给定专业平整等方案时**直接执行，不为重复选型读取整份风格问卷**。正文20/标题28、roughness0、线宽2、矩形固定`roundness:{type:3,value:6,roundType:"arc"}`作为视觉起点；字体必须从当前宿主集合按角色与语言选定，不假设某个字体必有。标题粗体用真实text ID的`set_text_global_style`，非顶层bold。
 - 配色落实为实际hex；strict任务同时控制底色、正文、边框，不能偷偷补默认蓝色。手绘线条和字体独立选择；字体先discovery确认，颜色/字重/尺寸最终读回并查看PNG，不凭profile名称认定生效。
+- **创建文字、选/换字体先读[通用字体工作流](references/typography.md)**：接口取得当前完整集合和来源→Agent按证据判断用途/未知项→按正文/代码/标签/注释等角色选实际family→用该family测量、落地、看PNG。不是本地字体白名单，也不让profile/代码primitive的历史默认名称替代发现；注册、字形覆盖、加载和实际fallback分别验证。已有图未请求换字则继承。
 - 语义决定箭头：数据流triangle，少量PPT主阶段block_arrow_outline，UML用真实空心三角/菱形语义；不擅加双向。肘形转角`{type:2,value:6}`，硬直角value0，不等于样条曲线。详见[箭头/固定圆角](references/layout-export-animation.md)。
 
 ## 硬件任务必须先分流
@@ -51,6 +52,7 @@ inspect是合并**已有**步骤，不是原子跨请求事务：check/render前
 - 完成标准：用户内容/关系齐全、硬检查无错误、必需检查无unknown、资源complete、当前PNG实际看过、review=completed。几何pass仍可能标签丢失/文字太小/不美观；不能删业务边、裁全文或缩成不可读来“通过”。
 - 硬件图必须按专用部件/端口/关键网络清单验收，expected不得空却宣称“语义100%通过”。几何pass不等于微架构正确，review也不自动证明专业质量。overview有效字高≈actualScale×fontSize；缩成6px的小字条带必须调整或实际查看必要局部，不把complete=true当可读。
 - 微架构另有独立正交门：精确read世界点列，逐段排除dx/dy同时非零的信号线并报告ID/段索引；现有通用check不含这项保证。只修route不降粒度、不盲目重放；实际修复轮数累计，不能用新token重置。
+- 字体验收核对真实family、全文、字重、混合语言、易混字符和输出字高；属性名/测量相同不证明无fallback。换字体后重测并重排受影响对象。普通planner不是多角色字体引擎，混排走已确认的measure＋原生text操作，不传虚构role/font字段。
 - 原生可编辑性优先：保留shape/text/arrow/frame/group、图片源/LaTeX源、SVG path、扩展配置；不能默认用整图图片替代。有分支时全文和“通过/未通过”标签都核对；长中文菱形适度换行，不横向撑成全图。
 - 数学`$…$`不在普通text中自动解析；用真实create_latex或宿主Extract-Latex/原生text+公式组合，保留源TeX，缺MathJax明确报告，不能留源码冒充公式。转换会替换text ID且影响frame/group/层级，先读[混排公式](references/visual-content.md)。
 - 线交叉用修改版lineCrossings的arc/gap/dot/none；dot不建立电气绑定。禁止白色遮罩、假小弧/圆点、拆线模拟交叉；样式和priority边界见排版参考。曲线/非直角旋转等精确检查仍可能unknown，不能伪称全通过。
@@ -61,6 +63,7 @@ inspect是合并**已有**步骤，不是原子跨请求事务：check/render前
 | --- | --- |
 | 硬件微架构、五级CPU、端口/总线/阵列/旁路 | **先读[microarchitecture](references/microarchitecture.md)**：部件级规划、固定流水边界、真实符号、数据/控制/反馈分离、禁止降粒度和重复compose；硬件清单＋全图/局部验收 |
 | 未定风格、严格配色、字体/粗体、图型/演示 | [diagram-recipes](references/diagram-recipes.md)：真实选择UI、profile/hex映射、UML语义、逐页PNG；不是PPTX |
+| 字体发现、按文字角色选型、语言覆盖/等宽/回退、改字体 | **[typography](references/typography.md)**：当前宿主完整集合、Agent证据分类、角色映射、实际family测量/落地、PNG验证；不假设任何固定字体已安装 |
 | 箭头/路由/固定圆角、缩放/旋转/排版、交叉、动画/导出 | [layout-export-animation](references/layout-export-animation.md)：绑定保持、真实半径、PPT宽箭身、有限预算；动画须播放验证 |
 | 用户素材库、ALU/MUX、模板底板 | [library-catalog](references/library-catalog.md)：list/query/get/preview真实item；先尺寸适配再插入/填字/接线，不把scale1当fit |
 | 网上/远端图片、公式资源 | [images-assets](references/images-assets.md)：实际字节/许可/宿主附件；远端路径非宿主路径，MCP可data:image，整个请求4MiB |
