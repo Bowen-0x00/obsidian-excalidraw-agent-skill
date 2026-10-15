@@ -58,8 +58,8 @@ RECIPES = {
                                   {"from": "db", "to": "api", "label": "返回结果", "return": True}, {"from": "api", "to": "user", "label": "响应", "return": True}]},
     },
     "microarchitecture": {
-        "description": "用户数字电路库的MUX/ALU/CROSSBAR，透明原生绑定载体与精确端口，不栅格化素材。",
-        "prompt": "从指定digital-circuit-components(svg)库插入MUX、ALU、CROSSBAR画微架构数据通路；A/B输入经选择到ALU，结果送交叉开关。不得用近似矩形替代库符号。",
+        "description": "MUX/ALU/CROSSBAR原生素材组合示例，不是CPU/流水级/总线自动布局器；先读Skill microarchitecture.md。",
+        "prompt": "先按microarchitecture.md规划部件、真实端口和阶段骨架，再发现指定digital-circuit-components(svg)库并预览MUX/ALU/CROSSBAR。按当前变换后stub计算端点，不沿用示例fixedPoint当通用引脚；不得用阶段bullet列表替代硬件，也不得降粒度消除检查错误。",
         "diagram": {"diagramId": "example-datapath", "kind": "microarchitecture", "title": "微架构数据通路", "style": "blueprint",
                     "nodes": [{"id": "operand-a", "label": "操作数 A"}, {"id": "operand-b", "label": "操作数 B"},
                               {"id": "mux", "label": "操作数选择", "library": {"source": CIRCUIT_LIBRARY, "item": "MUX", "scale": 2}},

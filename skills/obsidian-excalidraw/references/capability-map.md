@@ -4,6 +4,7 @@
 
 | 能力组 | 之前Skill缺口 | 当前推荐入口/参考 |
 |---|---|---|
+| 硬件微架构/数据通路 | 普通rank＋矩形标签无法保证硬件表达；失败后曾降成阶段说明 | **[microarchitecture](microarchitecture.md)**：先部件/端口/信号/时序骨架，原生/库符号与固定区域，禁止降级/重复compose，硬件语义＋实际可读PNG验收 |
 | 启动视觉偏好 | 默认风格未与用户确认、配色/字体/字重缺属性映射 | [diagram-recipes](diagram-recipes.md)：真实Agent选择UI一次询问未定项，严格hex范围、明暗/灰度、字体发现及原生属性落地；不是新MCP弹窗 |
 | 语义箭头/固定圆角 | 仅枚举头型、round/sharp缺少选型和value | [layout-export-animation](layout-export-animation.md)：数据流triangle/PPT block/UML区分、宽箭身/绑定，矩形type3/value/arc与肘形type2/value；Bridge0.13.3修复旧set_arrow_style头型写空 |
 | 图片获取/插入 | 只提image类型，没有自然语言找图→附件→原生插入流程 | [images-assets](images-assets.md)：真实来源、许可、资源解码、宿主附件，EA/addImage或MCPcreate_image |

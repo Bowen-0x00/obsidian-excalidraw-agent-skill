@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.13 — Hardware-specific planning and honest acceptance
+
+- Route CPU/pipeline/datapath/array/cache requests to microarchitecture.md before creation. Separate hardware components, named ports, signal classes, timing boundaries and fixed stage geometry from ordinary service-graph layout.
+- Require real ALU/MUX symbols or editable native polygons, explicit data-versus-select inputs, forwarding value sources, RF/memory ports and readable bounded previews. Explain existing planner/schema limits rather than inventing a hardware layout engine or electrical DSL.
+- Prohibit stage-bullet substitution, dropped feedback networks, duplicate compose replay, unconditional rebuild/revert and check-only completion claims. Record partial execution, explicit semantic assertions, visual readability and actual repair limits; retain review/preview revision guards.
+- Actual full CPU verification exposed rectangular symbol fallback, missing data inputs, ineffective closeups and save-time text-ID normalization. Tighten guidance with concrete op/ref, signal-selection mapping, post-save readback and local preview rules.
+- Targeted real-canvas repair retained the original 113 element IDs and 48 arrows, adding seven native polygon symbols and explicit ports/networks. Final geometric/binding checks covered 351 elements and 227 assertions; 1.6x bounded PNGs were inspected. The diagram remains visually dense and the ledger remains continue, not completed; this is evidence for the workflow and its limits, not a claim of automatic professional-quality hardware validation.
+- Existing 27 regression checks passed. No host plugin renderer, hardware automatic layout, script execution permissions or user's original business CPU drawing was changed.
+
 ## 0.8.12 — Preserve label readability on the fast path
 
 - Measure edge-label widths before automatic LR rank placement and reserve actual label space. Center labels on ordinary two-point links; preserve explicit labelPosition and decision/multi-segment placement rules.

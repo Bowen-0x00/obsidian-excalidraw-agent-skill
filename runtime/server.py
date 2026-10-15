@@ -160,6 +160,9 @@ def drawing_plan(
     for data, block_arrow_outline for sparse PPT stages, UML-specific heads).
     Profiles do not auto-select heads/palettes. Use style.roundness {type,value}
     for fixed corners instead of relying on edge="round".
+    Hardware microarchitecture is NOT ordinary service-graph layout. Read the
+    Skill's microarchitecture reference first: explicit components/ports/stage
+    geometry. kind="microarchitecture" alone adds no hardware layout semantics.
     """
     return client.plan(
         context_token=context_token,
@@ -395,6 +398,10 @@ def drawing_compose(
     Each native import commits separately; failures report prior committed stages. Inspect final PNG.
     Set each nodes[].library.scale from real source bounds and target symbol size
     before wiring; node.size reserves layout space but does not rescale library art.
+    For CPU/datapath/array diagrams, read microarchitecture.md before composing.
+    Preserve independent hardware blocks, named ports and explicit stage geometry;
+    never replace ALU/RF/MUX with stage bullet lists to make checks pass.
+    A committed composition with failed check must be repaired by IDs, not replayed.
     """
     started = time.perf_counter()
     receipt = client.compose(context_token, base_revision, diagram)

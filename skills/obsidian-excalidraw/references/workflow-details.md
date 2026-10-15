@@ -26,6 +26,7 @@ new-tab是Agent默认的独立视图选择，不表示分屏无用：需要人�
 
 ## 按需选择图型、风格、图元和素材
 
+- CPU/流水线/阵列/硬件数据通路必须先读[microarchitecture.md](microarchitecture.md)；下文通用图描述不是专用硬件布局器。固定阶段、多端口、反馈/旁路需显式规划，不能把硬件部件合成阶段文字卡片。
 - 普通图直接规划；用户说UML/微架构/电路/多页演示、手绘/Visio等时，读取[diagram-recipes.md](diagram-recipes.md)并用`drawing_templates`取真实recipe。
 - `drawing_templates(list)`发现图型/style/aliases；`get`只提供参考输入，`plan`产生测量后的原生operations，仍需apply、PNG和review。diagram style可用handdrawn/visio/blueprint/presentation/professional；roughjs是handdrawn别名，不编造额外renderer。
 - profile不自动挑箭头、配色列表或固定圆角。规划前将本次视觉选择解析为实际hex色、字体、加粗、roughness、roundness与每条edge的startArrowhead/endArrowhead；不要把morandi/dark/grayscale当成不存在的profile，或只在顶层写“style”却沿用内置颜色/头型。使用前读[视觉偏好与属性映射](diagram-recipes.md)。

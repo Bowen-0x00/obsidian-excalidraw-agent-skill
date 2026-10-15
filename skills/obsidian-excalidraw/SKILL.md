@@ -14,10 +14,14 @@ description: 在 Obsidian Excalidraw 修改版中创建可编辑流程图、架�
 - 配色落实为实际hex；strict任务同时控制底色、正文、边框，不能偷偷补默认蓝色。手绘线条和字体独立选择；字体先discovery确认，颜色/字重/尺寸最终读回并查看PNG，不凭profile名称认定生效。
 - 语义决定箭头：数据流triangle，少量PPT主阶段block_arrow_outline，UML用真实空心三角/菱形语义；不擅加双向。肘形转角`{type:2,value:6}`，硬直角value0，不等于样条曲线。详见[箭头/固定圆角](references/layout-export-animation.md)。
 
+## 硬件任务必须先分流
+
+CPU/流水线/微架构/硬件数据通路/阵列/缓存层级/寄存器堆/片上互连：**创建前必须读[microarchitecture](references/microarchitecture.md)**，先定独立部件、命名端口、信号表、时序边界与固定区域，再选图元/库和路由。不能走普通服务架构快路径后，把ALU/RF/MUX/Hazard等缩成“IF/ID/EX阶段：项目符号列表”；检查失败不得降粒度、删除反馈线、重放整图追加副本或换新图刷通过。`kind:"microarchitecture"`不是专用硬件布局器，container也不固定流水级列。
+
 ## 默认低往返路径（0.8.10起）
 
 **减少模型轮次，不减少绘图能力或验证。** 一次读齐本任务所需schema；可并行读取独立资料/只读状态。todo更新与下一步操作同一轮，不为一次进度更新单独等模型；用户显式要求计划时照做。
-对普通原生节点＋连线，且视觉方案已给定：本页字段足够时直接用快路径，**不要为了确认标题粗体、R6或triangle依次遍读diagram-recipes/workflow-details/visual-content/capability-map**。只有确实用到本页未定义的高级功能才打开对应参考；查接口问题优先读取该工具schema并修正字段，不扫整个能力库。
+对普通服务/业务节点＋连线，且视觉方案已给定：本页字段足够时直接用快路径，不为标题粗体/R6/triangle遍读所有参考。**此规则不适用于硬件微架构**，硬件必须先读专用参考；复杂固定列/多端口/总线图用显式位置/尺寸、原生operations与真实素材。查接口问题优先读取该工具schema并修字段，不扫整个能力库。
 
 1. 有drawing_setup先status；已连接时discovery核对字体/引擎。可同轮发独立只读请求。连接失败先按真实前提恢复，不能假设画布存在。远端只status，不connect/start/reload宿主。
 2. `drawing_context(create,filename,foldername)`或明确file_path绑定，取得token和revision。多Agent各自一图，只由协调者管理服务，宿主串行执行；同图竞争发生REVISION_CONFLICT就重新读，不覆盖用户新编辑。
@@ -44,6 +48,7 @@ inspect是合并**已有**步骤，不是原子跨请求事务：check/render前
 - preview和inspect.preview均含同revision全图canvasSummary：id/type/geometry、必要文字、bindings、group/frame/锁定等；长文字标截断并用full按需读完整源，密集点列用pointCount。几何/空值/省略字段、并发与完整遍历详见[完整工作流](references/workflow-details.md)。
 - 由PNG定位ID后局部改：scene坐标=sceneOrigin+原PNG像素/scale；阅读器缩放需先还原原像素。不能拿截图像素直接写x/y，不能手填boundElements/startBinding/endBinding或原生version/index。
 - 完成标准：用户内容/关系齐全、硬检查无错误、必需检查无unknown、资源complete、当前PNG实际看过、review=completed。几何pass仍可能标签丢失/文字太小/不美观；不能删业务边、裁全文或缩成不可读来“通过”。
+- 硬件图必须按专用部件/端口/关键网络清单验收，expected不得空却宣称“语义100%通过”。几何pass不等于微架构正确，review也不自动证明专业质量。overview有效字高≈actualScale×fontSize；缩成6px的小字条带必须调整或实际查看必要局部，不把complete=true当可读。
 - 原生可编辑性优先：保留shape/text/arrow/frame/group、图片源/LaTeX源、SVG path、扩展配置；不能默认用整图图片替代。有分支时全文和“通过/未通过”标签都核对；长中文菱形适度换行，不横向撑成全图。
 - 数学`$…$`不在普通text中自动解析；用真实create_latex或宿主Extract-Latex/原生text+公式组合，保留源TeX，缺MathJax明确报告，不能留源码冒充公式。转换会替换text ID且影响frame/group/层级，先读[混排公式](references/visual-content.md)。
 - 线交叉用修改版lineCrossings的arc/gap/dot/none；dot不建立电气绑定。禁止白色遮罩、假小弧/圆点、拆线模拟交叉；样式和priority边界见排版参考。曲线/非直角旋转等精确检查仍可能unknown，不能伪称全通过。
@@ -52,6 +57,7 @@ inspect是合并**已有**步骤，不是原子跨请求事务：check/render前
 
 | 任务涉及 | 参考与执行要点 |
 | --- | --- |
+| 硬件微架构、五级CPU、端口/总线/阵列/旁路 | **先读[microarchitecture](references/microarchitecture.md)**：部件级规划、固定流水边界、真实符号、数据/控制/反馈分离、禁止降粒度和重复compose；硬件清单＋全图/局部验收 |
 | 未定风格、严格配色、字体/粗体、图型/演示 | [diagram-recipes](references/diagram-recipes.md)：真实选择UI、profile/hex映射、UML语义、逐页PNG；不是PPTX |
 | 箭头/路由/固定圆角、缩放/旋转/排版、交叉、动画/导出 | [layout-export-animation](references/layout-export-animation.md)：绑定保持、真实半径、PPT宽箭身、有限预算；动画须播放验证 |
 | 用户素材库、ALU/MUX、模板底板 | [library-catalog](references/library-catalog.md)：list/query/get/preview真实item；先尺寸适配再插入/填字/接线，不把scale1当fit |

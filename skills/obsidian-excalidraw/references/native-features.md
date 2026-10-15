@@ -72,6 +72,7 @@
 来源：`checkbox/Action-Toggle-Checkbox.md:89–117`、`Feature-Checkbox-Engine.md`。真实交互是先hover命中文本，再Shift+点击切换；PNG只证明当前状态。需要真实view验证与读回，不能把metadata存在称为交互通过，详见`interaction-navigation.md`。
 
 ## 高级连接
+CPU/硬件数据通路先读[microarchitecture](microarchitecture.md)，不能只用默认side中心连接所有信号；按实际符号stub/RF数据与控制端口分别指定fixedPoint、命名stub和反馈track。primitive connection是几何连接器，不是电气端口/总线/流水级自动布局器。
 
 ```json
 {"kind":"connection","id":"data-edge","from":"真实source ID","to":"真实target ID","routing":"orthogonal","start":{"anchor":"right","fixedPoint":[1,0.3]},"end":{"anchor":"left","fixedPoint":[0,0.7]},"label":"数据","startArrowhead":null,"endArrowhead":"triangle"}

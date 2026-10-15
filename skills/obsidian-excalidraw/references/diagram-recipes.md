@@ -118,9 +118,11 @@ Visio/电路/微架构中的必要线—线交叉，采用修改版原生lineCro
 
 `drawing_templates(get,name="architecture")`，普通`drawing_plan`执行。group是一起移动，container是可见分区，两者分开。跨容器边不能变成说明文字来“消除穿线”。代码测量+路径避障，PNG检查标签留白和层级。
 
-## 微架构/电路：用户指定库优先
+## 微架构/电路：硬件语义优先，不是普通架构模板
 
-`drawing_templates(get,name="microarchitecture"|"circuit")`提供数字电路库示例；示例中的library来源必须替换为用户机器上已发现的真实库。用户指定的目录原文可传给`drawing_library`，它会返回真实resolvedLibrary；找不到或同名歧义不能悄悄用其它库。
+**先读[microarchitecture](microarchitecture.md)**，无论用户是否指定库。微架构须先确定部件、端口/信号、固定阶段/区域和验收清单；不能把单元收进阶段bullet卡片，也不能为check通过而删关系或降粒度。矩形可表达memory/RF/control，ALU/MUX/边界等按真实角色选形状与比例。
+
+`drawing_templates(get,name="microarchitecture"|"circuit")`只是数字电路库示例，**不是完整CPU自动布局器**。当前kind分类共用通用rank；容器只是事后包围框，固定流水级和反馈通道需显式位置/尺寸/端口或低层原生operations。示例library来源必须换为实际发现的库，不假设个人路径。
 
 可按文件名查找 `digital-circuit-components(svg).excalidrawlib`，但不能假设任何绝对路径或固定item数量。先通过 `drawing_library(list/query)` 发现安装库与真实vault相对路径；同名item用exact ID。顺序：query→get真实bounds/类型/资源→preview候选→**按角色/端口和目标内容区计算library.scale**→compose或native insert→以缩放后的几何连接与label→全图check/PNG。库素材svgPathShape仍是可编辑line carrier，不是整项PNG。node.size增加布局空位不会放大库符号；已导入尺寸不合适就对完整实例scale_selection，见[尺寸适配](layout-export-animation.md)。
 
