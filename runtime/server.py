@@ -52,6 +52,8 @@ def drawing_context(
     """Acquire canvas context: discover runtime capabilities, create a new canvas, or bind an existing file.
 
     Returns contextToken, file, revision, and capabilities.
+    Before creating a new drawing, use the client's real choice UI for unspecified
+    visual preferences per the Skill; do not re-ask specified choices or restyle edits.
     """
     return client.context(
         action=action,
@@ -124,6 +126,10 @@ def drawing_plan(
     Delegates to diagram_layout.plan_diagram.
     Plain node/edge labels do not parse $...$; use latex content for formulas,
     or compose mixed prose from text plus real LaTeX images per the Skill.
+    Choose edge-level startArrowhead/endArrowhead explicitly by semantics (triangle
+    for data, block_arrow_outline for sparse PPT stages, UML-specific heads).
+    Profiles do not auto-select heads/palettes. Use style.roundness {type,value}
+    for fixed corners instead of relying on edge="round".
     """
     return client.plan(
         context_token=context_token,
@@ -153,6 +159,9 @@ def drawing_apply(
     with bare tex and numeric scaleX/scaleY for actual formulas. Mixed prose must
     use native text+formula composition or the trusted host Extract-Latex Action;
     that Action replaces text IDs, so preserve owner/group/frame/bindings explicitly.
+    Select head/body/routing separately: set_arrow_style supports semantic heads;
+    patch_element.patch.roundness {type:3,value:6,roundType:"arc"} fixes rectangle
+    corners; elbow arrows use type:2,value (0 for square turns). Preserve bindings.
     """
     return client.apply(
         context_token=context_token,
@@ -269,6 +278,9 @@ def drawing_templates(
     """Discover/get executable flowchart, UML, architecture, circuit and page recipes and styles.
 
     plan returns real measured native operations; library/page recipes use compose/present.
+    Ask once for unspecified visual preferences using the client's selection UI.
+    Palette names are Skill workflows, not extra profiles; resolve colors/fonts/
+    bold/corners/heads to real native properties and respect strict color lists.
     """
     return client.templates(action, name, context_token, data, style)
 

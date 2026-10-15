@@ -112,6 +112,56 @@ Bridge 0.13.0新增`rotate`、`scale_selection`，通过现有`drawing_apply`批
 
 来源：用户提供的Line Crossings规范；内核`packages/element/src/crossings.ts`（检测/优先级/path）、`shape.ts`（普通/elbow分支）、`renderElement.ts`（Canvas交点）、`packages/excalidraw/actions/actionProperties.tsx::actionChangeLineCrossings`及`App.tsx`（UI继承）。文档中的8px/60FPS不是Agent必须硬编码的布局常数或已测性能承诺。
 
+## 箭头选型：关系语义先于装饰
+
+先区分四件事：`start/endArrowhead`决定端部语义；strokeWidth/arrowHeadSize决定细线及头大小；`block_arrow_outline`改变**整条线身**为宽箭头；elbowed/waypoints/roundness决定路由。它们不是同一个“箭头样式”。先应用本轮视觉偏好，再为每类关系选型，同类一致；已有图只改用户要求的线。
+
+| 关系/用途 | 推荐起点 | 约束 |
+| --- | --- | --- |
+| 架构图、数据流、数据通路 | `startArrowhead:null,endArrowhead:"triangle"`，实线、细线身 | 实心三角指向数据去向；不是所有架构关系都是数据流，依赖/控制另用有图例的细虚线 |
+| PPT主步骤、少量粗流程推进 | `block_arrow_outline`，优先直线或少量清晰折点 | 是宽线身+轮廓箭头，不是“把细线尖放大”；不用于密集拓扑的每条边 |
+| 普通控制/依赖/轻量流程 | 普通`arrow`或小`triangle`；依赖可dashed | 明确线型含义，不能把所有实线自动改成虚线；分支仍要完整“通过/未通过”等标签 |
+| UML泛化/实现 | 指向父类/接口的一端`triangle_outline`；实现dashed | 不用实心数据流三角替换泛化；`from/to`仍保留真实业务方向 |
+| UML组合/聚合 | 整体端`diamond`/`diamond_outline`，另一端按语义null | 菱形不是“装饰性数据流箭头” |
+| 双向交换 | 语义确为双向时两端头，或两条有各自标签的有向边 | 不因布局对称强加双向；请求/响应不同标签优先分线 |
+| 无向连接/电路线 | 两端null；必要时用原生line | 不强加流向；circle/bar仅用于用户约定的端口/终止/棒端语义，不能冒充ER基数或电气连接 |
+
+当前Bridge支持：`arrow,bar,circle,circle_outline,triangle,triangle_outline,diamond,diamond_outline,block_arrow_outline,null`。宿主内核另有实心`block_arrow`、chevron等，不代表当前MCP白名单已开放；不传不存在的`"block"`、`"none"`、`"filled_triangle"`。需要这些额外头型时按已授权宿主API执行并核对真实PNG，不能静默用其它头型冒充。
+
+### 创建、增量修改与参数边界
+
+```json
+{"op":"connect","ref":"data","from":"source ID","to":"target ID","start":{"anchor":"right","mode":"orbit"},"end":{"anchor":"left","mode":"orbit"},"startArrowhead":null,"endArrowhead":"triangle","arrowHeadSize":1,"elbowed":true,"style":{"strokeWidth":2,"roughness":0,"roundness":{"type":2,"value":6}}}
+{"op":"set_arrow_style","targets":["已有箭头ID"],"endArrowhead":"triangle","arrowHeadSize":1,"strokeWidth":2}
+{"op":"set_arrow_style","targets":["PPT主流程箭头ID"],"endArrowhead":"block_arrow_outline","strokeWidth":2}
+{"op":"patch_custom_data","target":"PPT主流程箭头ID","merge":{"blockArrowWidth":14}}
+```
+
+- connect/create_linear的头型和arrowHeadSize在operation顶层；diagram/compose/primitives的连接头型也在每条edge/item顶层。不要只在style中塞endArrowhead指望高层默认覆盖正确。规划器默认arrow不表达用户意图，必须显式选择；高层不自动转发arrowHeadSize/blockArrowWidth，按返回native refs补`set_arrow_style/patch_custom_data`。
+- `set_arrow_style`只接受strokeWidth/startArrowhead/endArrowhead/arrowHeadSize/edge；颜色/虚实线用`patch_element.patch`，固定转角另patch.roundness。省略edge以保留已有固定radius；`edge:"round"`会重置为无value的默认圆角。更换头型保留ID/points/标签/双向绑定，不重建箭头或手贴三角形。
+- `arrowHeadSize`是0.125–8的**倍率**，不是px；这是接口边界，不是审美建议。细线从1起，建议0.75–1.25附近看PNG再调；线宽以1.5–2.5为常用起点。放大头不能解决路径太短；端部段要留头部、节点边距与标签净空。
+- 修改版宽箭身读取`customData.blockArrowWidth`（兼容字段arrowHeadLineWidth是同一宽度，不新增别名）。以14–24画布单位作为少量PPT大步骤的起点，按节点间距调整；不是强制常量。实际整箭分支以箭身宽计算头部比例，不能保证arrowHeadSize控制此分支的外观。两端block仅在确需双向时用。
+- outline宽箭头内部使用**画布背景色**，不是透明；彩色容器、暗色页需实际看PNG，不能把它当“自动继承所在容器背景”。宽箭头占据的面积大于centerline，几何check未认证完整厚线/箭头包络；必须视觉检查头、拐点、邻节点、标签和交叉。block分支不等同普通elbow/lineCrossings，不承诺相同的固定转角/跳线效果。
+- 架构优先稳定的正交/直连，端口方向清晰、折点少；曲线只在业务/风格确需时用，精确曲线碰撞仍unknown。粗箭头不是总比细箭头好，密集架构只强调主数据通路；不要以“高级风格”删除业务边或遮盖交叉。
+- 读回必须核对实际start/endArrowhead、源码样式、ID/点列与绑定，再看PNG。Bridge0.13.3修正了旧重复校验函数无返回值导致`set_arrow_style`把头型写成undefined的问题；旧宿主需更新Bridge，不能将返回成功当视觉生效。
+
+## 自定义固定圆角：不是只有round/sharp
+
+矩形默认`{type:3}`使用自适应半径（当前内核默认上限32、小时按短边比例），因此容易显得圆。修改版`getCornerRadius`优先使用显式value，且矩形支持`roundType:"arc"`的圆弧而非默认二次贝塞尔：
+
+```json
+{"op":"create_shape","type":"rectangle","x":0,"y":0,"width":320,"height":160,"style":{"roughness":0,"roundness":{"type":3,"value":6,"roundType":"arc"}}}
+{"op":"patch_element","target":"已有矩形ID","patch":{"roundness":{"type":3,"value":6,"roundType":"arc"}}}
+{"op":"patch_element","target":"已有肘形箭头ID","patch":{"roundness":{"type":2,"value":6}}}
+```
+
+- value是画布坐标单位的半径，不是角度、百分比或PNG像素。新建专业矩形从6起，常用4–12按用途调整；同类不同大小节点保持固定值。图形resize后读回value，不能默认按宽高比例增大圆角。整组原生scale可能有不同规则，读回再确认用户的“固定”要求。
+- type3是矩形等自适应族，type2是line/arrow/diamond比例族，type1是遗留；不是r值。`roundType:"arc"`仅确认矩形/iframe/embeddable该路径，不能推广成所有图元的圆角开关。
+- 矩形尖角用`roundness:null`；正半径须有限，建议`0<r<=min(width,height)/2`且留实际内容区。不要因Bridge只检查finite就传负值/超大半径；ellipse本来是椭圆，不用此字段画圆角矩形。
+- 普通折线的roundness会影响曲线形状；**肘形箭头**是另一条渲染路径，读取`roundness.value ?? 16`。因此null/sharp并不保证肘形转角为0；要硬直角用`{type:2,value:0}`，固定小转角用正值6等。短线段会限制实际可见弧度，不把value当保证的屏幕半径；block宽箭分支也不套用这条规则。
+- `style.roundness`用于创建/节点局部style/profile.shape/profile.container/profile.edge；`patch.roundness`用于已有元素。它与edge同传时显式roundness优先，但后续set_arrow_style.edge会覆盖；不要只写顶层roundness或只给文字加roundness。原有用户形状不擅自全图换圆角。
+- 真实PNG检查直角、小固定圆角与默认圆角，并对多尺寸/resize复核。圆角需保留绑定、文本内边距与连线端点；“圆角小”不等于连线可以穿入正文。
+
 ## Arrow特殊属性
 
 | 属性/功能 | 真实入口/字段 | 限制与检查 |

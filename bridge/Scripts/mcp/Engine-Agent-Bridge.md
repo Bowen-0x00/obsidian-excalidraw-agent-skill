@@ -2,14 +2,14 @@
 name: Excalidraw Agent Bridge
 description: Local authenticated MCP bridge for Obsidian Excalidraw.
 author: local
-version: 0.13.2
+version: 0.13.3
 autorun: false
 ---
 /*
 ```javascript
 */
 
-const BRIDGE_VERSION = "0.13.2";
+const BRIDGE_VERSION = "0.13.3";
 const PROTOCOL_VERSION = "3";
 const DEFAULT_PORT = 27124;
 
@@ -4346,48 +4346,6 @@ function validateRoundness(
   }
 }
 
-const SUPPORTED_ARROWHEADS =
-  new Set([
-    "arrow",
-    "bar",
-    "circle",
-    "circle_outline",
-    "triangle",
-    "triangle_outline",
-    "diamond",
-    "diamond_outline",
-    "block_arrow_outline",
-    null,
-  ]);
-
-function validateArrowhead(
-  value,
-  name,
-) {
-  assert(
-    SUPPORTED_ARROWHEADS.has(
-      value,
-    ),
-    "INVALID_ARROWHEAD",
-    `${name} has an unsupported arrowhead type: ${value}`,
-  );
-}
-
-function validateArrowHeadSize(
-  value,
-  name = "arrowHeadSize",
-) {
-  finiteNumber(value, name);
-
-  assert(
-    value >= 0.125 &&
-    value <= 8,
-    "INVALID_ARROW_HEAD_SIZE",
-    `${name} must be between 0.125 and 8`,
-  );
-
-  return value;
-}
 
 function validateStyle(style = {}) {
   if (
@@ -8198,6 +8156,9 @@ function bindingObject(
         element.endArrowhead =
           operation.endArrowhead ??
           null;
+      }
+      if (operation.elbowed !== undefined) {
+        element.elbowed = operation.elbowed === true;
       }
   
       element.polygon =

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.9 — Visual choices, semantic arrows and fixed corner radii
+
+- Ask once at new-drawing startup for unspecified visual preferences using the client's real selection UI: native style, palette/strict allowed colors, background/lightness, categorical versus grayscale encoding, and installed font/title-weight strategy. Reuse explicit/session choices, preserve local edits, and honor “decide for me”; no fictitious Obsidian/MCP style dialog.
+- Define palette-to-native-property mapping, contrast checks, font discovery, bold text IDs, neutral/background allowances and image/library exceptions. Morandi/dark/grayscale are workflows, not invented profile names; planner defaults do not automatically enforce a strict palette.
+- Select triangle data-flow heads, sparse PPT-wide block outlines, lightweight controls and UML-specific endpoints by semantics. Document head/body/routing distinctions, actual whitelist, blockArrowWidth, outline background behavior, labels/bindings and envelope limitations.
+- Document fixed rectangle roundness {type:3,value:6,roundType:"arc"} and elbow values {type:2,value:0|6|24}; preserve small radii across ordinary resize instead of relying on adaptive large corners.
+- Bridge 0.13.3 removes duplicate arrow validators whose missing return erased set_arrow_style endpoint values. Keep the existing host create_linear.elbowed handling; actual head changes now retain native IDs, geometry, bound labels and endpoints, and unsupported head types still fail.
+- Verified real PNGs for semantic arrows, fixed/zero/adaptive corner radii, and five native palette/font/weight variants. Corrected low-contrast Morandi/grayscale borders using the allowed neutral palette; existing regression suite passed.
+
 ## 0.8.8 — Explicit mixed-text LaTeX rendering workflow
 
 - Reject literal math source in ordinary text/labels as a completed formula. Route mixed prose through the existing host latex/Action-Extract-Latex.md or existing native text+create_latex composition; no new parser, DSL, script allowlist or pretend MCP tool.

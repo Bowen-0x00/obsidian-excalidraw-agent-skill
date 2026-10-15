@@ -4,6 +4,8 @@
 
 | 能力组 | 之前Skill缺口 | 当前推荐入口/参考 |
 |---|---|---|
+| 启动视觉偏好 | 默认风格未与用户确认、配色/字体/字重缺属性映射 | [diagram-recipes](diagram-recipes.md)：真实Agent选择UI一次询问未定项，严格hex范围、明暗/灰度、字体发现及原生属性落地；不是新MCP弹窗 |
+| 语义箭头/固定圆角 | 仅枚举头型、round/sharp缺少选型和value | [layout-export-animation](layout-export-animation.md)：数据流triangle/PPT block/UML区分、宽箭身/绑定，矩形type3/value/arc与肘形type2/value；Bridge0.13.3修复旧set_arrow_style头型写空 |
 | 图片获取/插入 | 只提image类型，没有自然语言找图→附件→原生插入流程 | [images-assets](images-assets.md)：真实来源、许可、资源解码、宿主附件，EA/addImage或MCPcreate_image |
 | SVG path组件 | 只写brace/用户库导入，遗漏通用路径符号制作 | [svg-components](svg-components.md)：两个Digital生成脚本、DOM归一化、line载体、组件组和入库边界 |
 | 文字/公式混排 | 只写纯LaTeX能力，普通text中的`$…$`不会自动解析 | [visual-content](visual-content.md)：复用latex/Action-Extract-Latex，选真实text；原文副本转换、group/frame/绑定恢复，缺宿主入口时现有text+create_latex组合 |

@@ -12,6 +12,7 @@
 - 插入网上获取的图片、公式和用户素材；用 SVG path 制作可复用组件。
 - 文字与行内公式显式转换，不把`$…$`源码当成已渲染标签：复用宿主Extract-Latex脚本或原生text+LaTeX组合，检查源TeX、行距、层级及绑定。见[行内公式流程](skills/obsidian-excalidraw/references/visual-content.md)。
 - 使用修改版提供的视觉效果、交互和导航功能。具体支持取决于宿主插件与已启用的脚本。
+- 新图开始前用Agent客户端真实选择工具一次询问未定的风格、色板/限定颜色、明暗背景、彩色/灰度、已安装字体和标题字重；已指定或局部改图不重问。按语义选三角数据流/PPT宽箭头，并使用固定小圆角。见[视觉偏好](skills/obsidian-excalidraw/references/diagram-recipes.md)与[箭头/圆角](skills/obsidian-excalidraw/references/layout-export-animation.md)。
 - 更新宿主支持原生Visio式弧跳、留白断线和实心交点；直接设置走线元数据，不再用白色矩形遮罩模拟。详见[排版与交叉线参考](skills/obsidian-excalidraw/references/layout-export-animation.md)。
 - 测量文字、规划布局、检查关系与几何约束，查看 PNG 后局部修正；复用原生手动变换实现整组绕共同中心旋转及等比缩放，保留其他内容。
 - 素材插入前先读真实尺寸并适配用途：先放大演示底板再填字，电路符号整体等比缩放并保留锚点/连接；区别于单元素resize和PNG导出倍率。远端本地PNG可经现有data:image入口传到宿主，与原生文字/frame混排。详见[尺寸适配](skills/obsidian-excalidraw/references/layout-export-animation.md)与[图片参考](skills/obsidian-excalidraw/references/images-assets.md)。

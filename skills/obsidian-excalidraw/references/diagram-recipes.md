@@ -2,6 +2,74 @@
 
 这些是可执行输入和工作流，不是渲染结果。使用`drawing_templates(action="list")`看图型与style列表；`action="get",name=...`取一份简短recipe，修改业务内容后执行。**不得把示例业务当用户事实。**
 
+## 新图开始：一次视觉偏好选择
+
+用户未指定视觉方案的新图，先用**当前Agent客户端真实提供的ask/选择工具**弹出一轮选项；不是调用不存在的drawing_style_dialog，也不是自动弹Obsidian面板。先可做只读status/discovery以提供真实可用字体，不先创建用户画布再等选择。只有用户要求这次绘图，才询问这次偏好；维护Skill/回答能力问题不额外弹偏好问卷。
+
+### 何时问、问多少
+
+- 只问未确定的维度；用户已经说“手绘、灰度、深色、文楷”等就锁定对应项。之前为**同一套图/演示文稿**选过则复用本会话选择，不每页重问、不跨无关项目偷偷套用。修改已有图默认继承原图，除非用户明确要求重新设计。
+- 用户说“直接画/你决定/不要问”时执行保守默认并说明一句，不因问卷阻塞。无人应答不能擅当已选择；异步Agent工具应等待用户，不自动点推荐。用户可以一键选推荐或客户端自带自定义输入。
+- 一轮最多5个问题，每题2–5个短选项，description写实际视觉差异；推荐值按用途选，不把所有题都推荐“手绘”。不要额外提供名为Other的选项，客户端自定义输入能接hex、字体名、圆角等要求；无此功能则让用户简短补充。没有选择工具用相同编号文本一轮提问，不假装弹窗已显示。
+- 第一轮覆盖下面五题；用户明确需要分别控制字体/加粗，或给出严格品牌色冲突时，可只补问冲突字段。其它细节采用选定方案的可解释规则，避免连续问十几项坐标/颜色。
+
+| 问题 | 2–5个选项（只保留未定项） | 说明 |
+| --- | --- | --- |
+| 视觉风格 | 专业平整 / Visio工程 / Rough.js手绘 / PPT演示 / 交给Agent | 映射真实professional/visio/handdrawn/presentation；电路可推荐blueprint（替换一个选项，总数不超5） |
+| 色板 | 克制蓝绿 / 明亮多彩 / 莫兰迪低饱和 / 中性单色 / 自定义色板（仅客户端支持自定义内容时） | 每项附实际主色hex小列表和用途；选定后解析完整前景/底色，不只是配色名称 |
+| 背景/明暗 | 白底浅色 / 暖白浅色 / 深底高对比 / 沿用模板（确有模板） / 交给Agent | “亮色系”可能指鲜艳accent而不是白背景，色板与背景两题分别回答；暗色不靠导出时反转伪装 |
+| 颜色编码 | 按类别分色 / 单主色+灰度层级 / 纯灰度 / 严格限定给定颜色 | 类别/状态映射固定，灰度依赖形状/线型/文字冗余；strict需完整允许hex集合 |
+| 字体与字重 | 无衬线·标题加粗 / 无衬线·不加粗 / 中文文楷·标题加粗（真实安装时） / 手写字体·不加粗（真实安装时） / 自定义排版（客户端支持时） | 字体候选来自discovery；可将已发现其他字体替换为选项，未安装不供选择 |
+
+默认“标题加粗”只针对标题/分区名，正文regular；不用全图粗体模拟专业感。用户单独指定“全部加粗/不加粗/某些强调”时以明确要求为准。中文和拉丁字母混用时以宿主实测宽度布局；手绘线条和手写字体是两个独立偏好，允许“手绘线条+无衬线字”，不能强绑。
+
+### 色板起点：解析为实际允许颜色
+
+下列是**可选设计起点**，不是工具内建profile或固定品牌规范。最终允许列表由选项+用户覆盖生成；深/浅背景与中性色需加入列表，颜色数量通常主/辅/强调2–4色加必要中性色，不每个节点随机取色。
+
+| 色板 | 主/辅/强调候选 | 浅底/正文候选 | 适用 |
+| --- | --- | --- | --- |
+| 克制蓝绿 | `#2563EB #0F766E #B45309` | `#FFFFFF #F1F5F9 #0F172A #475569` | 架构、技术说明；暖色只作强调 |
+| 明亮多彩 | `#2563EB #16A34A #EA580C #9333EA` | `#FFFFFF #F8FAFC #172033` | 演示分类，使用深正文而不是亮色小字 |
+| 莫兰迪 | `#718A91 #84947C #AD8B83 #A493AD` | `#FAF8F3 #E8E3DA #353D43 #596168` | 低饱和填充/模块区分；主文字保持深色，不用浅灰糊成一片 |
+| 中性单色/灰度 | `#111827 #4B5563 #9CA3AF` | `#FFFFFF #F3F4F6 #D1D5DB` | 打印、论文、严格低彩；状态不只靠明暗 |
+| 深色方案 | `#60A5FA #5EEAD4 #FBBF24 #C4B5FD` | `#111827 #1F2937 #F9FAFB #CBD5E1` | 深背景与浅前景；不是直接把白底色板套到黑底 |
+
+若用户选“深色+莫兰迪”，保留低饱和角色，但先选/测正文与填充的对比；不保证浅色表可不改直接复用。strict时未在允许列表的中性色、阴影颜色、渐变stops、alpha混合衍生色也不能偷偷添加。先展示解析后的最终色值列表并用一行复述；默认包含哪些背景/文字中性色要明确。用户只给两种颜色时尽量以透明填充/线型/粗细表达层级，确实不可读则指出冲突并只问是否扩展色值，不“自动加白”。
+
+建议正文对背景对比至少4.5:1，大字3:1、关键边界3:1作为设计检查目标，不声称整张PNG自动通过WCAG；由实际sRGB相对亮度算配对，不凭“低饱和”判断可读性。状态/类别同时有标签或形状编码；色盲/黑白打印不能只依赖红绿或相邻浅灰。strict限制针对**本次生成/重样式的原生属性**，抗锯齿PNG会产生中间像素色；原图/图片/素材/公式不得擅自重染，需说明保留资源的范围，不伪称每个像素都在列表内。
+
+### 偏好必须落实到现有API
+
+选择结果只是本次Agent的工作计划，不是新增MCP schema。Agent记录profile、canvas/surface/text/accent色值、颜色→业务角色映射、fontFamily、标题/正文大小、boldTargets、roundness及edge语义，并在真正调用前将它们展开成现有字段：
+
+```json
+{
+  "profile":"professional",
+  "fontFamily":"Helvetica",
+  "fontSize":20,
+  "shape":{"roughness":0,"fillStyle":"solid","strokeWidth":2,"roundness":{"type":3,"value":6,"roundType":"arc"},"backgroundColor":"#F1F5F9"},
+  "text":{"strokeColor":"#0F172A","lineHeight":1.2},
+  "edge":{"strokeColor":"#2563EB","strokeWidth":2,"roughness":0,"roundness":{"type":2,"value":6}},
+  "container":{"backgroundColor":"#FFFFFF","strokeColor":"#475569","roundness":{"type":3,"value":6,"roundType":"arc"}}
+}
+```
+
+这是现有`diagram.style`的profile对象；**不是**调用`style:"morandi"`/`style:"dark"`。箭头头型仍逐edge显式指定；纯色板不自动决定UML语义。手绘选roughness1/hachure或用户指定solid，并独立控制字体；不能拿PNG滤镜替代原生属性。
+
+注意真实高层行为：planner会按variant/PALETTE补节点stroke/background、容器color，部分标题/文字颜色也由recipe固定；仅改profile并不能证明严格色板已生效。strict任务应逐节点/边/容器设置允许色，必要时按plan refs附加patch；apply后读完整实际样式，修正新增的未允许颜色，不能声称profile会自动覆盖每条默认色。
+
+加粗用现有`set_feature rich_text`/`set_text_global_style`对**真实text IDs**设置bold/fontWeight；不是create_text顶层bold或虚构fontFamily后缀。按discovery确认Engine，更新后重新测量/排版；“不加粗”也检查已有模板的`customData.bold`、`customData.font.weight`及局部boldPartial。body和标题分开处理。LaTeX image、SVG素材内部字和普通text是不同资源，不能用text加粗工具假称全部生效。
+
+明暗背景必须作用于真实画布或页面：现有MCP无通用“设置全局theme”工具时，使用用户允许且不遮挡内容的原生背景rectangle，明确`isContainer:true`、置于图元之后并纳入页面frame；导出时实际看到该背景。不擅改Obsidian全局主题/用户偏好，也不拿PNG暗色反转冒充源图dark。outline block箭头填的是画布背景、公式可能固定黑字，深色页必须检查实际呈现；必要时按用户允许用浅色公式panel或已确认API，而不是留下看不见的内容。
+
+### 选择后的验收
+
+创建前用一行简报已选方案（例如“专业平整／莫兰迪／暖白／按类别分色／Helvetica标题粗体／固定R6／数据流三角头”），无需再问“是否确认”。先画、看PNG，根据偏好做局部修正。读回检查精确hex、roughness/fill、实际字体/字重、radius和头型；PNG检查对比、层级、灰度可区分、边线/公式/图片可见。保留用户选择，后续修布局不能悄悄重置回默认蓝色/大圆角/普通箭头。
+
+这是Skill级启动交互，不是绘图服务器自行弹UI；支持ask的Agent应真实调用选择工具，只有文本客户端才用编号问题。未真实收到选择就不声称用户选过；没有运行实际绘图/PNG也不称视觉通过。
+已实测原生样式示例：专业蓝绿、明亮演示、暖白莫兰迪/已注册文楷、灰度hachure/不加粗、深底高对比。读回实际色值/字体/标题bold，PNG查看后把对比不足的莫兰迪/灰度边框改为允许的深中性色；这证明属性落地，不声称新建了独立的选择器UI或已替用户作出选择。
+
 ## 风格
 
 | profile | 确定性规则 | 使用条件 |
@@ -12,7 +80,7 @@
 | blueprint | 白底蓝线、清晰数据通路与端口 | 电路/微架构；默认保留库素材本身样式 |
 | presentation | 较大字号与标题层级、Helvetica与系统中文fallback | 原生frame演示页，指定库版式优先 |
 
-在普通图描述加`"style":"visio"`或`"style":"handdrawn"`。允许对象`{"profile":"visio","fontFamily":"Helvetica","shape":{"strokeWidth":2}}`做显式覆盖。优先级：硬保护→用户显式局部字段→原图未请求字段→role/variant→profile默认。已有图不自动全图换主题。库源样式默认原样保留；只有用户明确要求才对本次导入的副本重新样式。
+在普通图描述加`"style":"visio"`或`"style":"handdrawn"`。允许对象`{"profile":"visio","fontFamily":"Helvetica","shape":{"strokeWidth":2,"roundness":{"type":3,"value":6,"roundType":"arc"}}}`做显式覆盖。优先级：硬保护→用户显式局部/本轮视觉选择→原图未请求字段→role/variant→profile默认。已有图不自动全图换主题。库源样式默认原样保留；只有用户明确要求才对本次导入的副本重新样式。profile不是自动色板/箭头选择器，严格颜色需读回实际值。
 
 `roughjs`/`rough-js`是`handdrawn`的已声明别名；`drawing_templates(list)`同时返回aliases。自然语言中的“手画/handdraw白板笔迹”用原生`draw`/freedraw，**不是第二个Rough.js renderer或名为handdraw的profile**；可混用freedraw轮廓、原生文字及有binding的arrow。不要为证明多风格把所有场景都画成同一种矩形。
 
