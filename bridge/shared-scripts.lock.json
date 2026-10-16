@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "Bowen-0x00/obsidian-excalidraw-scripts",
-  "sourceCommit": "2834d1a9051727f3c6b91d585597f6d83df5f6e2",
+  "sourceCommit": "22134fbd934e3df579ae0d216143eb20a8cc07ac",
   "files": {
     "bridge/Scripts/hover/Feature-Hover-Engine.md": {
       "source": "Scripts/hover/Feature-Hover-Engine.md",
@@ -20,8 +20,8 @@
     },
     "bridge/Scripts/swimlane/Feature-Swimlane-Engine.md": {
       "source": "Scripts/swimlane/Feature-Swimlane-Engine.md",
-      "sha256": "69dc9f89f7909a1a6b1d8365c829490a2cbf8efeb4d892dba34faaf557977d5f",
-      "version": "1.0.0"
+      "sha256": "f0130797829ac4e5322c29d0ccaf4b81c3ef4941dfa4a3280b1a26c1c2c8799a",
+      "version": "1.0.1"
     },
     "bridge/Scripts/callout/Feature-Callout-Engine.md": {
       "source": "Scripts/callout/Feature-Callout-Engine.md",
@@ -40,8 +40,8 @@
     },
     "bridge/Scripts/echarts/Feature-Echarts-Engine.md": {
       "source": "Scripts/echarts/Feature-Echarts-Engine.md",
-      "sha256": "9f646420fc38eb26a76269dc528bbf3d0c2afc20355a0f8b3db7d8fb73c42a4d",
-      "version": "1.0.0"
+      "sha256": "222812a3e5da2a13cadb35e1a2bd7813fc6b85a3fbb4430af9fb2f9a3d1cc475",
+      "version": "1.3.0"
     },
     "bridge/Scripts/layer/Feature-Layer-Engine.md": {
       "source": "Scripts/layer/Feature-Layer-Engine.md",
