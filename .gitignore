@@ -59,6 +59,8 @@
 !/.github/
 !/.github/workflows/
 !/.github/workflows/*.yml
+!/.github/scripts/
+!/.github/scripts/*.py
 !/scripts/
 !/scripts/*.py
 !/scripts/*.mjs
