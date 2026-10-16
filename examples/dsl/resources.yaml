@@ -1,0 +1,33 @@
+version: 1
+id: resource_gallery
+title: 同一 DSL：图元、资源与受控扩展
+style: {font_size: 19}
+nodes:
+  a: {label: 数据输入, ports: {out: right}}
+  b:
+    shape: mux
+    label: MUX
+    size: [150, 120]
+    ports: {a: 'left:0.25', b: 'left:0.75', select: bottom, out: right}
+  c: {shape: alu, label: ALU, size: [160, 130], ports: {a: 'left:0.25', b: 'left:0.75', result: right}}
+  formula: {shape: formula, label: 可编辑 LaTeX 公式资源, tex: 'y=\sum_{i=1}^{n} x_i w_i', size: [300, 95]}
+  image: {shape: image, label: 实际 PNG 图片资源, source: 'asset:assets/sample.png', size: [280, 120]}
+  gradient:
+    label: 渐变 + 阴影
+    size: [280, 100]
+    features:
+      gradient:
+        direction: horizontal
+        stops: [{offset: 0, color: '#ccfbf1'}, {offset: 1, color: '#dbeafe'}]
+      shadow:
+        shadows: [{shadowColor: 'rgba(0,0,0,0.18)', shadowBlur: '10px', shadowOffsetX: '4px', shadowOffsetY: '5px'}]
+  polygon: {shape: polygon, label: 自定义轮廓, points: [[0.2, 0], [0.8, 0], [1, 0.5], [0.8, 1], [0.2, 1], [0, 0.5]]}
+layout:
+  column:
+    - {row: [a, b, c], gap: 130}
+    - {row: [image, formula], gap: 95}
+    - {row: [gradient, polygon], gap: 130}
+  gap: 130
+edges:
+  input: {from: a.out, to: b.a}
+  compute: {from: b.out, to: c.a}

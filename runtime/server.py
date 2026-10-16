@@ -25,6 +25,7 @@ Workflow:
 Fast path: create -> drawing_compose(diagram) -> optional drawing_apply(post-style, inspect=True) -> view PNG -> drawing_review.
 drawing_compose(inspect=True) returns the checked PNG directly when no post-styling is needed.
 Granular plan/apply/check/preview and every advanced operation remain available; no validation or visual gate is skipped.
+Optional scene DSL: drawing_dsl(plan|render, document, font_family, state_id, filename|file_path) compiles measured spatial scenes and reconciles stable identities. First render needs a unique filename or explicit existing file; repeat the same state_id to update, never replay the graph with compose. Render returns actual checked PNG; view it then call drawing_review. Native tools remain the path for libraries, interaction and precise unmanaged edits.
 Acceptance levels low/medium/high (default medium) control QA depth, not model effort.
 Medium/high require actual content/readability/occlusion checks on the current PNG.
 High also checks connections and hierarchy/style; unbound arrows are legal unless binding is explicitly required.
@@ -181,6 +182,58 @@ def drawing_plan(
         context_token=context_token,
         diagram=diagram,
     )
+
+
+@mcp.tool()
+def drawing_dsl(
+    action: Literal["plan", "render"],
+    document: dict[str, Any],
+    font_family: str | None = None,
+    state_id: str | None = None,
+    filename: str | None = None,
+    foldername: str | None = None,
+    file_path: str | None = None,
+    scale: str | float = "auto",
+    acceptance_level: Literal["low", "medium", "high"] | None = None,
+) -> Any:
+    """Compile an optional declarative scene into native editable elements.
+
+    document is the parsed scene DSL object: version/id/nodes/edges/layout, plus
+    optional groups/classes/style/acceptance. Shapes include native tables,
+    MUX/ALU polygons and source-preserving image/formula/chart content.
+    row/column/grid express fixed spatial composition; root flow is for graphs.
+    Select an exact host-discovered font_family (or document.style.font).
+    First render requires filename or explicit file_path; plan requires existing
+    managed state or file_path for real text measurement and does not edit canvas.
+    state_id defaults to document.id, is private and host/vault-scoped. Reuse it
+    for incremental updates. Native IDs, bindings and unrelated content remain;
+    external edits to managed elements are conflicts, never auto-overwritten.
+    Render performs full checks and PNG export, not visual approval: inspect the
+    returned image and use drawing_review with its contextToken/previewId.
+    Do not mix this schema with drawing_compose's ordinary diagram schema.
+    """
+    from scene_dsl.service import execute
+
+    try:
+        result = execute(client, action, document, font_family=font_family, state_id=state_id,
+                         filename=filename, foldername=foldername, file_path=file_path,
+                         scale=scale, acceptance_level=acceptance_level)
+        if action == "plan":
+            return result
+        image = result["preview"].pop("_base64")
+        return CallToolResult(content=[
+            TextContent(type="text", text=json.dumps(result, ensure_ascii=False)),
+            ImageContent(type="image", data=image, mimeType="image/png"),
+        ])
+    except Exception as error:
+        failure = {"ok": False, "error": {"code": getattr(error, "code", "DSL_ERROR"),
+                   "message": str(error), "path": getattr(error, "path", None),
+                   "details": getattr(error, "details", None),
+                   "committedReceipt": getattr(error, "committed_receipt", None)},
+                   "note": "Inspect current canvas/state after a committed or unknown transaction; never blindly replay drawing."}
+        return CallToolResult(isError=True, content=[
+            TextContent(type="text", text=json.dumps(failure, ensure_ascii=False)),
+        ])
 
 
 @mcp.tool()

@@ -2,194 +2,194 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
-Create and edit diagrams in **Obsidian Excalidraw-ymjr** from natural-language requests, then inspect real PNGs and refine the result.
+**Describe a diagram, keep it editable, inspect the real result.** This package combines an Agent Skill, native drawing MCP/CLI, an optional YAML/JSON scene DSL, and the Bridge/Engines for **Obsidian Excalidraw-ymjr**.
 
-**Use with Claude Code, Codex, OMP, or another Agent that can load Skills and call MCP tools. OMP is one installation example—not a required dependency.**
+Use Claude Code, Codex, OMP or another Skill/MCP-capable Agent. Or run the CLI without an LLM. **All execution paths still need a real desktop Obsidian host with the modified plugin; this is not an offline PNG generator.**
 
-## What it does
+[Quick start](#quick-start) · [Choose a workflow](#choose-a-workflow) · [DSL](#repeatable-scenes-with-the-dsl) · [Gallery and sources](docs/gallery.md) · [Full DSL contract](docs/scene-dsl.md)
 
-- Flowcharts, architecture diagrams, UML, swimlanes, mindmaps, circuits, waveforms and editable presentation pages.
-- Web images, formulas and your own libraries; reusable components built from SVG paths.
-- Mixed prose/math is explicitly rendered, not left as `$...$` source in labels: reuse the host Extract-Latex Action or native text+LaTeX composition, then verify source TeX, layout, stacking and relationships. See the [inline formula workflow](skills/obsidian-excalidraw/references/visual-content.md).
-- Visual effects, interaction and navigation supplied by the modified plugin and its drawing scripts. Availability depends on the installed host capabilities.
-- New drawings collect unspecified visual preferences once through the Agent client's selection UI: style, palette/color limits, light/dark background, color versus grayscale, installed fonts and heading weight. Explicit choices/local edits are preserved. Semantic arrowheads and fixed small corner radii are set as native properties; see [visual choices](skills/obsidian-excalidraw/references/diagram-recipes.md) and [arrows/corners](skills/obsidian-excalidraw/references/layout-export-animation.md).
-- Native Visio-style line crossings in updated hosts: jump arcs, background-independent gaps and junction dots. Use native metadata rather than white masking rectangles; see the [layout and crossing reference](skills/obsidian-excalidraw/references/layout-export-animation.md).
-- Measured text, layout planning, relationship/geometry checks, PNG inspection and targeted edits that preserve unrelated content; native common-center group rotation and proportional selection scaling.
-- Size library assets for their intended use before filling text or wiring: fit the whole slide template or circuit instance, including its anchor. Distinguish single-element resize from native selection scaling and PNG export scale. Remote PNG bytes can use existing data:image inputs alongside native text/frames; see [sizing](skills/obsidian-excalidraw/references/layout-export-animation.md) and [images](skills/obsidian-excalidraw/references/images-assets.md).
-- Concurrent Agents on separate token-bound canvases, with serialized native execution and stale-write protection. Every PNG includes the same-revision compact element summary and scene min/max bounds; feedback coordinates use at most two decimals without changing native precision.
-- Lower-round-trip execution: ordinary graphs use existing `drawing_compose` for measured plan→apply without copying operations through the model. `inspect:true` on compose/apply adds full checks and the registered PNG ImageContent in one call; visual review and fresh revision guards remain mandatory. Advanced workflows stay available through the compact Skill's references.
-- Hardware requests take an explicit component/port/signal/stage-planning route, not the service-graph shortcut. Preserve ALU/RF/MUX/queue/array structure, route control/feedback networks deliberately, and reject check-passing stage bullet lists as microarchitecture. See the [hardware workflow](skills/obsidian-excalidraw/references/microarchitecture.md).
-- The hardware Skill records a staged production/repair loop and a separate saved-segment orthogonality audit. Prefer axis-aligned links; choose explicit polylines or native elbows according to actual port behavior, not flags alone. This is workflow guidance, not a new hardware auto-router or a built-in `drawing_check` assertion.
-- Font choice is host-discovered, evidence-bounded and text-role based, not a fixed installed-font catalogue. The Agent evaluates current families, selects prose/code/label/annotation roles, measures with explicit families and verifies actual PNGs; discovery alone does not prove glyph coverage or absence of fallback. See [typography](skills/obsidian-excalidraw/references/typography.md). Bridge 0.13.4 exposes native `getFontFamilies()` results with provenance/errors through existing discovery.
-- Size PowerPoint-style filled/outline block arrows for flow, architecture, teaching and comparison diagrams—not just slides. Control path length, native `customData.blockArrowWidth`, head scale and outline stroke separately; use short/wide or long/slim proportions, preserve bindings during width-only edits, and inspect the full rendered envelope. Bridge 0.13.5 exposes both `block_arrow` and `block_arrow_outline`; see [arrow sizing](skills/obsidian-excalidraw/references/layout-export-animation.md).
-- Tiered acceptance is independent of model effort: **low / medium (default) / high**, selected in the prompt or the same preference round. Medium/high prioritize text legibility and occlusion; high adds connection and hierarchy/style review without requiring every arrow to bind. Paint-order-aware candidates distinguish legal backgrounds from text/text, line-through-text and overpaint. Current-PNG per-issue adjudications retain evidence/advisories rather than suppressing whole warning classes. See [acceptance and primary-source design research](skills/obsidian-excalidraw/references/acceptance.md). `drawing_review` now requires recorded visual checklist outcomes for medium/high; levels/assertions persist per context.
+## See what it produces
 
-## Editable diagrams, multiple styles, remote development
+These are actual Obsidian PNG exports of the included sources, not UI mockups. The editable canvas remains the deliverable; PNG is its visual-review artifact.
 
-The result remains native Excalidraw shapes, text, arrows, groups, frames, bindings and SVG-path carriers. PNGs are review artifacts, not replacements for the canvas. You can drag, rename, reconnect and restyle elements in Obsidian.
+### Native tables and retained ECharts configuration
 
-| Style | Behavior |
-| --- | --- |
-| `professional` | Clean, restrained document diagrams |
-| `visio` | Sharp edges, explicit partitions and engineering connectors |
-| `handdrawn` / `roughjs` | Native Rough.js roughness and hachure, not a bitmap filter |
-| `blueprint` | White background with blue engineering lines |
-| `presentation` | Larger type and stronger hierarchy |
-| Native freehand (`draw` / `freedraw`) | Editable point/pressure strokes for handdraw whiteboard requests; distinct from a Rough.js profile |
+![Service observability panel: measured sharp-cell table and two ECharts plots](docs/images/observability-panel.png)
 
-Hand-drawn styling and freehand strokes are different: `handdrawn` is a rendering profile; draw/handdraw whiteboard requests can use native `freedraw` elements. Visio styling does not imply `.vsdx` export.
+[DSL source](examples/dsl/observability-panel.yaml) · [Editable canvas](examples/native/observability-panel.excalidraw.md). Synthetic demonstration data. Charts retain structured options; the table retains native cells and text.
 
-An Agent working on a development server can use this Skill and MCP while the actual diagram is created in desktop Obsidian:
+### Fixed regions and deliberate cross-region routes
 
-```mermaid
-flowchart LR
-  A[Server Agent + Skill + MCP] -->|SSH loopback tunnel| B[Local Bridge + Obsidian Excalidraw]
-  B --> C[Editable vault canvas]
-  C -->|PNG ImageContent| A
-```
+![Task architecture with three regions and external status-query route](docs/images/task-architecture.png)
 
-The server reasons and calls tools; the local host owns the vault, plugin, fonts, assets and rendering. No server-side GUI or X11 is required. Host paths are not remote paths, and the current convenience `remote-deploy` registration is OMP-specific; other clients register the same remote stdio runtime as described in [Agent setup](skills/obsidian-excalidraw/references/agent-setup.md).
+[DSL source](examples/dsl/task-architecture.yaml) · [Editable canvas](examples/native/task-architecture.excalidraw.md). Layout composition keeps regions stable rather than ranking everything from feedback edges.
 
-See [next-ai-draw-io comparison](skills/obsidian-excalidraw/references/next-ai-draw-io.md) for useful canvas-first, edit-gate, snapshot and screenshot-validation ideas.
-See [Showcase and GIF guide](skills/obsidian-excalidraw/references/showcase.md) for reproducible prompts and the real native-canvas → PNG → local-repair workflow.
+### A hardware schematic, not a row of text cards
 
-The package has three parts: the **Skill** describes the workflow; the **MCP server** exposes operations; **Obsidian drawing scripts** construct elements, manage extensions and render them. Installing only the Skill does not provide an execution connection.
+![Named-port feedback datapath with native MUX and ALU polygons](docs/images/feedback-datapath.png)
 
-## Before you start
+[DSL source](examples/dsl/feedback-datapath.yaml) · [Editable canvas](examples/native/feedback-datapath.excalidraw.md). Teaching abstraction with explicit clock/reset/opcode omissions, not an RTL/electrical simulator.
 
-You need:
+The [gallery](docs/gallery.md) also includes a long-Chinese branching flow, a denser Tomasulo example with reservation-station/register tables, and actual image/LaTeX/gradient/shadow content. Each example links its source, native output and verification scope. Complexity shown by one example is not a promise of automatic correctness for every graph of that size.
 
-1. Obsidian Desktop with [Excalidraw-ymjr](https://github.com/Bowen-0x00/obsidian-excalidraw-plugin-ymjr) installed and enabled in the target vault. This integration depends on the modified plugin, not just upstream Excalidraw.
-2. An Agent with Skill support and local stdio MCP. Visual review also requires a model and client that can inspect images.
-3. [uv](https://docs.astral.sh/uv/getting-started/installation/) and Python 3.11+ for this package's MCP server.
+## Choose a workflow
 
-[Advanced URI](https://github.com/Vinzent03/obsidian-advanced-uri) is optional: it enables automatic Bridge startup. Without it, run the startup script manually in Obsidian. LaTeX additionally requires a compatible Excalidraw Extras MathJax component.
+| Your goal | Start here | Who authors what |
+| --- | --- | --- |
+| “Draw this idea” | Natural language + Skill + MCP | You describe intent; Agent selects graph/native/DSL expression and reviews PNG |
+| Quick one-off node/edge graph | `drawing_compose(..., inspect=true)` | Agent submits an ordinary diagram; measured plan/apply/check/PNG are combined |
+| Repeatable source-controlled scenes, nested regions, tables, named ports | `drawing_dsl` or `launcher.py dsl` | Agent or human authors a compact scene; compiler reconciles stable identities |
+| Rename/move/reconnect a precise part of an existing drawing | `drawing_read` → `drawing_apply` | Agent targets actual IDs/revision and preserves unrelated content |
+| Libraries, frames/presentations, interaction, navigation, animation | Existing native MCP tools and focused Skill references | Use real host capabilities, not a forced DSL approximation |
+| Scripts, batch work, CI-side orchestration | `launcher.py cli` / `launcher.py dsl` | No LLM/MCP client required, but a connected GUI host is still required |
+| Agent on a headless development server | Same tools through an SSH loopback tunnel | Server reasons; desktop host owns vault/fonts/assets and rendering |
 
-## 1. Install the Skill and MCP
+The **Skill is guidance**, **MCP/CLI are execution interfaces**, **DSL is an optional compiler**, and **Obsidian/its native APIs render and store the drawing**. Installing only the Skill does not create a connection. The scene DSL and ordinary `drawing_compose` diagram schemas are intentionally different.
 
-Choose one path for your Agent.
+## Quick start
 
-### Claude Code / Codex
+### 1. Prerequisites
 
-Clone this repository, then install dependencies from its directory:
+- Obsidian Desktop with [Excalidraw-ymjr](https://github.com/Bowen-0x00/obsidian-excalidraw-plugin-ymjr) enabled in the intended vault. Upstream Excalidraw alone is not equivalent.
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) and Python 3.11+.
+- For natural-language use: an Agent that loads Skills/calls stdio MCP. Actual visual approval also needs an image-capable model/client.
+- [Advanced URI](https://github.com/Vinzent03/obsidian-advanced-uri) is optional for automatic startup. LaTeX needs the host's compatible Extras MathJax component.
+
+### 2. Install one package
+
+**Claude Code / Codex / other clients:**
 
 ```sh
 git clone https://github.com/Bowen-0x00/obsidian-excalidraw-agent-skill.git
 ```
 
+In the repository directory:
+
 ```sh
 uv sync --frozen
 ```
 
-Copy the **entire** `skills/obsidian-excalidraw/` directory to the appropriate location, preserving its references and prompts:
+Copy the **whole** `skills/obsidian-excalidraw/` directory, including references/prompts:
 
-| Agent | User-level Skill directory | Invocation example |
-| --- | --- | --- |
-| Claude Code | `~/.claude/skills/obsidian-excalidraw/` | `/obsidian-excalidraw` |
-| Codex | `~/.agents/skills/obsidian-excalidraw/` | `$obsidian-excalidraw` |
+| Client | User-level Skill directory |
+| --- | --- |
+| Claude Code | `~/.claude/skills/obsidian-excalidraw/` |
+| Codex | `~/.agents/skills/obsidian-excalidraw/` |
 
-Register the same MCP server. Replace `/absolute/path/to/package` with the actual repository path; Windows paths can use `D:/...`.
-
-**Claude Code:**
+Register the same MCP server with the actual absolute package path:
 
 ```sh
 claude mcp add --transport stdio --scope user excalidraw -- uv run --frozen --project "/absolute/path/to/package" python "/absolute/path/to/package/launcher.py" serve
-```
-
-**Codex:**
-
-```sh
 codex mcp add excalidraw -- uv run --frozen --project "/absolute/path/to/package" python "/absolute/path/to/package/launcher.py" serve
 ```
 
-Restart the Agent and check its MCP panel. This path uses standard Skill files and MCP; other clients can configure the same launch command. See [Agent setup](skills/obsidian-excalidraw/references/agent-setup.md) for configuration details and official client documentation.
+Choose the command for your client, not both. Windows paths may use `D:/...`. Other clients use the same stdio launch command. See [Agent setup](skills/obsidian-excalidraw/references/agent-setup.md) for configuration details.
 
-### OMP example
+**OMP installation example:**
 
 ```sh
 omp plugin marketplace add Bowen-0x00/obsidian-excalidraw-agent-skill
 omp plugin install --scope user obsidian-excalidraw-agent-skill@obsidian-excalidraw-agent
 ```
 
-This installs the Skill and registers the packaged MCP. Restart OMP or run `/reload-plugins`; check `/mcp list`. OMP's `skill://obsidian-excalidraw` is a client-specific access route. Other Agents read the installed Skill file and its relative references directly.
+Restart/reload the client and confirm tools appear. OMP is an example, not a dependency. Its `skill://...` URI is client-specific; other Agents read local Skill files.
 
-## 2. Connect Obsidian
+### 3. Connect the intended vault
 
-Keep Obsidian open and ask your Agent:
+Keep Obsidian open. Ask your Agent to connect the chosen vault through `drawing_setup`, or run from the package directory:
 
-> Use the obsidian-excalidraw Skill, connect to my chosen Obsidian vault, and check the drawing service.
-
-The Agent uses `drawing_setup` to discover vaults, deploy the required scripts and connect. Scripts go into `Agent-Drawing/` under the plugin's configured **drawing script directory**. No fixed directory name is required, and setup does not change plugin enablement permissions.
-
-If automatic startup fails, open a drawing and run this command in Obsidian:
-
-```text
-Agent-Drawing/mcp/Start-Agent-Drawing
+```sh
+uv run --frozen python launcher.py connect --vault "/absolute/path/to/vault"
+uv run --frozen python launcher.py doctor
 ```
 
-Reload Obsidian if newly installed scripts are not indexed. From the repository, `uv run --frozen python launcher.py status` checks status; `launcher.py connect --vault "actual vault path"` connects explicitly. Full commands are in the setup reference.
+Setup deploys reviewed scripts into `Agent-Drawing/` under the plugin's configured drawing-script directory. It does not change plugin trust/autorun permissions. Without automatic startup, open a drawing and run `Agent-Drawing/mcp/Start-Agent-Drawing` in Obsidian; reload Obsidian if new commands are not indexed.
 
-## 3. Describe the diagram and inspect the result
+Existing installations must use their existing private state directory, selected by `EXCALIDRAW_AGENT_STATE_DIR`, rather than accidentally configuring a second connection. `launcher.py status` reports the selected directory and target without exposing a bearer token.
 
-For example:
+## Natural-language drawing
 
-> Draw a request-review flowchart: submit → review; approved → issue credentials, rejected → explain why; both paths end. Keep every label and inspect the PNG.
+Ordinary requests do not need DSL knowledge:
 
-> Choose MUX, ALU and Register File symbols from my circuit library and draw a data path. Preserve the original symbols and editable connections.
+> Draw a release flow: submit a change, check review/tests/rollback plan; approved goes to canary release, rejected goes to revision and resubmission. Keep all labels and inspect the PNG.
 
-> Rename one node in the drawing I specify, leaving other content and styles unchanged.
+> Draw an asynchronous task platform with ingress, workers and persistence as separate regions. Keep status-query and progress-update paths distinguishable.
 
-Editable drawings stay in the connected vault. PNGs and review records are stored in the MCP server's data directory. The Agent reads the canvas, checks constraints, inspects a fresh PNG and repairs specific issues. Reviews stop when the result passes or after five rounds, with unresolved problems reported explicitly.
+> Draw a Tomasulo teaching diagram with separate queue, Qi register table, reservation-station fields, execution units and named CDB ports—not stage bullet cards.
 
-**A correct PNG does not prove interaction works.** Hover, collapse, zoom navigation and animation require actions and observations in the live canvas.
+> Rename one node in the exact existing canvas I specify. Leave other content and styles alone.
 
-## Using and updating your libraries
+The Agent resolves only meaningful missing choices, discovers actual fonts/resources, selects an entrypoint, checks the full scene, views PNG and repairs specific problems. Hardware planning is component/port/signal based; a `kind` string is not a hardware router.
 
-`.excalidrawlib` files are user assets. **They are not copied into the Skill or distributed with this package.** The Agent queries the current library, checks item IDs/content/previews, then inserts native elements.
+## Repeatable scenes with the DSL
 
-- Add, remove or edit library items: no Skill upgrade is needed; query the current library again.
-- Maintain item `description` or `library-index.md`: refresh that user metadata after library changes. Old summaries are not a substitute for the actual items.
-- Change rendering, asset formats or API contracts: update the Skill or execution adapter when necessary.
+The compiler is included—no separate repository, backend path or language server is required. CLI examples:
 
-To ask an Agent to curate descriptions and summaries, copy [the library maintenance prompt](skills/obsidian-excalidraw/prompts/maintain-libraries.zh-CN.md), then append your library paths and notes. It preserves elements, assets, IDs and human annotations, changing descriptions only within your authorization. See [Library guide](skills/obsidian-excalidraw/references/library-catalog.md).
+```sh
+uv run --frozen python launcher.py dsl -- fonts
+uv run --frozen python launcher.py dsl -- render examples/dsl/release-flow.yaml --font "EXACT_HOST_FAMILY" --state-id release-demo --filename "Release-Demo-Unique" --output ./output/release.json
+```
 
-## Read only what you need
+Replace `EXACT_HOST_FAMILY` with a current discovered family. The command creates native elements plus `release.json`/`release.png` on the client. Edit YAML and render again with the **same state-id**; the original IDs are updated, not a second graph appended. Omit filename afterward. Identical input is a no-op. Do not delete state or switch to compose to bypass a conflict.
 
-| Topic | Reference |
+MCP Agents use the new **`drawing_dsl(action, document, font_family, state_id, ...)`** with a parsed JSON scene object. First render needs a unique filename or explicit existing file_path; read-only plan needs existing state/file_path for native measurements. Render returns checked PNG ImageContent, not visual approval. The same compiler serves CLI and MCP.
+
+Read [the full DSL guide](docs/scene-dsl.md) for source syntax, JSON/MCP examples, read-only planning, resource inputs, update limits, private state and actual review commands. DSL covers measured spatial scenes; libraries, interaction, animation, arbitrary extensions and exact unmanaged edits remain available through native tools. Native GUI changes to managed content are conflicts, not silently merged back into source.
+
+## Precise native editing and automation
+
+The existing MCP tools remain: context/read/measure/plan/apply/check/preview/review/revert, compose, templates, primitives, library and present. The package CLI exposes the same client:
+
+```sh
+uv run --frozen python launcher.py cli -- context --action bind --file-path "Agent-Diagrams/existing.excalidraw.md"
+uv run --frozen python launcher.py cli -- read --context-token "RETURNED_CONTEXT_TOKEN" --detail full
+uv run --frozen python launcher.py cli -- --help
+```
+
+Use actual returned IDs/revision for apply, then check/preview/view/review. The plugin's own `obsidian ...:...` native CLI is a **different interface**; read its current help/schema and [native CLI reference](skills/obsidian-excalidraw/references/native-cli.md) before using it. A remote process cannot assume it has the graphical host's executable or paths.
+
+## What remains editable—and what is checked
+
+- Native shapes, text, arrows, bindings, groups/frames where used, SVG-path carriers and source-backed resources—not a flattened diagram image.
+- DSL tables are sharp-cell native shapes with bound text and contrasting headers; not a claim of new Table Engine interaction features. DSL `groups` are visible layout regions, not automatic native groups/frames.
+- ECharts 1.3.0 supports multi-series/stacked/dual-axis/XY and other visual forms; its 16 showcase cases are 12 base forms plus custom/variants. Advanced DSL/MCP charts retain options through `custom`; GUI form roundtrip and JSON roundtrip are distinct.
+- Checks cover structure, explicit semantic assertions, geometry and visible-text risks. Current PNG inspection still decides real readability, occlusion, routing and hierarchy. A passing check alone is not professional-quality proof.
+- Acceptance **low / medium (default) / high** is independent of model effort. Medium requires actual content/readability/occlusion observations; high also checks connections/hierarchy/style. Not every legal arrow must bind.
+- Font discovery is not glyph/fallback proof. Export completeness is not interaction proof. Hover, collapse, navigation, dataZoom and animation require live actions and observations.
+
+Images, formulas, custom effects and interactions depend on installed host resources. Unknown geometry and unavailable capabilities are reported, not replaced by fake images or silently deleted content.
+
+## Headless server, graphical host
+
+```mermaid
+flowchart LR
+  A[Agent or CLI on server] -->|SSH loopback tunnel| B[Bridge in desktop Obsidian]
+  B --> C[Editable vault canvas]
+  C -->|Actual PNG and state| A
+```
+
+No server GUI or X11 is needed. The desktop owns fonts/assets/renderer. Host vault paths, client output paths and private state are separate. `remote-deploy` is an OMP registration convenience; other clients can launch the same remote stdio runtime. Full instructions: [Agent setup](skills/obsidian-excalidraw/references/agent-setup.md).
+
+## Read only the relevant guide
+
+| Topic | Guide |
 | --- | --- |
-| Images, SVG components, mindmaps, waveforms, interaction and animation | [Capability map](skills/obsidian-excalidraw/references/capability-map.md) |
-| Claude Code / Codex / OMP setup, remote drawing, state directories and updates | [Agent setup](skills/obsidian-excalidraw/references/agent-setup.md) |
-| Develop drawing scripts, run them through URI and inspect PNGs | [Script execution](skills/obsidian-excalidraw/references/script-execution.md) |
-| The plugin's native CLI, distinct from this package's MCP | [Native CLI](skills/obsidian-excalidraw/references/native-cli.md) |
-| next-ai-draw-io reference and reusable ideas | [Comparison](skills/obsidian-excalidraw/references/next-ai-draw-io.md) |
-| Release changes | [Changelog](CHANGELOG.md) |
+| Actual example images, sources, complexity and limits | [Gallery](docs/gallery.md) |
+| YAML/JSON schema, MCP/CLI, incremental state and review | [Scene DSL](docs/scene-dsl.md) |
+| Images, formulas, extensions, tables, special diagrams | [Capability map](skills/obsidian-excalidraw/references/capability-map.md) |
+| Library discovery and description-only maintenance | [Libraries](skills/obsidian-excalidraw/references/library-catalog.md) · [curation prompt](skills/obsidian-excalidraw/prompts/maintain-libraries.zh-CN.md) |
+| Hardware symbols/ports/signals and saved-route audit | [Microarchitecture](skills/obsidian-excalidraw/references/microarchitecture.md) |
+| Style choices, actual fonts and visual acceptance | [Styles](skills/obsidian-excalidraw/references/diagram-recipes.md) · [Typography](skills/obsidian-excalidraw/references/typography.md) · [Acceptance](skills/obsidian-excalidraw/references/acceptance.md) |
+| Trusted scripts, native CLI and live interaction | [Scripts](skills/obsidian-excalidraw/references/script-execution.md) · [Native CLI](skills/obsidian-excalidraw/references/native-cli.md) |
+| Shared Engine source synchronization and release checks | [Maintenance](docs/maintenance.md) |
+| Comparison with other diagramming approaches | [next-ai-draw-io](skills/obsidian-excalidraw/references/next-ai-draw-io.md) |
+
+User `.excalidrawlib` assets are not redistributed here. Query the actual current item IDs/previews; changing your library does not require a Skill upgrade. Native `professional/visio/handdrawn/blueprint/presentation` profiles are not exported `.vsdx`/`.pptx` formats or bitmap filters. Freehand strokes and Rough.js styling are different capabilities.
 
 ## Updates and safety
 
-For a checkout, use `git pull` and `uv sync --frozen`, refresh copied Skill files, then restart MCP. For OMP, use marketplace update / plugin upgrade as documented in Agent setup. Reconnect the **same vault** after package updates to update managed host scripts. Customized files are not silently overwritten.
+For a checkout: stop this package's MCP process, pull, `uv sync --frozen`, refresh copied Skill files and restart MCP. For OMP, follow the supported marketplace update/plugin upgrade instructions in Agent setup; disconnect the old MCP first on Windows to avoid locked-cache failures. Reconnect the **same vault** to update managed scripts, preserving customized-file conflict checks; reload Engines/Obsidian when needed. Preserve private connection settings, DSL identity state and review artifacts.
 
-### Shared Engine source and automatic update PRs
+The Bridge is trusted local code with vault read/write access, **not a sandbox**. It listens on loopback and authenticates requests. Keep credentials out of prompts, scenes, public reports and Git. Code-bearing customData/library scripts, external writes and additional Engines are not automatically trusted because you asked for a diagram. The model provider receives the prompts/images it processes.
 
-- [`bridge/shared-scripts.json`](bridge/shared-scripts.json) is the explicit import allowlist. Shared Engines are maintained only in [Scripts](https://github.com/Bowen-0x00/obsidian-excalidraw-scripts); `mcp/Start-Agent-Drawing.md` and `mcp/Engine-Agent-Bridge.md` belong to this Agent repository and are never imported.
-- [`bridge/shared-scripts.lock.json`](bridge/shared-scripts.lock.json) records the exact source commit, each source path, script version and SHA-256 of UTF-8/LF content. The initial legacy baseline has `sourceCommit: null` because historical provenance is unknown, not fabricated; the first actual update pins the complete imported snapshot.
-- Scripts `main` pushes notify this repository only for declared inputs (or notification workflow changes). The receiving [workflow](.github/workflows/sync-shared-scripts.yml) also supports **Run workflow** and a six-hour fallback. It imports the latest source `main` commit, coalescing delayed notifications, validates the complete input, compiles Engine JavaScript without executing it, runs importer and runtime regressions, then creates/updates **one** `automation/shared-script-engines` PR.
-- Unrelated source changes and identical content are no-ops, including no lock commit churn or rewriting an already-current open PR. Deleted/renamed inputs, missing declarations, symlinks and independently edited shared copies fail visibly before copying. A bot branch containing human commits or out-of-scope files is not overwritten; a rejected/orphaned sync branch must be resolved/deleted before rerunning. An unchanged branch from a merged PR can be reused for the next update.
-- Configure `SKILL_SYNC_TOKEN` as an **Actions repository secret in both repositories**. Prefer a dedicated expiring fine-grained token limited to this Agent repository with **Contents: read/write**, **Pull requests: read/write**, and Metadata read; source scripts are public. It dispatches from Scripts and creates the target bot PR (so integrity CI runs normally). Never paste the token into workflow YAML, commit it, or enable secret-bearing jobs on untrusted PRs. Rotate by replacing both secrets. Repository-wide default workflow permissions need not be broadened.
-- PR creation is automatic; merging/releasing remains a maintainer gate. Exercise affected Hooks/APIs and real Obsidian interaction/PNG output before release. GitHub runners cannot prove GUI compatibility. The PR does not bump package versions, overwrite customized vault files, reload an already registered Engine, or deploy to local/remote clients.
-
-Local maintenance (the source checkout must contain the exact published commit):
-
-```sh
-python scripts/sync_shared_scripts.py check
-python scripts/sync_shared_scripts.py plan --source-dir /path/to/scripts --source-commit FULL_40_CHARACTER_COMMIT
-python scripts/sync_shared_scripts.py apply --source-dir /path/to/scripts --source-commit FULL_40_CHARACTER_COMMIT
-node scripts/check_shared_scripts.mjs
-python -m unittest discover -s scripts/tests -v
-uv run --frozen python -m unittest discover -s runtime/tests -v
-```
-
-To add an Engine, explicitly review the manifest, lock entry and `bridge/bundle.json` together; never auto-import every new script by matching filenames. Return shared code fixes upstream instead of editing the bundled copy independently.
-
-The Bridge is trusted local code with vault read/write access, not a sandbox. It listens on loopback and authenticates requests. Keep private connection files out of public repositories; executable library data requires explicit trust. Anki/Eagle writes, additional Engines and animation are not default side effects of PNG export. Your model provider receives the prompts and images it processes.
-
-Original package code is [MIT licensed](LICENSE); embedded libraries retain their [third-party licenses](THIRD_PARTY_NOTICES.md). This project is not affiliated with Obsidian or upstream Excalidraw.
+Original package code and authored examples are [MIT licensed](LICENSE); embedded libraries retain their [third-party licenses](THIRD_PARTY_NOTICES.md). Not affiliated with Obsidian or upstream Excalidraw. [Changelog](CHANGELOG.md).

@@ -92,6 +92,8 @@ def main() -> int:
     trial.add_argument("--filename", default="Drawing-Installation-Smoke")
     cli = commands.add_parser("cli", help="Run the full drawing CLI; options after -- are forwarded")
     cli.add_argument("arguments", nargs=argparse.REMAINDER)
+    dsl = commands.add_parser("dsl", help="Render or incrementally update YAML/JSON scenes; options after -- are forwarded")
+    dsl.add_argument("arguments", nargs=argparse.REMAINDER)
     metadata = commands.add_parser("library-maintain", help="Inspect local library files or apply reviewed description-only edits")
     metadata.add_argument("arguments", nargs=argparse.REMAINDER)
     for name in ("remote-deploy", "remote-tunnel"):
@@ -102,6 +104,11 @@ def main() -> int:
     if args.action == "serve":
         serve()
         return 0
+    if args.action == "dsl":
+        from scene_dsl.cli import main as scene_main
+        forwarded = args.arguments[1:] if args.arguments[:1] == ["--"] else args.arguments
+        sys.argv = ["launcher.py dsl", *forwarded]
+        return scene_main()
     if args.action == "library-maintain":
         forwarded = args.arguments[1:] if args.arguments[:1] == ["--"] else args.arguments
         sys.argv = [str(ROOT / "runtime/library_metadata.py"), *forwarded]

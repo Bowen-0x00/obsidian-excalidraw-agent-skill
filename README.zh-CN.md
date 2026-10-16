@@ -2,186 +2,194 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
-让 Agent 根据自然语言，在 **Obsidian Excalidraw-ymjr** 中创建、修改可编辑的图，并通过真实 PNG 检查结果。
+**用自然语言描述，得到可继续编辑的图，再查看真实结果。** 本包包含 Agent Skill、原生绘图 MCP／CLI、可选 YAML／JSON 场景 DSL，以及连接 **Obsidian Excalidraw-ymjr** 的 Bridge／Engines。
 
-**适用于 Claude Code、Codex、OMP，以及能加载 Skill 和调用 MCP 的其他 Agent。OMP 只是本文的一种安装示例，不是必需依赖。**
+支持 Claude Code、Codex、OMP 等 Skill／MCP 客户端，也可不经 LLM 直接运行 CLI。**所有执行路径仍需真实的桌面 Obsidian 和修改版插件；不是离线图片生成器。**
 
-## 能做什么
+[快速开始](#快速开始) · [选择使用方式](#选择使用方式) · [DSL](#用-dsl-维护可重复生成的图) · [完整画廊与源码](docs/gallery.md) · [DSL 详细规范](docs/scene-dsl.md)
 
-- 绘制流程图、架构图、UML、泳道、脑图、数字电路、波形和演示页面。
-- 插入网上获取的图片、公式和用户素材；用 SVG path 制作可复用组件。
-- 文字与行内公式显式转换，不把`$…$`源码当成已渲染标签：复用宿主Extract-Latex脚本或原生text+LaTeX组合，检查源TeX、行距、层级及绑定。见[行内公式流程](skills/obsidian-excalidraw/references/visual-content.md)。
-- 使用修改版提供的视觉效果、交互和导航功能。具体支持取决于宿主插件与已启用的脚本。
-- 新图开始前用Agent客户端真实选择工具一次询问未定的风格、色板/限定颜色、明暗背景、彩色/灰度、已安装字体和标题字重；已指定或局部改图不重问。按语义选三角数据流/PPT宽箭头，并使用固定小圆角。见[视觉偏好](skills/obsidian-excalidraw/references/diagram-recipes.md)与[箭头/圆角](skills/obsidian-excalidraw/references/layout-export-animation.md)。
-- 更新宿主支持原生Visio式弧跳、留白断线和实心交点；直接设置走线元数据，不再用白色矩形遮罩模拟。详见[排版与交叉线参考](skills/obsidian-excalidraw/references/layout-export-animation.md)。
-- 测量文字、规划布局、检查关系与几何约束，查看 PNG 后局部修正；复用原生手动变换实现整组绕共同中心旋转及等比缩放，保留其他内容。
-- 素材插入前先读真实尺寸并适配用途：先放大演示底板再填字，电路符号整体等比缩放并保留锚点/连接；区别于单元素resize和PNG导出倍率。远端本地PNG可经现有data:image入口传到宿主，与原生文字/frame混排。详见[尺寸适配](skills/obsidian-excalidraw/references/layout-export-animation.md)与[图片参考](skills/obsidian-excalidraw/references/images-assets.md)。
-- 多Agent分别绑定不同画布并发提交，宿主排队执行并拒绝过期写入；PNG同时反馈同revision的全图min/max边界和全部元素简略信息，坐标最多两位小数，不改原始精度。
-- 低往返执行：普通图使用已有`drawing_compose`在代码内测量plan→apply，不让模型抄整份operations；compose/apply可选`inspect:true`合并完整检查和注册PNG返回。版本保护、实际看图及review不省略，详细能力转为主Skill的按需参考，原接口保留。
-- 硬件请求先按部件、端口、信号和阶段骨架规划，不套服务图快路径；保留ALU/RF/MUX/队列/阵列等独立对象与控制/反馈网络，不把“检查通过的阶段项目列表”当微架构交付。见[硬件微架构工作流](skills/obsidian-excalidraw/references/microarchitecture.md)。
-- 硬件Skill固化分阶段制作/最小补丁迭代及保存后的逐段正交审计；信号默认水平/竖直，根据实际端口选显式正交折线或原生elbow，不凭flag验收。此项是工作流指导，不是新增硬件自动布线器或drawing_check内建断言。
-- 字体按当前宿主动态发现，由Agent基于证据判断用途，再按正文/代码/标签/注释等角色选实际family、测量和PNG验证，不假设固定安装名单；发现不等于字形覆盖/无回退。详见[通用字体工作流](skills/obsidian-excalidraw/references/typography.md)。Bridge 0.13.4在现有discovery中优先返回真实getFontFamilies结果及来源/错误。
-- PPT实心/轮廓宽箭可用于流程、架构、教学和对比图，不限演示页。路径长度、原生customData.blockArrowWidth、头部倍率和轮廓描边分别控制；Agent按空间选择粗短/细长，仅调宽保留绑定，PNG检查完整包络。Bridge 0.13.5开放block_arrow与block_arrow_outline，见[箭头尺寸工作流](skills/obsidian-excalidraw/references/layout-export-animation.md)。
-- 验收分low／medium（默认）／high，与模型effort独立，提示词或同轮选项可控。中高优先文字可读/遮挡，高级再细查连接与层级风格，不强制每根箭头绑定。按绘制顺序区分合法背景与字互压/线穿字/后画盖字；几何误报逐问题附当前PNG依据，保留advisories，不全局忽略。详见[分级验收与外部调研](skills/obsidian-excalidraw/references/acceptance.md)。中高review需实际visual_checks；等级与断言按context继承。
+## 先看实际效果
 
-## 可编辑、多风格与服务器绘图
+下面都是附带源码在真实 Obsidian 中导出的 PNG，不是 UI 效果图。交付物仍是可编辑画布，PNG 用于视觉检查。
 
-### 可编辑不是导出图片
+### 原生表格与保留配置的 ECharts
 
-Agent 生成的是 Obsidian Excalidraw 原生元素：shape、text、arrow、frame、group、绑定关系、图片资源和可修改的 SVG path carrier。PNG 只用于视觉检查，不替代画布。用户可以在 Obsidian 中继续拖动、改字、重连和调整样式。
+![服务观测面板：直角表格与两张真实ECharts图](docs/images/observability-panel.png)
 
-### 风格是布局/属性 profile，不是图片滤镜
+[DSL 源码](examples/dsl/observability-panel.yaml) · [可编辑画布](examples/native/observability-panel.excalidraw.md)。使用演示数据；图表保留结构化 options，表格保留原生单元格与绑定文字。
 
-| 风格 | 规则 |
-| --- | --- |
-| `professional` | 平整、克制、适合文档 |
-| `visio` | 低粗糙度、锐利边、规整分区和工程连接 |
-| `handdrawn` / `roughjs` | Rough.js roughness/hachure 手绘渲染，仍保留原生元素 |
-| `blueprint` | 白底蓝线，适合电路和微架构 |
-| `presentation` | 更大字号和更强标题层级 |
-| 原生自由笔画 `draw/freedraw` | 手画/handdraw白板笔迹，保留点列与压力；不是另一个Rough.js profile |
+### 固定分区与独立跨区走线
 
-“手绘风格”不等于自由笔画；用户说 handdraw/手画笔迹时使用原生freedraw。`visio`不代表生成`.vsdx`，`roughjs`也不代表生成不可编辑图片。真实演示及可复制的录制prompt见[演示与GIF指南](skills/obsidian-excalidraw/references/showcase.md)。
+![异步任务平台：接入、执行、持久化三个区域](docs/images/task-architecture.png)
 
-### 服务器调用本地绘图
+[DSL 源码](examples/dsl/task-architecture.yaml) · [可编辑画布](examples/native/task-architecture.excalidraw.md)。用空间组合固定区域，不让反馈边把整图重新排成长链。
 
-```mermaid
-flowchart LR
-  A[服务器上的 Agent + Skill + MCP] -->|SSH loopback 隧道| B[本地 Bridge + Obsidian Excalidraw]
-  B --> C[vault 中的可编辑画布]
-  C -->|PNG ImageContent| A
-```
+### 硬件是部件和信号，不只是文字卡片
 
-服务器负责理解需求、调用 Skill/MCP、读回摘要、接收 PNG 和决定迭代；本地桌面负责真实插件、vault、字体、图片资源和渲染。已有SSH连接的开发服务器无需GUI或X11。当前remote-deploy便捷注册面向OMP，其他Agent注册同一远端运行时，见[Agent接入说明](skills/obsidian-excalidraw/references/agent-setup.md)。服务器路径不能直接当宿主vault路径。
+![带命名端口、原生MUX和ALU多边形的反馈数据通路](docs/images/feedback-datapath.png)
 
-next-ai-draw-io的 canvas-first、内容级编辑门、版本/缩略图和截图验证值得借鉴；具体比较见 [next-ai-draw-io参考](skills/obsidian-excalidraw/references/next-ai-draw-io.md)。
+[DSL 源码](examples/dsl/feedback-datapath.yaml) · [可编辑画布](examples/native/feedback-datapath.excalidraw.md)。这是明确省略时钟、复位和运算码的教学示意，不是 RTL／电气仿真。
 
-仓库包含三部分：**Skill** 告诉 Agent 怎样工作；**MCP 服务**提供操作工具；**Obsidian 绘图脚本**在应用里构造元素、管理扩展并渲染。只安装 Skill 不会自动获得执行能力。
+[画廊](docs/gallery.md) 还有长中文分支流程、更密集的 Tomasulo 保留站／寄存器表，以及实际图片、LaTeX、渐变和阴影。每例注明源码、原生输出、规模及验证边界。展示过某一规模，不等于任意同规模图都能自动正确、美观地完成。
 
-## 开始前
+## 选择使用方式
 
-准备好：
+| 你的需求 | 推荐入口 | 谁来组织内容 |
+| --- | --- | --- |
+| “帮我画这个想法” | 自然语言＋Skill＋MCP | 用户说意图，Agent 选择普通图、DSL 或原生表达并看 PNG |
+| 一次性的普通节点关系图 | `drawing_compose(..., inspect=true)` | Agent 提交普通 diagram，执行层合并测量、布局、提交、检查和导出 |
+| 可版本管理、重复生成、嵌套区域、表格、多端口 | `drawing_dsl` 或 `launcher.py dsl` | Agent 或人编写精简场景，编译器按稳定身份增量更新 |
+| 已有图改字、移动、重连一小部分 | `drawing_read` → `drawing_apply` | 按真实 ID／revision 精确操作，保留无关内容 |
+| 素材库、演示框架、交互、导航、动画等 | 原生 MCP＋对应 Skill 参考 | 使用真实宿主能力，不强塞进 DSL 或假装近似实现 |
+| 自动化脚本、批量流程 | `launcher.py cli`／`launcher.py dsl` | 不要求 LLM 或 MCP 客户端，但仍要求已连接 GUI 宿主 |
+| Agent 在无桌面的开发服务器 | 同一工具经 SSH loopback 隧道调用 | 服务器推理，本地桌面管理 vault、字体、素材与渲染 |
 
-1. Obsidian Desktop，以及目标 vault 中已安装并启用的 [Excalidraw-ymjr](https://github.com/Bowen-0x00/obsidian-excalidraw-plugin-ymjr)。本方案依赖修改版，不能直接当作上游插件通用方案。
-2. 支持 Skill 和本地 stdio MCP 的 Agent；若要完成视觉检查，还需能查看图片的模型和客户端。
-3. [uv](https://docs.astral.sh/uv/getting-started/installation/) 和 Python 3.11+，用于运行本包 MCP。
+**Skill 是工作指导，MCP／CLI 是执行入口，DSL 是可选编译器，Obsidian 原生 API 负责实际构造、保存和渲染。** 只装 Skill 不会自动获得连接；DSL 的 document 也不能当成 drawing_compose 的 diagram。
 
-[Advanced URI](https://github.com/Vinzent03/obsidian-advanced-uri) 可选：有它可自动启动绘图服务，没有它就在 Obsidian 中手动运行启动脚本。LaTeX 另需兼容的 Excalidraw Extras MathJax 组件。
+## 快速开始
 
-## 1. 安装 Skill 和 MCP
+### 1. 准备环境
 
-只选择与你的 Agent 对应的一种方式。
+- Obsidian Desktop，目标 vault 已启用 [Excalidraw-ymjr](https://github.com/Bowen-0x00/obsidian-excalidraw-plugin-ymjr)。不能把上游 Excalidraw 当作等价环境。
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) 和 Python 3.11+。
+- 自然语言路径需要支持 Skill／stdio MCP 的 Agent；要做视觉验收，还需可实际查看图片的模型和客户端。
+- [Advanced URI](https://github.com/Vinzent03/obsidian-advanced-uri) 可选，用于自动启动；LaTeX 另需宿主兼容的 Extras MathJax 组件。
 
-### Claude Code / Codex
+### 2. 安装同一个包
 
-克隆仓库，并在仓库目录安装依赖：
+**Claude Code／Codex／其他客户端：**
 
 ```sh
 git clone https://github.com/Bowen-0x00/obsidian-excalidraw-agent-skill.git
 ```
 
+在仓库目录运行：
+
 ```sh
 uv sync --frozen
 ```
 
-把 `skills/obsidian-excalidraw/` **整个目录**复制到对应位置，保留其中的 references 和 prompts：
+复制 `skills/obsidian-excalidraw/` **整个目录**，保留 references 和 prompts：
 
-| Agent | 用户级 Skill 目录 | 调用示例 |
-| --- | --- | --- |
-| Claude Code | `~/.claude/skills/obsidian-excalidraw/` | `/obsidian-excalidraw` |
-| Codex | `~/.agents/skills/obsidian-excalidraw/` | `$obsidian-excalidraw` |
+| 客户端 | 用户级 Skill 目录 |
+| --- | --- |
+| Claude Code | `~/.claude/skills/obsidian-excalidraw/` |
+| Codex | `~/.agents/skills/obsidian-excalidraw/` |
 
-再注册同一个 MCP 服务。把命令中的 `/absolute/path/to/package` 换成仓库的实际绝对路径；Windows 可用 `D:/...`。
-
-**Claude Code：**
+注册同一个 MCP 服务，把绝对路径换成真实安装目录：
 
 ```sh
 claude mcp add --transport stdio --scope user excalidraw -- uv run --frozen --project "/absolute/path/to/package" python "/absolute/path/to/package/launcher.py" serve
-```
-
-**Codex：**
-
-```sh
 codex mcp add excalidraw -- uv run --frozen --project "/absolute/path/to/package" python "/absolute/path/to/package/launcher.py" serve
 ```
 
-重启 Agent，在其 MCP 面板确认服务可用。这里使用通用 Skill 文件和标准 MCP；其他客户端配置同样的启动命令即可。详细配置和官方文档链接见 [Agent 接入说明](skills/obsidian-excalidraw/references/agent-setup.md)。
+按客户端选一条，不要两条都运行。Windows 路径可写成 `D:/...`。其他客户端使用相同 stdio 启动命令，详细配置见 [Agent 接入说明](skills/obsidian-excalidraw/references/agent-setup.md)。
 
-### OMP 示例
+**OMP 安装示例：**
 
 ```sh
 omp plugin marketplace add Bowen-0x00/obsidian-excalidraw-agent-skill
 omp plugin install --scope user obsidian-excalidraw-agent-skill@obsidian-excalidraw-agent
 ```
 
-此方式同时安装 Skill 和注册包内 MCP。重启 OMP，或执行 `/reload-plugins`；用 `/mcp list` 查看服务。OMP 的 `skill://obsidian-excalidraw` 是该客户端的访问方式，其他 Agent 直接读取 Skill 文件和相对参考文件。
+重启／reload 客户端并检查工具列表。OMP 不是必需依赖，其 `skill://...` 是客户端专有访问方式；其他 Agent 直接读取本地 Skill。
 
-## 2. 连接 Obsidian
+### 3. 连接明确的 vault
 
-保持 Obsidian 打开，告诉 Agent：
+保持 Obsidian 打开，让 Agent 用 drawing_setup 连接你选择的 vault；或在包目录运行：
 
-> 使用 obsidian-excalidraw Skill，连接我选择的 Obsidian vault，并检查绘图服务。
-
-Agent 通过 `drawing_setup` 发现 vault、部署所需脚本并连接。脚本安装在插件配置的**绘图脚本目录**下的 `Agent-Drawing/` 子目录；不要求目录叫某个固定名字，也不修改用户的插件启用权限。
-
-自动启动失败时，打开一个画布，在 Obsidian 命令面板运行：
-
-```text
-Agent-Drawing/mcp/Start-Agent-Drawing
+```sh
+uv run --frozen python launcher.py connect --vault "/absolute/path/to/vault"
+uv run --frozen python launcher.py doctor
 ```
 
-新脚本尚未被索引时，重载 Obsidian。也可以在仓库目录使用 `uv run --frozen python launcher.py status` 查看状态，使用 `launcher.py connect --vault "实际vault路径"` 连接；完整命令见接入说明。
+脚本部署到插件配置的绘图脚本目录下的 `Agent-Drawing/`，不改变插件授信或 autorun 权限。不能自动启动时，先打开一个画布，再在 Obsidian 运行 `Agent-Drawing/mcp/Start-Agent-Drawing`；新命令尚未索引时重载 Obsidian。
 
-## 3. 描述需求，查看结果
+已有安装继续使用原私有 state 目录，通过 `EXCALIDRAW_AGENT_STATE_DIR` 指定，避免意外配置第二条连接。`launcher.py status` 会说明当前目录和目标，不输出 bearer token。
 
-例如：
+## 自然语言绘图
 
-> 画申请审批流程：提交申请→审核；通过则发放凭据，未通过则说明拒绝原因，两路到结束。保留完整中文，检查 PNG。
+普通用户不需要懂 DSL：
 
-> 从我的数字电路素材库中选择 MUX、ALU 和 Register File，画一张数据通路图。保留原符号和可编辑连接。
+> 画变更上线流程：提交申请，检查评审、测试与回滚方案；通过后灰度发布，未通过则修订再提交。保留全文，检查 PNG。
 
-> 修改指定画布中的一个节点标签，其他内容和样式不变。
+> 画异步任务平台，分接入、执行、持久化三个区域。更新状态与查询进度的走线要容易区分。
 
-原图保存在已连接的 vault；PNG 和评审记录保存在 MCP 的数据目录。Agent 会读取画布、检查约束、查看新 PNG，再修复具体问题。默认最多五轮，达标即停止；缺资源、无法查看图片或仍有问题时明确报告。
+> 画 Tomasulo 教学结构，要有独立指令队列、Qi 寄存器表、保留站字段、执行器和 CDB 命名端口，不要做成阶段说明卡片。
 
-**PNG 外观正确不等于交互已验证。** Hover、折叠、缩放导航和动画还要在真实画布中触发与观察。
+> 修改我指定的已有画布中的一个节点标签，其他内容和样式不变。
 
-## 使用与更新自己的素材库
+Agent 只询问会实质影响结果的缺失选择，发现当前字体／资源，选择入口，读回全图、检查、查看 PNG，再局部修复。硬件按部件／端口／信号规划；一个 kind 字段不是硬件自动布局器。
 
-`.excalidrawlib` 是用户资源，**不复制进 Skill，也不随本包分发**。Agent 每次使用时查询当前库，核对 item ID、内容和预览，再原生导入。
+## 用 DSL 维护可重复生成的图
 
-- 只增删或修改 item：无需升级 Skill，重新查询库即可。
-- 维护了 item `description` 或 `library-index.md`：库变化后更新这些用户描述/摘要，避免过时；不能仅凭旧摘要选素材。
-- 渲染机制、资源格式或调用接口改变：才需要修改 Skill 或执行适配器。
+编译器随包提供，不另建安装，也不需要 `--backend` 指向另一份 runtime：
 
-需要 Agent 帮你整理描述和摘要时，复制 [素材库维护 prompt](skills/obsidian-excalidraw/prompts/maintain-libraries.zh-CN.md)，追加库路径和补充说明。它只按授权维护描述，保留图元、资源、ID 和人工意见。详见 [素材库参考](skills/obsidian-excalidraw/references/library-catalog.md)。
+```sh
+uv run --frozen python launcher.py dsl -- fonts
+uv run --frozen python launcher.py dsl -- render examples/dsl/release-flow.yaml --font "EXACT_HOST_FAMILY" --state-id release-demo --filename "Release-Demo-Unique" --output ./output/release.json
+```
 
-## 按需阅读
+`EXACT_HOST_FAMILY` 必须替换为当前发现的精确字体名。命令生成原生元素，以及客户端上的 `release.json`／`release.png`。修改 YAML 后复用**同一个 state-id**再次 render，更新原 ID，不追加第二张图；以后可省略 filename。相同源是零绘图操作。不能删 state 或改用 compose 整图重放绕过冲突。
 
-| 需要了解 | 入口 |
+MCP Agent 使用新增的 **`drawing_dsl(action, document, font_family, state_id, ...)`**，document 是同一场景的已解析 JSON 对象。首次 render 需要唯一 filename 或明确现有 file_path；只读 plan 需要已有 state／file_path 来真实测量文字。返回实际检查后的 PNG ImageContent，不会自动宣布视觉通过。CLI 与 MCP 共用一个编译执行实现。
+
+[DSL 详细规范](docs/scene-dsl.md) 包含语法、JSON／MCP 示例、只读规划、资源、增量限制、私有状态和实际 review 命令。DSL 负责测量后的空间场景；素材库、交互、动画、任意扩展、非受管图的精确修改仍走原生路径。GUI 修改受管内容会触发冲突，不自动反向合并回 YAML。
+
+## 原生精确编辑与自动化
+
+原有工具全部保留：context/read/measure/plan/apply/check/preview/review/revert，以及 compose、templates、primitives、library、present。本包 CLI 使用相同绘图客户端：
+
+```sh
+uv run --frozen python launcher.py cli -- context --action bind --file-path "Agent-Diagrams/existing.excalidraw.md"
+uv run --frozen python launcher.py cli -- read --context-token "RETURNED_CONTEXT_TOKEN" --detail full
+uv run --frozen python launcher.py cli -- --help
+```
+
+用实际返回的 ID／revision 提交 apply，再 check／preview／看图／review。插件自身的 `obsidian ...:...` 原生 CLI 是**另一套接口**，先读其当前 help／schema 和 [原生 CLI 参考](skills/obsidian-excalidraw/references/native-cli.md)；远端不能假设有宿主可执行文件或直接访问宿主路径。
+
+## 可编辑性与验收边界
+
+- 输出保留原生形状、文字、箭头、绑定，以及实际使用的组／frame、SVG-path carrier、源资源，不是一张扁平化整图。
+- DSL 表格是直角 cell＋绑定文字＋分层表头，不宣称新增 Table Engine 交互；DSL groups 是可见布局区域，不等于自动原生 group／frame。
+- ECharts 1.3.0 覆盖多系列、堆叠、双轴、数值 XY 等；16 个示例是 12 种基础图型＋custom／变体。高级 DSL／MCP 图用 custom 保留完整 options，JSON 往返与可视表单数据模型往返不是同一承诺。
+- 检查覆盖结构、显式语义断言、几何和文字可读风险；真实 PNG 仍需判断内容、遮挡、走线与层级。check=pass 不是专业质量的自动证明。
+- 验收 **low／medium（默认）／high** 与模型 effort 无关。medium 记录实际内容／可读／遮挡观察；high 再核对连接与层级风格，不强制所有合法独立箭头绑定。
+- 字体被发现不等于每字无 fallback；资源完整不等于交互通过。hover、折叠、导航、dataZoom 和动画需要在真实界面触发观察。
+
+图片、公式、扩展效果和交互取决于宿主资源。缺能力或几何 unknown 会明确报告，不用假图片或删除内容掩盖。
+
+## 服务器开发，本地渲染
+
+```mermaid
+flowchart LR
+  A[服务器 Agent 或 CLI] -->|SSH loopback 隧道| B[桌面 Obsidian Bridge]
+  B --> C[vault 原生可编辑画布]
+  C -->|实际 PNG 与状态| A
+```
+
+服务器不需要 GUI／X11；本地桌面负责字体、素材和渲染。宿主 vault 路径、客户端输出路径、私有 state 分开理解。remote-deploy 是面向 OMP 的便捷注册；其他客户端可启动同一远端 stdio runtime。完整步骤见 [接入说明](skills/obsidian-excalidraw/references/agent-setup.md)。
+
+## 只读与你相关的文档
+
+| 主题 | 入口 |
 | --- | --- |
-| 图片、SVG 组件、脑图、波形、交互、动画等能力与限制 | [能力地图](skills/obsidian-excalidraw/references/capability-map.md) |
-| Claude Code / Codex / OMP 配置、远端绘图、状态目录与更新 | [Agent 接入说明](skills/obsidian-excalidraw/references/agent-setup.md) |
-| 开发绘图脚本，通过 URI 运行并检查 PNG | [脚本执行参考](skills/obsidian-excalidraw/references/script-execution.md) |
-| 使用插件自带的 CLI，而非本包 MCP | [原生 CLI 参考](skills/obsidian-excalidraw/references/native-cli.md) |
-| next-ai-draw-io 对本项目的借鉴 | [比较参考](skills/obsidian-excalidraw/references/next-ai-draw-io.md) |
-| 版本变化 | [CHANGELOG](CHANGELOG.md) |
+| 实际图片、源码、规模与限制 | [示例画廊](docs/gallery.md) |
+| YAML／JSON、MCP／CLI、增量与 review | [Scene DSL 规范](docs/scene-dsl.md) |
+| 图片、公式、扩展、表格与特殊图 | [能力地图](skills/obsidian-excalidraw/references/capability-map.md) |
+| 查询用户素材库、只修改描述 | [素材库](skills/obsidian-excalidraw/references/library-catalog.md) · [维护 prompt](skills/obsidian-excalidraw/prompts/maintain-libraries.zh-CN.md) |
+| 硬件部件／端口／信号与保存后路由审计 | [微架构](skills/obsidian-excalidraw/references/microarchitecture.md) |
+| 风格、真实字体和视觉验收 | [风格](skills/obsidian-excalidraw/references/diagram-recipes.md) · [排版](skills/obsidian-excalidraw/references/typography.md) · [验收](skills/obsidian-excalidraw/references/acceptance.md) |
+| 可信脚本、插件原生 CLI、交互 | [脚本](skills/obsidian-excalidraw/references/script-execution.md) · [原生 CLI](skills/obsidian-excalidraw/references/native-cli.md) |
+| 共享 Engine 来源、同步与发布检查 | [维护说明](docs/maintenance.md) |
+| 与其他绘图工具的设计比较 | [next-ai-draw-io](skills/obsidian-excalidraw/references/next-ai-draw-io.md) |
 
-## 更新与安全边界
+用户 `.excalidrawlib` 不随包分发；使用时查询当前真实 item／预览，修改库本身不需要升级 Skill。原生 professional／visio／handdrawn／blueprint／presentation 是属性风格，不代表生成 `.vsdx`／`.pptx` 或应用图片滤镜；自由笔画与 Rough.js 风格也不同。
 
-克隆安装用 `git pull`、`uv sync --frozen`，同步已复制的 Skill 并重启 MCP。OMP 安装用 marketplace update / plugin upgrade，具体命令见接入说明。包更新后，重新连接**同一 vault**更新受管脚本；用户修改过的文件不会静默覆盖。
+## 更新与安全
 
-### 共享 Engine 的单一源头与自动同步
+克隆安装：停止本包 MCP，pull、`uv sync --frozen`、同步已复制 Skill，再重启 MCP。OMP 按接入说明执行 marketplace update／plugin upgrade；Windows 先断开旧 MCP，避免缓存被锁。重新连接**同一 vault**更新受管脚本，自定义文件仍受冲突保护；必要时重载 Engine／Obsidian。保留私有连接配置、DSL 身份状态和评审产物。
 
-- 共享 Engine 只在 [Scripts 仓库](https://github.com/Bowen-0x00/obsidian-excalidraw-scripts)维护；本仓库保存可复现的发行快照。[shared-scripts.json](bridge/shared-scripts.json)显式列出源/目标文件，不按同名全量扫描。Agent 专用 Bridge、启动脚本不参与导入。
-- [shared-scripts.lock.json](bridge/shared-scripts.lock.json)记录源 commit、各脚本版本和 UTF-8/LF 内容 SHA-256；初始旧快照来源未知用null，首次实际更新才固定完整导入commit，不伪造历史来源。
-- Scripts 的main push自动检测清单内文件并通知；本仓库[同步工作流](.github/workflows/sync-shared-scripts.yml)从最新源main提取快照，校验完整输入、只编译不执行Engine代码、运行同步器及现有回归，然后创建/更新同一个`automation/shared-script-engines` PR。支持Actions页面Run workflow，另有每6小时兜底；迟到通知合并到最新快照。
-- 无关修改、内容相同直接跳过，不滚动改lock，也不重写内容已相同的开放PR。删除/改名、符号链接、清单缺失或共享副本被单独修改会明确失败，不静默覆盖。同步分支有人工作业/越界文件时停止；被拒绝关闭或孤立的分支须先明确处理，不能悄悄复活拒绝变更。已合并PR留下且未再修改的bot分支可复用作下一次更新。
-- 两仓库各配置同名Actions secret `SKILL_SYNC_TOKEN`。推荐专用、有限期的fine-grained token，只授权目标Agent仓库的Contents读写、Pull requests读写及Metadata读取；来源公开不需私有源访问。凭据只通过secret传递，不写YAML/日志/仓库、不向不可信PR提供。轮换时两处都替换，不必放宽仓库默认workflow权限。
-- 自动做到PR，不自动合并发布。维护者检查API/Hook变化，并在真实Obsidian验相关功能后合并/升级发行包；GitHub CI不是GUI/交互/PNG兼容证明。同步PR不会部署vault、不覆盖用户改动、不重载已注册Engine，也不自动更新本地/Redhat客户端。
+Bridge 是有 vault 读写权限的可信本地代码，**不是沙箱**；监听 loopback 并鉴权。凭据不进入 prompt、场景、公开报告或 Git。包含代码的 customData／素材脚本、外部应用写入和附加 Engine，不因用户要求画图就自动授信。模型提供方会接收其处理的 prompt／图片。
 
-本地入口：`python scripts/sync_shared_scripts.py check`检查副本；`plan`/`apply`配`--source-dir`和`--source-commit`（完整40位commit）进行预览/导入。验证用`node scripts/check_shared_scripts.mjs`、`python -m unittest discover -s scripts/tests -v`及原有runtime回归。增加共享Engine时明确修改manifest、lock与bundle清单；共享修复回到Scripts源头，不双写两套代码。
-
-Bridge 是有 vault 读写权限的可信本地代码，仅监听 loopback 并鉴权，不是沙箱。不要公开私有连接文件；外部素材中的可执行代码需明确授权。Anki/Eagle 写入、额外 Engine 挂载和动画播放不是普通 PNG 导出的默认副作用。模型服务会接收它处理的提示与图片。
-
-原创包代码采用 [MIT](LICENSE)，内嵌库保留 [第三方许可证](THIRD_PARTY_NOTICES.md)。本项目与 Obsidian、上游 Excalidraw 无官方关联。
+原创包代码和自制示例采用 [MIT](LICENSE)；内嵌库保留[第三方许可证](THIRD_PARTY_NOTICES.md)。与 Obsidian／上游 Excalidraw 无官方关联。[变更记录](CHANGELOG.md)。

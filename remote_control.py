@@ -158,9 +158,12 @@ def tunnel_command(host: str, remote_port: int | None = None) -> list[str]:
 
 
 def _package_archive() -> bytes:
-    paths = [ROOT / name for name in ("launcher.py", "setup_connection.py", "remote_control.py", "pyproject.toml", "uv.lock")]
-    paths += [path for folder in ("runtime", "skills/obsidian-excalidraw") for path in (ROOT / folder).rglob("*")
-              if path.is_file() and "__pycache__" not in path.parts and path.suffix in (".py", ".md")]
+    paths = [ROOT / name for name in ("launcher.py", "setup_connection.py", "remote_control.py", "pyproject.toml", "uv.lock",
+                                     "plugin.json", "README.md", "README.zh-CN.md", "LICENSE", "THIRD_PARTY_NOTICES.md")]
+    paths += [path for folder in ("runtime", "skills/obsidian-excalidraw", "examples", "docs")
+              for path in (ROOT / folder).rglob("*")
+              if path.is_file() and "__pycache__" not in path.parts
+              and path.suffix in (".py", ".md", ".yaml", ".json", ".png", ".jpg")]
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for path in paths:
@@ -173,12 +176,13 @@ def deploy_remote(host: str, remote_port: int | None = None) -> dict[str, Any]:
     connection = _host_connection()
     tunnel = tunnel_command(host, remote_port)
     port = int(tunnel[-2].split(":")[1])
-    dependencies = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["dependencies"]
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
+    dependencies = project["dependencies"]
     remote_connection = {"mode": "remote", "bridge_url": f"http://127.0.0.1:{port}",
                          "bridge_token": connection["bridge_token"], "bridge_timeout": 180,
                          "vault_name": connection.get("vault_name"), "host_vault_path": connection.get("vault_path"),
                          "bridge_script": connection.get("bridge_script"), "remote_host": host}
-    payload = {"version": "0.8.17", "package": base64.b64encode(_package_archive()).decode("ascii"),
+    payload = {"version": project["version"], "package": base64.b64encode(_package_archive()).decode("ascii"),
                "dependencies": dependencies, "connection": remote_connection, "remote_port": port}
     config_path = tunnel[2]
     command = "python3 -c " + shlex.quote(REMOTE_INSTALL)

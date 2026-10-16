@@ -1,0 +1,49 @@
+# Maintenance and release / 维护与发布
+
+User entrypoints are documented in [README](../README.md), [中文README](../README.zh-CN.md), [Scene DSL](scene-dsl.md) and [Agent setup](../skills/obsidian-excalidraw/references/agent-setup.md). This page is for package maintainers, not a prerequisite for asking an Agent to draw a simple graph.
+
+## One optional compiler, one native backend
+
+`runtime/scene_dsl/` contains model/compiler/session/service/CLI. `drawing_dsl` and `launcher.py dsl` share the same service. Ordinary compose, exact native operations, libraries, presentations and host-specific capabilities remain in their existing modules. Do not maintain another backend-path-dependent DSL copy or add compatibility shims for the retired experiment CLI.
+
+Scene sources are reviewed public material under `examples/dsl/`; native examples under `examples/native/`; actual PNGs under `docs/images/`. Other user canvases, connection settings, private identity files, logs and artifacts remain ignored. Changes to geometry/fonts require re-rendering the affected real examples; text-source checks do not prove image quality.
+
+## Shared Engine source and automatic update PRs
+
+- [`bridge/shared-scripts.json`](../bridge/shared-scripts.json) is the explicit import allowlist. Shared Engines are maintained only in [Scripts](https://github.com/Bowen-0x00/obsidian-excalidraw-scripts); `mcp/Start-Agent-Drawing.md` and `mcp/Engine-Agent-Bridge.md` belong to this Agent repository and are never imported.
+- [`bridge/shared-scripts.lock.json`](../bridge/shared-scripts.lock.json) records the exact source commit, path, script version and SHA-256 of UTF-8/LF content. Historical legacy `sourceCommit:null` represented unknown provenance, not an invented commit; actual imported snapshots pin their published source tree.
+- Scripts main pushes notify this repository only for declared inputs or notification-workflow changes. The receiver also supports manual workflow dispatch and a six-hour fallback. It imports the latest source main, coalesces delayed notices, validates all inputs, compiles JavaScript without executing it, runs behavior regressions and creates/updates one scoped `automation/shared-script-engines` PR.
+- Unrelated source changes and identical content are no-ops, including lock commit churn and an already-current PR. Deleted/renamed inputs, missing declarations, symlinks and independently edited shared copies fail before copying. A bot branch with human commits or out-of-scope edits is not overwritten; a rejected/orphaned branch must be resolved before reuse. An unchanged merged branch can be reused.
+- Configure `SKILL_SYNC_TOKEN` as an Actions repository secret in both repositories. Prefer an expiring fine-grained credential limited to this Agent repository with Contents read/write, Pull requests read/write and Metadata read. Never paste it in workflow YAML, commit it, enable secret-bearing jobs for untrusted PRs, or broaden repository-wide default permissions unnecessarily. Rotate by replacing both secrets.
+- PR creation is automatic; merge/release is a maintainer gate. A PR does not bump package versions, overwrite customized vault scripts, reload mounted Engines or deploy local/remote clients. Source existence, copied bundle and running Engine are distinct states.
+
+## Local validation commands
+
+The source checkout must contain the exact published commit when importing shared scripts:
+
+```sh
+python scripts/sync_shared_scripts.py check
+python scripts/sync_shared_scripts.py plan --source-dir /path/to/scripts --source-commit FULL_40_CHARACTER_COMMIT
+python scripts/sync_shared_scripts.py apply --source-dir /path/to/scripts --source-commit FULL_40_CHARACTER_COMMIT
+node scripts/check_shared_scripts.mjs
+python -m unittest discover -s scripts/tests -v
+uv run --frozen python -m unittest discover -s runtime/tests -v
+```
+
+No upstream Engine executes just because it was published. Return fixes to the shared source rather than independently editing the copied Engine. Adding a new Engine requires reviewing the manifest, lock and bundle declaration together—not filename-based automatic import.
+
+## Release gate
+
+1. Preserve unrelated repository/user changes. Update package manifests and the lock consistently; remote and host installation receipts derive the package version rather than a separate stale literal.
+2. Run importer/runtime regressions and inspect language diagnostics. Tests must protect behavior, identities, conflicts and boundaries; do not use copied source text or mocked render success as proof.
+3. Launch the real packaged CLI and stdio MCP against an isolated explicit canvas. Exercise first render, repeat/no-op, update, external-edit conflict, native bindings, resource completeness and actual PNG/review. Check-only completion is not accepted.
+4. Re-render curated examples; verify their public native files contain no private paths, bearer data or missing external image references. Inspect overview/detail PNGs at readable scale. Preserve original sources and report limitations.
+5. Check a clean exported installation archive, actual launch entrypoints, image/source/document links and the curated file allowlist. GitHub runners cannot prove Obsidian GUI compatibility; real-host evidence remains a separate gate.
+6. Publish the reviewed main commit, version tag and release asset. Installing from the marketplace should receive that same version. Do not claim npm/PyPI or another channel was published if it was not.
+7. Update managed local/remote clients without dropping unrelated MCP entries, private connection/DSL state or user settings. If Windows locks an old cache, stop only this package's occupying MCP before supported upgrade; never solve it by deleting user state. Restart/reload the client to discover new tools.
+
+The remote installer includes the optional compiler, dependencies, usage docs and example sources; remote rendering still occurs on the graphical host through loopback SSH. A package update is not permission to replace customized scripts or automatically trust executable library content.
+
+## Safety
+
+The Bridge is trusted code with vault read/write access, not a sandbox. Keep loopback authentication and credentials private. Additional Engines, code-bearing customData/library scripts, external application writes, interaction and animation require their own capability/trust checks. A static PNG cannot certify those runtime effects.

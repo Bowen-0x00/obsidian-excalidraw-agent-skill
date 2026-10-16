@@ -1,0 +1,52 @@
+version: 1
+id: gallery_async_architecture
+title: 异步任务平台：接入、执行与状态查询
+acceptance: medium
+style: {font_size: 21, text: '#16324f'}
+classes:
+  access: {stroke: '#0f766e', fill: '#f0fdfa'}
+  compute: {stroke: '#1d4ed8', fill: '#eff6ff'}
+  state: {stroke: '#7c3aed', fill: '#faf5ff'}
+nodes:
+  client: {label: Web 客户端, class: access}
+  api: {label: 任务 API, class: access}
+  queue: {label: 待执行队列, class: compute}
+  worker: {label: Worker 执行池, class: compute}
+  result: {label: 结果存储, class: state}
+  status: {label: 任务状态库, class: state}
+groups:
+  ingress:
+    label: 接入层
+    class: access
+    padding: 35
+    layout: {column: [client, api], gap: 105}
+  execution:
+    label: 异步执行层
+    class: compute
+    padding: 35
+    layout: {column: [queue, worker], gap: 105}
+  persistence:
+    label: 持久化层
+    class: state
+    padding: 35
+    layout: {column: [result, status], gap: 105}
+layout: {row: [ingress, execution, persistence], gap: 180}
+edges:
+  create: {from: client.bottom, to: api.top}
+  enqueue: {from: api.right, to: queue.left, label: 提交任务}
+  dispatch: {from: queue.bottom, to: worker.top}
+  save: {from: worker.right, to: result.left, label: 写入结果}
+  progress:
+    from: worker.bottom
+    to: status.left
+    kind: control
+    label: 更新状态
+    label_at: 0.5
+    via: [[572.5, 600], [840, 600], [840, 402.4]]
+  query:
+    from: api.bottom
+    to: status.bottom
+    kind: feedback
+    label: 查询进度
+    label_at: 0.6
+    via: [[159.5, 800], [981.5, 800]]

@@ -16,6 +16,8 @@
 !/uv.lock
 !/runtime/
 !/runtime/*.py
+!/runtime/scene_dsl/
+!/runtime/scene_dsl/*.py
 !/runtime/tests/
 !/runtime/tests/*.py
 !/bridge/
@@ -51,6 +53,7 @@
 !/skills/obsidian-excalidraw/references/microarchitecture.md
 !/skills/obsidian-excalidraw/references/typography.md
 !/skills/obsidian-excalidraw/references/acceptance.md
+!/skills/obsidian-excalidraw/references/scene-dsl.md
 !/skills/obsidian-excalidraw/prompts/
 !/skills/obsidian-excalidraw/prompts/maintain-libraries.zh-CN.md
 !/.github/
@@ -79,3 +82,19 @@ __pycache__/
 .venv/
 *.png
 *.log
+
+# Curated public examples only; arbitrary user canvases/artifacts remain ignored.
+!/examples/
+!/examples/dsl/
+!/examples/dsl/*.yaml
+!/examples/dsl/assets/
+!/examples/dsl/assets/*.png
+!/examples/native/
+!/examples/native/*.excalidraw.md
+!/examples/native/assets/
+!/examples/native/assets/*.png
+!/docs/
+!/docs/*.md
+!/docs/gallery-provenance.json
+!/docs/images/
+!/docs/images/*.png

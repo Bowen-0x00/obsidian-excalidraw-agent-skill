@@ -1,0 +1,26 @@
+version: 1
+id: gallery_release_flow
+title: 变更上线：检查、发布与修订闭环
+acceptance: medium
+style: {font_size: 21, stroke: '#475569', fill: '#f8fafc', text: '#16324f'}
+classes:
+  success: {stroke: '#0f766e', fill: '#ecfdf5'}
+  caution: {stroke: '#b45309', fill: '#fffbeb'}
+nodes:
+  request: 提交变更申请
+  gate:
+    shape: diamond
+    label: 评审、自动化测试与回滚方案，是否全部通过？
+    wrap: 190
+  release: {label: 灰度发布, class: success}
+  revise: {label: 补齐风险说明并修订方案, wrap: 200, class: caution}
+  observe: {label: 观察错误率与延迟, class: success}
+  done: {shape: ellipse, label: 全量上线并归档}
+layout: {flow: down, gap: [150, 105]}
+edges:
+  submit: {from: request.bottom, to: gate.top}
+  approved: {from: gate.left, to: release.top, label: 通过}
+  refused: {from: gate.right, to: revise.top, label: 未通过}
+  resubmit: {from: revise.right, to: request.right, kind: feedback, label: 重新提交}
+  watch: {from: release.bottom, to: observe.top}
+  finish: {from: observe.bottom, to: done.top}

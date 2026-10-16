@@ -1,0 +1,61 @@
+version: 1
+id: gallery_observability_panel
+title: 服务观测面板：趋势、延迟与服务明细
+acceptance: medium
+style: {font_size: 21, stroke: '#475569', fill: '#f8fafc', text: '#16324f'}
+classes:
+  volume: {stroke: '#1d4ed8', fill: '#eff6ff'}
+  health: {stroke: '#0f766e', fill: '#f0fdfa'}
+  attention: {stroke: '#b45309', fill: '#fffbeb'}
+nodes:
+  requests: {label: "最近 1 分钟请求\n24,000", class: volume, size: [260, 100]}
+  latency: {label: "P95 延迟\n68 ms", class: health, size: [260, 100]}
+  errors: {label: "错误率\n0.18%", class: attention, size: [260, 100]}
+  traffic:
+    shape: chart
+    size: [540, 330]
+    options:
+      animation: false
+      color: ['#5470c6', '#0f766e']
+      title: {text: 请求量与错误率, left: center, textStyle: {fontSize: 18}}
+      legend: {data: [请求量, 错误率], bottom: 0}
+      grid: {left: 65, right: 62, top: 65, bottom: 55}
+      xAxis: {type: category, data: ['09:00', '09:10', '09:20', '09:30', '09:40', '09:50']}
+      yAxis: [{type: value, name: '次 / min'}, {type: value, name: '%', min: 0, max: 0.5}]
+      series:
+        - {name: 请求量, type: bar, data: [12000, 16000, 19000, 23000, 22000, 24000], barMaxWidth: 38}
+        - {name: 错误率, type: line, yAxisIndex: 1, data: [0.1, 0.12, 0.15, 0.3, 0.22, 0.18], symbolSize: 7}
+  response:
+    shape: chart
+    size: [540, 330]
+    options:
+      animation: false
+      color: ['#0f766e']
+      title: {text: P95 延迟趋势, left: center, textStyle: {fontSize: 18}}
+      grid: {left: 55, right: 28, top: 65, bottom: 55}
+      xAxis: {type: category, boundaryGap: false, data: ['09:00', '09:10', '09:20', '09:30', '09:40', '09:50']}
+      yAxis: {type: value, name: ms, min: 0, max: 100}
+      series:
+        - {type: line, data: [42, 48, 53, 65, 61, 68], smooth: true, symbolSize: 7, areaStyle: {opacity: 0.12}}
+  services:
+    shape: table
+    label: 服务明细 · 示例快照
+    style: {stroke: '#475569', fill: '#f8fafc'}
+    columns: [服务, 状态, 实例, '请求 / min', 'P95 / ms']
+    rows:
+      - [接入 API, 正常, 4, '10,400', 42]
+      - [检索服务, 正常, 3, '7,200', 68]
+      - [生成服务, 观察中, 6, '4,200', 120]
+      - [索引服务, 正常, 2, '2,200', 55]
+  note:
+    shape: text
+    wrap: 1150
+    style: {font_size: 18, text: '#64748b'}
+    label: '演示数据：用于观察 DSL 的排版、直角表格与可编辑 ECharts 效果，不代表真实系统指标。'
+layout:
+  column:
+    - {row: [requests, latency, errors], gap: 110}
+    - {row: [traffic, response], gap: 80}
+    - services
+    - note
+  gap: 80

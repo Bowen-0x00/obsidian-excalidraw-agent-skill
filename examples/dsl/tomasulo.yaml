@@ -1,0 +1,97 @@
+version: 1
+id: tomasulo_scene
+title: Tomasulo：硬件部件、命名端口与广播唤醒
+acceptance: high
+style: {font_size: 19}
+classes:
+  queue: {stroke: '#475569', fill: '#f8fafc'}
+  station: {stroke: '#7c3aed', fill: '#faf5ff'}
+  memory: {stroke: '#0f766e', fill: '#f0fdfa'}
+  fu: {stroke: '#b45309', fill: '#fffbeb'}
+  bus: {stroke: '#be554b', fill: '#fff1f2'}
+nodes:
+  issue:
+    shape: table
+    class: queue
+    label: 指令队列：按序发射
+    columns: [序号, 指令, 等待]
+    rows:
+      - [I1, 'L.D F2, 0(R1)', 访存]
+      - [I2, 'MUL.D F0, F2, F4', 等 Load1]
+      - [I3, 'ADD.D F6, F0, F8', 等 Mult1]
+    ports: {add: 'right:0.4', mul: 'right:0.8', load: bottom}
+  regs:
+    shape: table
+    class: memory
+    label: 浮点寄存器与 Qi 状态
+    columns: [寄存器, Qi, Value]
+    rows:
+      - [F0, Mult1, 等待结果]
+      - [F2, Load1, 等待访存]
+      - [F4, '0', '2.0']
+      - [F6, Add1, 等待结果]
+    ports: {read: 'bottom:0.7', write: 'bottom:0.2'}
+  load:
+    shape: table
+    class: memory
+    label: Load Buffer
+    columns: [Tag, Busy, Address]
+    rows: [[Load1, Yes, 'R1+0'], [Load2, No, '-']]
+  cache: {label: 数据 Cache, class: memory}
+  store:
+    shape: table
+    class: memory
+    label: Store Buffer
+    columns: [Tag, Addr, V, Q]
+    rows: [[Store1, 'R3+8', '-', Add1]]
+  add_rs:
+    shape: table
+    class: station
+    label: Add 保留站：暂存值与生产者标签
+    columns: [Tag, Busy, Op, Vj, Vk, Qj, Qk]
+    rows: [[Add1, Yes, ADD, '-', '3.0', Mult1, '0'], [Add2, No, '-', '-', '-', '0', '0']]
+    ports: {issue: 'left:0.4', values: 'top:0.7', ready: right, snoop: 'bottom:0.3'}
+  mul_rs:
+    shape: table
+    class: station
+    label: Mult 保留站
+    columns: [Tag, Busy, Op, Vj, Vk, Qj, Qk]
+    rows: [[Mult1, Yes, MUL, '-', '2.0', Load1, '0'], [Mult2, No, '-', '-', '-', '0', '0']]
+    ports: {issue: left, ready: right, snoop: 'bottom:0.7'}
+  adder: {shape: alu, label: FP Add, class: fu, ports: {args: 'left:0.25', result: right}}
+  mult: {shape: alu, label: FP Mult, class: fu, ports: {args: 'left:0.25', result: right}}
+  cdb:
+    label: 公共数据总线 CDB：广播 [生产者 Tag, Result]
+    class: bus
+    size: [1080, 70]
+    ports: {fu: 'top:0.9', load: 'top:0.1', add: 'top:0.45', mul: 'top:0.65', reg: 'top:0.28', store: 'left:0.7'}
+  notes:
+    shape: text
+    wrap: 1120
+    label: '教学边界：无 ROB、不宣称精确异常。发射设置目的 Qi；Qj/Qk=0 时派发；CDB 匹配标签写 V 并清 Q。Qi 不匹配时不覆盖寄存器。示例状态用于解释依赖，不是逐周期仿真。'
+groups:
+  memory_domain: {label: 访存区域, class: memory, layout: {column: [load, cache, store], gap: 70}}
+  execution_domain: {label: 分布式等待与执行, class: station, layout: {grid: [[add_rs, adder], [mul_rs, mult]], gap: [100, 100]}}
+layout:
+  column:
+    - {row: [issue, regs], gap: 180}
+    - {row: [memory_domain, execution_domain], gap: 180}
+    - cdb
+    - notes
+  gap: [100, 130]
+edges:
+  issue_add: {from: issue.add, to: add_rs.issue, kind: control}
+  issue_mul: {from: issue.mul, to: mul_rs.issue, kind: control}
+  issue_load: {from: issue.load, to: load.top, kind: control}
+  read_values: {from: regs.read, to: add_rs.values, kind: data}
+  execute_add: {from: add_rs.ready, to: adder.args}
+  execute_mul: {from: mul_rs.ready, to: mult.args}
+  load_address: {from: load.bottom, to: cache.top}
+  store_memory: {from: store.top, to: cache.bottom}
+  add_result: {from: adder.result, to: cdb.fu, kind: feedback}
+  mul_result: {from: mult.result, to: cdb.fu, kind: feedback}
+  load_result: {from: cache.left, to: cdb.load, kind: feedback}
+  wake_add: {from: cdb.add, to: add_rs.snoop, kind: feedback}
+  wake_mul: {from: cdb.mul, to: mul_rs.snoop, kind: feedback}
+  writeback: {from: cdb.reg, to: regs.write, kind: feedback}
+  wake_store: {from: cdb.store, to: store.left, kind: feedback}

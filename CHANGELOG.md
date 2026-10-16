@@ -1,6 +1,22 @@
 # Changelog
 
-## Unreleased — Shared Engine source locking and automatic update PRs
+## 0.9.0 — Optional scene DSL and real editable example gallery
+
+- Integrate the measured YAML/JSON compiler as `runtime/scene_dsl`, served by one new `drawing_dsl(plan|render)` MCP tool and `launcher.py dsl` CLI. Preserve all existing compose/native/library/presentation and CLI paths; retire the independent experiment runtime instead of maintaining a second implementation.
+- Compile spatial row/column/grid/flow regions, native sharp-cell tables, named ports, polygons and source-backed resources through existing APIs. Private connection-scoped state keeps native IDs, no-op submissions, explicit diff/deletion and external-edit conflict protection; plan remains read-only and render returns actual PNG rather than visual approval.
+- Share execution/state/error semantics across MCP and CLI, lock concurrent state access, reject YAML aliases/cycles/nonfinite data, refresh bound labels during geometry changes and remove obsolete owned visual overrides. Preserve post-commit receipts when inspection fails; no automatic adopt/GUI-to-DSL merge or general electrical correctness claim.
+- Rewrite English/Chinese READMEs around natural language, ordinary compose, repeatable DSL, precise native edits, automation and remote rendering. Publish six genuine PNG/YAML/native-canvas examples with scope/provenance, complete DSL and maintenance guides, and focused Skill routing rather than loading every reference.
+- Verify 78 runtime and 7 importer behavior tests, real stdio MCP image return, six freshly rendered examples and same-source zero-op submissions, same-ID label updates, unowned-content preservation, external-edit refusal and read-only planning. Native tables/resources/bindings and actual PNGs were checked; installation and remote-update evidence is recorded separately.
+- Include the reviewed upstream ECharts 1.3.0 shared snapshot and preserve its source lock; no independent Table Engine or plugin renderer rewrite.
+
+### Table styling, ECharts 1.3.0 guidance and hardware DSL lessons
+
+- Separate table cells from rounded node cards: explicit sharp corners, continuous thin grids, contrasting headers/bodies, measured column widths and native bound-text styling. Keep the current create_table/metadata contract; no Table Engine change.
+- Document the 16 published ECharts examples, 12 visual types plus custom, multi-series/stacked/dual-axis/XY data, schemaVersion 2 edit roundtrips and own-options SVG export. Advanced Agent charts use current Bridge custom/options rather than unsupported UI enum values; shared source, bundled copy and mounted Engine versions remain distinct.
+- Distill the real hwdiagram/1 datapath's body/port alignment, native symbol contracts, semantic fanout, separate control/feedback channels and style-dependent remeasurement. Reject recipe-specific hardcoding, schema-only implementation claims and obsolete crossing masks; leave the user's existing reference canvas unchanged.
+- Real Obsidian smoke preserved all IDs/table metadata while styling 33 native cells and unequal columns; dual-axis mixed and custom heatmap PNGs were complete and visually reviewed. The reference hardware canvas was read/rendered only; 16 existing chart examples and editor screenshots were inspected, not all interactions rerun. No Bridge, Table Engine or renderer code changed.
+
+### Shared Engine source locking and automatic update PRs
 
 - Declare the 16 shared Engine source/target mappings and LF-normalized content/version locks. Preserve the legacy snapshot without inventing a source commit; imported updates pin a real published source tree.
 - Add manifest-aware Scripts push notifications and a target receiver with manual/scheduled fallback. Validate all inputs before import, reject shared-copy drift/deletions/renames, skip unrelated/no-op updates, and reuse a scoped bot PR without overwriting human edits.

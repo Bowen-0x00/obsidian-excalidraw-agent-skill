@@ -1,0 +1,88 @@
+# Teaching datapath: A or saved Q is selected, then ALU consumes B and writes ACC.
+# 32-bit data, 1-bit select/enable; clock/reset and ALU opcode are intentionally omitted.
+version: 1
+id: gallery_feedback_datapath
+title: 32 位累加数据通路：选择、运算与寄存反馈
+acceptance: medium
+style: {font_size: 23, stroke: '#263746', fill: '#ffffff', text: '#172554'}
+classes:
+  compute: {stroke: '#1d4ed8', fill: '#eff6ff'}
+  control: {stroke: '#9a3412', fill: '#fff7ed'}
+  data_net: {stroke: '#263746', fill: transparent}
+  control_net: {stroke: '#9a3412', dash: dashed}
+  feedback_net: {stroke: '#7c3aed'}
+nodes:
+  a:
+    label: A 寄存器
+    at: [50, 400]
+    size: [140, 180]
+    ports: {Q: 'right:0.25'}
+  b:
+    label: B 寄存器
+    at: [50, 740]
+    size: [140, 140]
+    ports: {Q: right}
+  mux:
+    shape: mux
+    label: MUX
+    at: [350, 400]
+    size: [150, 180]
+    ports: {i0: 'left:0.25', i1: 'left:0.75', sel: top, y: right}
+  alu:
+    shape: alu
+    label: ALU
+    class: compute
+    at: [700, 400]
+    size: [180, 180]
+    ports: {a: 'left:0.25', b: 'left:0.75', y: right}
+  acc:
+    label: ACC
+    at: [1080, 400]
+    size: [140, 180]
+    ports: {D: left, Q: right, en: top}
+  result:
+    label: 输出结果
+    at: [1440, 450]
+    size: [160, 80]
+  control:
+    label: 控制器
+    class: control
+    at: [700, 140]
+    size: [240, 90]
+    ports: {sel: 'bottom:0.25', en: 'right:0.5'}
+  note:
+    shape: text
+    at: [50, 1040]
+    wrap: 1500
+    style: {font_size: 20, text: '#475569'}
+    label: '教学示意：sel=0 选 A，sel=1 选 ACC.Q；en=1 时写 ACC。两条 Q 出线表示同一寄存值的两个去向。省略时钟、复位与运算码，不表示完整 RTL。'
+layout:
+  column: [control, {row: [a, mux, alu, acc, result], gap: 120}, b, note]
+  gap: 140
+  origin: [50, 100]
+edges:
+  a_input: {from: a.Q, to: mux.i0, class: data_net, label: 32 bit}
+  selected: {from: mux.y, to: alu.a, class: data_net, label: 32 bit}
+  b_input:
+    from: b.Q
+    to: alu.b
+    class: data_net
+    label: 32 bit
+    via: [[600, 810], [600, 535]]
+  write_acc: {from: alu.y, to: acc.D, class: data_net, label: 32 bit}
+  output: {from: acc.Q, to: result.left, class: data_net, label: Q / 32 bit}
+  feedback:
+    from: acc.Q
+    to: mux.i1
+    kind: feedback
+    class: feedback_net
+    label: Q 反馈 / 32 bit
+    via: [[1250, 490], [1250, 680], [300, 680], [300, 535]]
+  select: {from: control.sel, to: mux.sel, kind: control, class: control_net, label: sel / 1 bit}
+  enable:
+    from: control.en
+    to: acc.en
+    kind: control
+    class: control_net
+    label: en / 1 bit
+    via: [[1050, 185], [1050, 300], [1150, 300]]
