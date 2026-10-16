@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Advanced native showcase gallery
+
+- Lead the English/Chinese READMEs with real five-stage RISC-V, disaggregated inference and 4×4 matrix-engine diagrams. Keep the six DSL examples and explicitly distinguish DSL compilation from Agent-authored Python/native API drawing.
+- Include the executable source, editable native canvases, actual overview/detail PNGs and scoped provenance. Exercise all three builder CLI entrypoints against the real host; verify declared endpoints/reciprocal bindings and inspect readable details rather than treating an overview or check pass as complete visual proof.
+- Preserve 68/32/66 declared connections while correcting port roles, control D/Q boundaries, independent signal tracks, labels and drain-phase semantics. These are authored teaching/reference illustrations, not an automatic hardware layout engine, complete ISA implementation, production benchmark or simulator. No Bridge/shared Engine/DSL runtime change.
+
 ## 0.9.0 — Optional scene DSL and real editable example gallery
 
 - Integrate the measured YAML/JSON compiler as `runtime/scene_dsl`, served by one new `drawing_dsl(plan|render)` MCP tool and `launcher.py dsl` CLI. Preserve all existing compose/native/library/presentation and CLI paths; retire the independent experiment runtime instead of maintaining a second implementation.

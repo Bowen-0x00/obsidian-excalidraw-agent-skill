@@ -85,6 +85,8 @@ __pycache__/
 
 # Curated public examples only; arbitrary user canvases/artifacts remain ignored.
 !/examples/
+!/examples/builders/
+!/examples/builders/*.py
 !/examples/dsl/
 !/examples/dsl/*.yaml
 !/examples/dsl/assets/

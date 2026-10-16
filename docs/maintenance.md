@@ -6,7 +6,7 @@ User entrypoints are documented in [README](../README.md), [中文README](../REA
 
 `runtime/scene_dsl/` contains model/compiler/session/service/CLI. `drawing_dsl` and `launcher.py dsl` share the same service. Ordinary compose, exact native operations, libraries, presentations and host-specific capabilities remain in their existing modules. Do not maintain another backend-path-dependent DSL copy or add compatibility shims for the retired experiment CLI.
 
-Scene sources are reviewed public material under `examples/dsl/`; native examples under `examples/native/`; actual PNGs under `docs/images/`. Other user canvases, connection settings, private identity files, logs and artifacts remain ignored. Changes to geometry/fonts require re-rendering the affected real examples; text-source checks do not prove image quality.
+Reviewed sources live under `examples/dsl/` (compiler input) and `examples/builders/` (Agent-authored Python calling native APIs); native examples under `examples/native/`; actual PNGs under `docs/images/`. Preserve that distinction in README/gallery/provenance. Other user canvases, connection settings, private identity files, logs and artifacts remain ignored. Changes to geometry/fonts require re-rendering the affected real examples; text-source checks do not prove image quality.
 
 ## Shared Engine source and automatic update PRs
 

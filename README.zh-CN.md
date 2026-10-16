@@ -12,25 +12,25 @@
 
 下面都是附带源码在真实 Obsidian 中导出的 PNG，不是 UI 效果图。交付物仍是可编辑画布，PNG 用于视觉检查。
 
-### 原生表格与保留配置的 ECharts
+### 五级 RISC-V 数据通路
 
-![服务观测面板：直角表格与两张真实ECharts图](docs/images/observability-panel.png)
+![包含独立流水寄存器、MUX、ALU、旁路和控制网络的原生数据通路](docs/images/pipeline.png)
 
-[DSL 源码](examples/dsl/observability-panel.yaml) · [可编辑画布](examples/native/observability-panel.excalidraw.md)。使用演示数据；图表保留结构化 options，表格保留原生单元格与绑定文字。
+[Python／原生 API 源码](examples/builders/advanced_showcase.py) · [可编辑画布](examples/native/pipeline.excalidraw.md) · [EX 局部大图](docs/images/pipeline-execute.png)。独立部件、命名端口和 68 条声明连接；覆盖 ALU／load／store／BEQ 教学子集，不冒充完整 RV32I 实现或 RTL 仿真。
 
-### 固定分区与独立跨区走线
+### 分布式推理：从请求接入到 Token 交付
 
-![异步任务平台：接入、执行、持久化三个区域](docs/images/task-architecture.png)
+![分离调度、Prefill、Decode、交付与运维平面的推理系统全景](docs/images/inference.png)
 
-[DSL 源码](examples/dsl/task-architecture.yaml) · [可编辑画布](examples/native/task-architecture.excalidraw.md)。用空间组合固定区域，不让反馈边把整图重新排成长链。
+[Python／原生 API 源码](examples/builders/advanced_showcase.py) · [可编辑画布](examples/native/inference.excalidraw.md)。展示 Prefill／Decode 分离、分页 KV 安装与读取、KV-ready 交接、逐 Token 循环、取消回收、背压和版本发布；是参考架构，不是实测部署。
 
-### 硬件是部件和信号，不只是文字卡片
+### 分块矩阵加速器与数据复用
 
-![带命名端口、原生MUX和ALU多边形的反馈数据通路](docs/images/feedback-datapath.png)
+![双 Bank 暂存、四乘四 PE 阵列和独立累加器排出通路](docs/images/accelerator.png)
 
-[DSL 源码](examples/dsl/feedback-datapath.yaml) · [可编辑画布](examples/native/feedback-datapath.excalidraw.md)。这是明确省略时钟、复位和运算码的教学示意，不是 RTL／电气仿真。
+[Python／原生 API 源码](examples/builders/advanced_showcase.py) · [可编辑画布](examples/native/accelerator.excalidraw.md) · [PE 阵列局部大图](docs/images/accelerator-array.png)。16 个 MAC 单元，操作数向东／向南传递，计算时本地累加，结束后独立 drain。
 
-[画廊](docs/gallery.md) 还有长中文分支流程、更密集的 Tomasulo 保留站／寄存器表，以及实际图片、LaTeX、渐变和阴影。每例注明源码、原生输出、规模及验证边界。展示过某一规模，不等于任意同规模图都能自动正确、美观地完成。
+**这三组复杂图由 Agent 编写 Python、调用已有原生 API 制作，不是 DSL 自动生成，也不是一键硬件自动布局的效果。** [画廊](docs/gallery.md) 标明源码、PNG 检查和能力边界；原来的六组 YAML／DSL 示例仍全部保留，包括原生表格／ECharts、长中文分支、Tomasulo 和图片／LaTeX 等效果。
 
 ## 选择使用方式
 
