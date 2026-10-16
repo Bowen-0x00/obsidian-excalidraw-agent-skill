@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from runtime_config import artifact_directory
+from acceptance import DEFAULT_LEVEL, level, triage, unsupported_issues, visual_check_issues
 
 
 class ReviewLedger:
@@ -16,12 +17,13 @@ class ReviewLedger:
         self,
         context_token: str,
         ledger_path: str | None = None,
-        max_rounds: int = 5,
+        max_rounds: int | None = None,
+        acceptance_level: str | None = None,
     ) -> None:
-        if isinstance(max_rounds, bool) or not isinstance(max_rounds, int) or max_rounds < 1:
+        if max_rounds is not None and (isinstance(max_rounds, bool) or not isinstance(max_rounds, int) or max_rounds < 1):
             raise ValueError("max_rounds must be a positive integer")
         self.context_token = context_token
-        self.max_rounds = max_rounds
+        self.max_rounds = max_rounds or 5
 
         if ledger_path:
             self.path = Path(ledger_path)
@@ -31,7 +33,13 @@ class ReviewLedger:
 
         self.rounds: list[dict[str, Any]] = []
         self.status: str = "continue"
+        self.acceptance_level = DEFAULT_LEVEL
+        self.expected: list[dict[str, Any]] = []
         self._load()
+        if acceptance_level is not None:
+            self.acceptance_level = level(acceptance_level)
+        if max_rounds is not None:
+            self.max_rounds = min(self.max_rounds, max_rounds) if self.rounds else max_rounds
 
     def _load(self) -> None:
         if self.path.exists():
@@ -41,12 +49,16 @@ class ReviewLedger:
             self.max_rounds = data["maxRounds"]
             self.rounds = data["rounds"]
             self.status = data["status"]
+            self.acceptance_level = level(data.get("acceptanceLevel"))
+            self.expected = data.get("expected", [])
 
     def save(self) -> str:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         data = {
             "contextToken": self.context_token,
             "maxRounds": self.max_rounds,
+            "acceptanceLevel": self.acceptance_level,
+            "expected": self.expected,
             "currentRound": len(self.rounds),
             "status": self.status,
             "updatedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -80,6 +92,9 @@ class ReviewLedger:
         changes_summary: str | list[Any] | None = None,
         check_result: dict[str, Any] | None = None,
         preview_complete: bool = True,
+        visual_checks: dict[str, str] | None = None,
+        dispositions: list[dict[str, Any]] | None = None,
+        detail_preview_ids: list[str] | None = None,
     ) -> dict[str, Any]:
         """Count initial review as round one; never bypass the cap on unknown/incomplete output."""
         if len(self.rounds) >= self.max_rounds:
@@ -94,23 +109,27 @@ class ReviewLedger:
         unsupported_checks = check.get("unsupportedChecks", [])
         all_round_issues = [{"source": "hard_check", **issue} for issue in hard_issues]
         all_round_issues.extend({"source": "visual", **issue} for issue in (visual_issues or []))
+        all_round_issues.extend(unsupported_issues(unsupported_checks))
+        all_round_issues.extend(visual_check_issues(self.acceptance_level, visual_checks, check.get("visualApplicability")))
         if not visual_reviewed:
             all_round_issues.append({"code": "VISUAL_NOT_REVIEWED", "severity": "error", "reason": "PNG has not actually been inspected"})
         if not preview_complete:
             all_round_issues.append({"code": "PREVIEW_INCOMPLETE", "severity": "error", "reason": "Required exported resources are missing"})
-        if check.get("status") != "pass" or unsupported_checks:
-            all_round_issues.append({"code": "CHECK_NOT_PASSED", "severity": "error", "reason": "Hard checks failed, are unknown, or are absent"})
+        if check.get("status") not in ("pass", "fail", "unknown") or (check.get("status") != "pass" and not hard_issues and not unsupported_checks):
+            all_round_issues.append({"code": "CHECK_NOT_PASSED", "severity": "error", "reason": "Hard check evidence is absent or inconsistent"})
+        if dispositions and not visual_reviewed:
+            raise ValueError("A geometric disposition requires inspection of the current PNG")
         for issue in all_round_issues:
             issue.setdefault("severity", "error")
             if issue["severity"] not in ("error", "warning", "info"):
                 raise ValueError("Issue severity must be error, warning, or info")
-        unresolved = [issue for issue in all_round_issues if issue["severity"] != "info"]
+        unresolved, advisories = triage(all_round_issues, self.acceptance_level, dispositions)
         severity_score = self._calculate_severity_score(unresolved)
         if not unresolved:
-            status, message = "completed", "Current PNG was inspected; complete export and hard checks passed."
+            status, message = "completed", "Current PNG and required acceptance checks passed; disclosed advisories may remain."
         elif round_number >= self.max_rounds:
             status, message = "needs_attention", f"Reached {self.max_rounds} rounds with unresolved issues."
-        elif round_number >= 3 and severity_score >= self.rounds[-1]["severityScore"] >= self.rounds[-2]["severityScore"]:
+        elif round_number >= 3 and all(entry.get("acceptanceLevel", DEFAULT_LEVEL) == self.acceptance_level for entry in self.rounds[-2:]) and severity_score >= self.rounds[-1]["severityScore"] >= self.rounds[-2]["severityScore"]:
             status, message = "needs_attention", "No improvement in unresolved issue severity for two consecutive rounds."
         else:
             status, message = "continue", f"Round {round_number}: repair the {len(unresolved)} remaining issues, then export and inspect again."
@@ -122,6 +141,11 @@ class ReviewLedger:
             "visualReviewed": visual_reviewed,
             "previewComplete": preview_complete,
             "changesSummary": changes_summary,
+            "acceptanceLevel": self.acceptance_level,
+            "visualChecks": visual_checks or {},
+            "dispositions": dispositions or [],
+            "detailPreviewIds": detail_preview_ids or [],
+            "advisories": advisories,
             "hardIssues": hard_issues,
             "visualIssues": visual_issues or [],
             "unsupportedChecks": unsupported_checks,
@@ -135,6 +159,9 @@ class ReviewLedger:
             "status": status,
             "round": round_number,
             "maxRounds": self.max_rounds,
+            "acceptanceLevel": self.acceptance_level,
+            "advisories": advisories,
+            "visualChecks": visual_checks or {},
             "unresolvedIssues": unresolved,
             "visualReviewed": visual_reviewed,
             "ledgerPath": self.save(),

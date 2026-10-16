@@ -135,7 +135,8 @@ class ReviewBudgetRegressionTests(unittest.TestCase):
             ledger = self.make_ledger(directory)
             first = ledger.record_round("r1", "p1", False, check_result={"status": "pass"})
             self.assertEqual(first["status"], "continue")
-            second = ledger.record_round("r1", "p2", True, check_result={"status": "pass"})
+            second = ledger.record_round("r1", "p2", True, check_result={"status": "pass"},
+                                        visual_checks={"content": "pass", "readability": "pass", "occlusion": "pass"})
             self.assertEqual(second["status"], "completed")
             with self.assertRaises(ValueError):
                 ledger.record_round("r1", "p2", True, check_result={"status": "pass"})

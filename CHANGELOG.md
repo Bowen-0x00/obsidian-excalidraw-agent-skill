@@ -7,6 +7,15 @@
 - Add nonexecuting JavaScript syntax checks, isolated importer behavior regressions and secret-free integrity CI. Source code is never executed merely because it was published upstream.
 - Keep Agent Bridge/bootstrap ownership, package release, vault deployment and loaded-Engine compatibility as separate responsibilities. Document scoped encrypted credentials, rotation and the real-host acceptance gate.
 
+## 0.8.17 — Tiered, visual-first diagram acceptance
+
+- Add low/medium/high acceptance, default medium and independent of model effort. User prompt/choice flows resolve the same acceptance_level parameter across MCP, client/CLI, inspection, checks and persistent review. High deepens content/connection/style inspection without universal mandatory bindings.
+- Detect native text-line overlap, later paint covering text, shafts/borders through text and thick-shaft proximity; account for paint order, opaque panels, hidden/deleted elements and native own-arrow label masking. Geometric boxes remain candidates, not fabricated glyph/pixel proofs.
+- Require content/readability/occlusion visual check outcomes at medium/high and connection/hierarchy-style outcomes at high. Specific current-PNG adjudications can accept legitimate composition or false positives while retaining findings and reasons. Structural and explicit semantic failures cannot be waived.
+- Retain prior semantic assertions when review omits check_result, validate detail preview state/completeness, and use actual output scale for advisory small-text triggers rather than hardcoded font-size rejection. Preserve revision guards and finite/no-progress stopping rules.
+- Real native-canvas counterexamples exercised legal background containment, opaque masking, an unbound pointer, line-through-text, font/spacing collisions and overpaint. Two targeted repair passes preserved all 26 IDs; high review completed only after actual PNG checks. A separate whitespace intersection was accepted with explicit visual evidence, not by muting all overlap checks. A real long-Chinese branching flow also passed the new MCP inspection path.
+- Existing and new behavior regressions cover level persistence, checklist gates, non-waivable errors, geometry boundaries and stopping limits. No plugin/kernel/shared Engine snapshots were modified.
+
 ## 0.8.16 — Editable PPT block arrow sizing
 
 - Add general-purpose filled/outline block arrow selection and sizing guidance for flow, architecture, teaching and comparison diagrams. Separate path length, scene-unit shaft width, head scale and outline stroke; include short/wide versus long/slim examples and same-ID width-only edits.

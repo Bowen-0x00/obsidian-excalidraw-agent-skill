@@ -104,6 +104,7 @@ new-tab是Agent默认的独立视图选择，不表示分屏无用：需要人�
 ## 每轮：check → PNG → 看图 → review → 局部修正
 
 **默认 max_rounds=5。每次当前状态的 check+PNG+视觉review计一轮，初图也计入；不是必须画五遍。** 达到要求立即结束。连续两轮问题/严重度无改善或达到上限时needs_attention，报告剩余问题，不标完成。
+验收默认medium，按提示词/本轮选项传acceptance_level，省略继承同context；不是模型effort。低档保留基本正确性与看图，高档增加细查不强制全绑定；[acceptance](acceptance.md)规定阻断项、advisories、具体误报判断。中高必需记录真实visual_checks，不能仅填visual_reviewed=true。
 
 1. `drawing_check(context_token, expected=语义断言)`：断言节点存在、方向正确等。读取issues中的native IDs；结构通过不意味着业务或美观通过。
    - `expected`示例：`{"type":"label_equals","id":"实际节点或文字ID","text":"完整内容"}`、`{"type":"edge_label","from":"起点ID","to":"终点ID","text":"通过"}`；节点字段是`id`，不是`target`。
@@ -116,14 +117,14 @@ new-tab是Agent默认的独立视图选择，不表示分屏无用：需要人�
    - “通过/未通过”应贴近决策出口对应路径且左右归属明确，不贴到整张图的最外缘。可对绑定text的`labelPosition`（0–1的路径比例）作局部调整；普通两点直连默认0.5，决策/多段路径默认0.28，显式位置保留。自动LR布局按实测标签宽预留rank间距；手动position/特殊端口仍需PNG复核，不宣称所有路线自动无冲突。
    - 同层分支大小和基线一致；只为给标签空间才增间距，不能把“无重叠”做成过度疏散的大画布。初图用planner默认nodeGap/rankGap，先看PNG再有理由地覆盖。
    - 组件库端口要实际贴合路径stub，不能因绑定落在透明anchor bbox就称连接正确；按当前svgViewBox/carrier尺寸计算端点。未声明电气引脚时不以“0.28/0.72”等固定示例取代真实图形。
-5. `drawing_review(context_token, revision=preview.revision, preview_id=preview.previewId, visual_reviewed=true, visual_issues=[...], check_result=check, changes_summary=本轮真实改动, max_rounds=5)`。
+5. `drawing_review`提交当前revision/previewId、visual_reviewed、实际visual_checks、visual_issues及本轮改动；medium至少content/readability/occlusion，high再connections/hierarchy_style。需要时带已实际查看的detail_preview_ids和逐issueId的dispositions；API重读诊断并保留之前expected，不因省略check_result丢断言。
    - 只有实际看图后才填true。
    - 视觉问题用稳定code、elementIds、severity error/warning、reason、repair；不拿任意审美分数替代问题。
    - `completed`才交付；`continue`按问题修正；`needs_attention`停止自动修改并报告未满足项，不规避ledger换token继续刷轮数。
    - 新会话/重绑后旧contextToken可能失效；按file重新bind是恢复路径，不是新的质量预算。保留之前review轮数与问题记录，累计至原max_rounds，不为同一任务换token规避无进展停止。
 6. **修复明确问题，而不是每轮重建**：只修改问题对象、绑定文本及必要邻边。`drawing_apply`使用最新revision；局部修正后重复check和PNG。即使只改一行字也需要最终图检查。
 
-停止标准：语义清单完整；无硬错误；必需几何检查无unknown；所有资源完整；当前revision的PNG确实看过；无影响使用的视觉问题。工具错误/无进展不是完成。
+停止标准：语义清单完整、资源完整、真实看过当前PNG，本等级阻断项已修复或对具体几何候选有当前视觉依据，review=completed；advisories/未支持几何与人工判断理由交付时披露，不称全部自动证明。工具错误、无进展或带不可读缺陷不是完成。
 
 原生CLI路径也必须检查内容、绑定、保存结果并实际看PNG，采用相同最多5轮/无进展停止规则；没有MCP check/review时按native-cli参考记录真实评审过程和未覆盖约束，不编造check=pass、previewId或ledger。Native CLI更新后若回到MCP，重新读取它的revision并导出注册预览。
 

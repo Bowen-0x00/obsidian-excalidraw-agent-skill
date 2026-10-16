@@ -84,7 +84,8 @@ class RuntimeConfigTests(unittest.TestCase):
             try:
                 os.chdir(foreign_cwd)
                 loaded = ReviewLedger("ctx-stable-cwd-token")
-                result = loaded.record_round("r2", "p2", True, check_result={"status": "pass"})
+                result = loaded.record_round("r2", "p2", True, check_result={"status": "pass"},
+                                             visual_checks={"content": "pass", "readability": "pass", "occlusion": "pass"})
                 self.assertEqual(result["round"], 2)
                 self.assertEqual(result["status"], "completed")
             finally:

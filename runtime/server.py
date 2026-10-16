@@ -14,6 +14,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp.types import CallToolResult, ImageContent, TextContent
 
 from drawing_client import BridgeError, DrawingClient
+from review_ledger import ReviewLedger
 
 mcp = FastMCP(
     "obsidian-excalidraw",
@@ -24,6 +25,10 @@ Workflow:
 Fast path: create -> drawing_compose(diagram) -> optional drawing_apply(post-style, inspect=True) -> view PNG -> drawing_review.
 drawing_compose(inspect=True) returns the checked PNG directly when no post-styling is needed.
 Granular plan/apply/check/preview and every advanced operation remain available; no validation or visual gate is skipped.
+Acceptance levels low/medium/high (default medium) control QA depth, not model effort.
+Medium/high require actual content/readability/occlusion checks on the current PNG.
+High also checks connections and hierarchy/style; unbound arrows are legal unless binding is explicitly required.
+Geometric candidates can be adjudicated individually with current PNG evidence, never blanket-ignored.
 1. drawing_context(action="discover"|"create"|"bind"): acquire contextToken for the active or newly created canvas.
 2. drawing_read(context_token, detail="summary"|"detail"|"full"): read all active elements or specific IDs.
 3. drawing_measure(context_token, text, font_family, font_size, line_height, width?): measure text dimensions using native Bridge renderer.
@@ -49,10 +54,11 @@ client = DrawingClient()
 def _inspected_response(
     kind: str, context_token: str, receipt: dict[str, Any], started: float,
     expected: list[dict[str, Any]] | None,
+    acceptance_level: str | None = None,
 ) -> CallToolResult:
     mutation_ms = (time.perf_counter() - started) * 1000
     try:
-        result = client.inspect(context_token, receipt["revision"], expected=expected)
+        result = client.inspect(context_token, receipt["revision"], expected=expected, acceptance_level=acceptance_level)
     except Exception as error:
         failure = BridgeError(
             str(error), code=getattr(error, "code", "INSPECTION_FAILED"),
@@ -184,6 +190,7 @@ def drawing_apply(
     operations: list[dict[str, Any]],
     inspect: bool = False,
     expected: list[dict[str, Any]] | None = None,
+    acceptance_level: Literal["low", "medium", "high"] | None = None,
 ) -> Any:
     """Apply an array of operations to the canvas in a single staged transaction.
 
@@ -218,10 +225,17 @@ def drawing_apply(
     units for shaft thickness: patch_custom_data merge, not set_arrow_style width.
     Path length, arrowHeadSize and outline strokeWidth are separate controls.
     Read runtime head support and inspect the full visible envelope in PNG.
+    acceptance_level is QA depth (default medium), independent of model effort.
+    It is retained for later checks/reviews even when inspect=False.
     """
     started = time.perf_counter()
+    if acceptance_level is not None or expected is not None:
+        settings = ReviewLedger(context_token, acceptance_level=acceptance_level)
+        if expected is not None:
+            settings.expected = expected
+        settings.save()
     receipt = client.apply(context_token, base_revision, operations)
-    return _inspected_response("applied", context_token, receipt, started, expected) if inspect else receipt
+    return _inspected_response("applied", context_token, receipt, started, expected, acceptance_level) if inspect else receipt
 
 
 @mcp.tool()
@@ -229,6 +243,8 @@ def drawing_check(
     context_token: str,
     expected: list[dict[str, Any]] | None = None,
     scope: Literal["all", "selection", "viewport"] = "all",
+    acceptance_level: Literal["low", "medium", "high"] | None = None,
+    preview_id: str | None = None,
 ) -> dict[str, Any]:
     """Run geometry diagnostics and semantic checks on the current canvas.
 
@@ -236,11 +252,18 @@ def drawing_check(
     Geometry pass does not certify MathJax or inline formula rendering. Inspect
     the actual PNG and retained source TeX; literal math source in normal text
     is not a rendered formula unless the user requested source/code.
+    Default medium; an omitted level inherits this canvas context's stored selection.
+    Text/text, shaft-through-text and paint-order risks are distinct from legal
+    text over a background. issueId/blocking identify targeted repairs or specific
+    PNG-based false-positive adjudication. No blanket mandatory arrow binding.
+    preview_id adds output-scale readability triggers from a current registered PNG.
     """
     return client.check(
         context_token=context_token,
         expected=expected,
         scope=scope,
+        acceptance_level=acceptance_level,
+        preview_id=preview_id,
     )
 
 
@@ -292,10 +315,21 @@ def drawing_review(
     changes_summary: str | list[Any] | None = None,
     check_result: dict[str, Any] | None = None,
     max_rounds: int = 5,
+    acceptance_level: Literal["low", "medium", "high"] | None = None,
+    visual_checks: dict[str, str] | None = None,
+    dispositions: list[dict[str, Any]] | None = None,
+    detail_preview_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     """Record review round in persistent ledger and determine whether to continue, complete, or seek attention.
 
     Requires visual_reviewed=True (after actually inspecting PNG preview) to allow completion.
+    Medium requires visual_checks content/readability/occlusion; high also requires
+    connections/hierarchy_style. Values: pass, not_applicable, fail. Low keeps a
+    lighter checklist but never bypasses broken references or missing resources.
+    dispositions: [{issue_id,decision:"false_positive"|"intentional",reason}] apply
+    only to current geometric candidates after real PNG inspection, not semantic
+    or native structural errors. Findings remain disclosed; detail IDs must be
+    registered at this revision. Level and expected assertions persist per context.
     """
     return client.review(
         context_token=context_token,
@@ -306,6 +340,10 @@ def drawing_review(
         changes_summary=changes_summary,
         check_result=check_result,
         max_rounds=max_rounds,
+        acceptance_level=acceptance_level,
+        visual_checks=visual_checks,
+        dispositions=dispositions,
+        detail_preview_ids=detail_preview_ids,
     )
 
 
@@ -401,6 +439,7 @@ def drawing_compose(
     diagram: dict[str, Any],
     inspect: bool = False,
     expected: list[dict[str, Any]] | None = None,
+    acceptance_level: Literal["low", "medium", "high"] | None = None,
 ) -> Any:
     """Compose measured native nodes and user-selected library items without rasterizing the diagram.
 
@@ -419,10 +458,17 @@ def drawing_compose(
     Hardware signals need axis-aligned straight links or explicit orthogonal routes.
     Native elbow mode may reroute small port anchors: audit saved points, endpoints
     and collisions. An explicit orthogonal polyline need not have elbowed=True.
+    acceptance_level selects low/medium/high QA, default medium, not model effort.
+    inspect/check detects text-legibility risks; actual PNG review is still required.
     """
     started = time.perf_counter()
+    if acceptance_level is not None or expected is not None:
+        settings = ReviewLedger(context_token, acceptance_level=acceptance_level)
+        if expected is not None:
+            settings.expected = expected
+        settings.save()
     receipt = client.compose(context_token, base_revision, diagram)
-    return _inspected_response("composition", context_token, receipt, started, expected) if inspect else receipt
+    return _inspected_response("composition", context_token, receipt, started, expected, acceptance_level) if inspect else receipt
 
 
 @mcp.tool()

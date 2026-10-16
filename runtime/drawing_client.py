@@ -356,8 +356,11 @@ class DrawingClient:
         context_token: str,
         base_revision: str,
         operations: list[dict[str, Any]],
+        acceptance_level: str | None = None,
     ) -> dict[str, Any]:
         """Apply a batch of operations to the canvas."""
+        if acceptance_level is not None:
+            ReviewLedger(context_token, acceptance_level=acceptance_level).save()
         return self.request(
             "POST",
             "/v3/operations/apply",
@@ -368,37 +371,63 @@ class DrawingClient:
             },
         )
 
+    def _preview_receipt(self, context_token: str, preview_id: str, revision: str | None = None) -> dict[str, Any]:
+        if not re.fullmatch(r"prev_[0-9]+_[0-9a-f]{8}", preview_id):
+            raise BridgeError("Invalid preview ID", code="PREVIEW_NOT_FOUND", status=404)
+        receipt_path = artifact_directory() / "previews" / f"{preview_id}.json"
+        if not receipt_path.exists():
+            raise BridgeError("Preview was not produced by this execution layer", code="PREVIEW_NOT_FOUND", status=404)
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        if receipt["contextToken"] != context_token or (revision is not None and receipt["revision"] != revision):
+            raise BridgeError("Preview belongs to a different canvas or state", code="STALE_PREVIEW", status=409)
+        image = Path(receipt["out_path"])
+        if not image.is_file() or hashlib.sha256(image.read_bytes()).hexdigest() != receipt["sha256"]:
+            raise BridgeError("Preview artifact changed or is missing", code="PREVIEW_CHANGED", status=409)
+        return receipt
+
     def check(
         self,
         context_token: str,
         expected: list[dict[str, Any]] | None = None,
         scope: str = "all",
+        acceptance_level: str | None = None,
+        preview_id: str | None = None,
     ) -> dict[str, Any]:
         """Check the complete exact scene; a failed validator is not a successful check."""
         scene = self.read(context_token, detail="full")
+        ledger = ReviewLedger(context_token, acceptance_level=acceptance_level)
+        if expected is not None:
+            ledger.expected = expected
+        ledger.save()
+        expected = ledger.expected
+        preview = self._preview_receipt(context_token, preview_id, scene["revision"]) if preview_id else None
         validation = self.request("POST", "/v3/scene/validate", {"contextToken": context_token, "scope": "all"})
         if validation["revision"] != scene["revision"]:
             raise BridgeError("Canvas changed between geometry and structural checks", code="REVISION_CONFLICT", status=409)
-        diagnostics = run_geometry_diagnostics(scene["elements"], expected=expected, structural_validation=validation)
+        diagnostics = run_geometry_diagnostics(scene["elements"], expected=expected, structural_validation=validation,
+            acceptance_level=ledger.acceptance_level, output_scale=preview.get("actualScale") if preview else None)
         diagnostics.update(revision=scene["revision"], contextToken=context_token, coverage="complete", expected=expected or [])
         return diagnostics
 
     def inspect(
         self, context_token: str, base_revision: str,
         expected: list[dict[str, Any]] | None = None,
+        acceptance_level: str | None = None,
     ) -> dict[str, Any]:
         """Check and render one exact revision; visual review remains a separate step."""
         started = time.perf_counter()
-        checked = self.check(context_token, expected=expected)
+        checked = self.check(context_token, expected=expected, acceptance_level=acceptance_level)
         checked_at = time.perf_counter()
         if checked["revision"] != base_revision:
             raise BridgeError("Canvas changed after mutation and before inspection",
                               code="REVISION_CONFLICT", status=409,
                               details={"expected": base_revision, "actual": checked["revision"]})
         preview = self.preview(context_token, base_revision=checked["revision"])
+        rendered_at = time.perf_counter()
+        checked = self.check(context_token, acceptance_level=acceptance_level, preview_id=preview["previewId"])
         return {"check": checked, "preview": preview,
-                "timings": {"checkMs": (checked_at - started) * 1000,
-                            "previewMs": (time.perf_counter() - checked_at) * 1000}}
+                "timings": {"checkMs": ((checked_at - started) + (time.perf_counter() - rendered_at)) * 1000,
+                            "previewMs": (rendered_at - checked_at) * 1000}}
 
     def preview(
         self,
@@ -449,6 +478,7 @@ class DrawingClient:
             "bounds": res.get("bounds"), "transform": res.get("transform"),
             "complete": res["complete"], "scope": scope, "resourceIssues": res.get("resourceIssues", []),
             "out_path": str(target_file), "sha256": hashlib.sha256(png).hexdigest(),
+            "ids": ids or [],
         }
         receipts = artifact_directory() / "previews"
         receipts.mkdir(parents=True, exist_ok=True)
@@ -465,29 +495,34 @@ class DrawingClient:
         changes_summary: str | list[Any] | None = None,
         check_result: dict[str, Any] | None = None,
         max_rounds: int = 5,
+        acceptance_level: str | None = None,
+        visual_checks: dict[str, str] | None = None,
+        dispositions: list[dict[str, Any]] | None = None,
+        detail_preview_ids: list[str] | None = None,
     ) -> dict[str, Any]:
         """Review a registered, current PNG; re-run hard checks rather than trusting model-supplied results."""
-        if not re.fullmatch(r"prev_[0-9]+_[0-9a-f]{8}", preview_id):
-            raise BridgeError("Invalid preview ID", code="PREVIEW_NOT_FOUND", status=404)
-        receipt_path = artifact_directory() / "previews" / f"{preview_id}.json"
-        if not receipt_path.exists():
-            raise BridgeError("Preview was not produced by this execution layer", code="PREVIEW_NOT_FOUND", status=404)
-        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-        if receipt["contextToken"] != context_token or receipt["revision"] != revision:
-            raise BridgeError("Preview belongs to a different canvas or state", code="STALE_PREVIEW", status=409)
+        receipt = self._preview_receipt(context_token, preview_id, revision)
         if receipt["scope"] != "all":
             raise BridgeError("Completion requires an all-canvas overview", code="INCOMPLETE_COVERAGE", status=422)
-        png_file = Path(receipt["out_path"])
-        if not png_file.is_file() or hashlib.sha256(png_file.read_bytes()).hexdigest() != receipt["sha256"]:
-            raise BridgeError("Preview artifact changed or is missing", code="PREVIEW_CHANGED", status=409)
-        fresh_check = self.check(context_token, expected=(check_result or {}).get("expected"))
+        for detail_id in detail_preview_ids or []:
+            detail = self._preview_receipt(context_token, detail_id, revision)
+            if not detail.get("complete"):
+                raise BridgeError("Detail preview has missing resources", code="PREVIEW_INCOMPLETE", status=422)
+        ledger = ReviewLedger(context_token, max_rounds=max_rounds, acceptance_level=acceptance_level)
+        # Carry prior assertions forward; a review without check_result must not drop them.
+        expected = list(ledger.expected)
+        for assertion in (check_result or {}).get("expected") or []:
+            if assertion not in expected:
+                expected.append(assertion)
+        fresh_check = self.check(context_token, expected=expected, acceptance_level=ledger.acceptance_level, preview_id=preview_id)
         if fresh_check["revision"] != revision:
             raise BridgeError("Canvas changed after PNG export", code="STALE_PREVIEW", status=409)
-        ledger = ReviewLedger(context_token, max_rounds=max_rounds)
+        ledger = ReviewLedger(context_token, max_rounds=max_rounds, acceptance_level=ledger.acceptance_level)
         return ledger.record_round(
             revision=revision, preview_id=preview_id, visual_reviewed=visual_reviewed,
             visual_issues=visual_issues, changes_summary=changes_summary,
             check_result=fresh_check, preview_complete=receipt["complete"],
+            visual_checks=visual_checks, dispositions=dispositions, detail_preview_ids=detail_preview_ids,
         )
 
     def revert(
@@ -572,7 +607,9 @@ class DrawingClient:
             result.update(out_path=str(path), _base64=encoded, coverage="library-item")
         return result
 
-    def compose(self, context_token: str, base_revision: str, diagram: dict) -> dict:
+    def compose(self, context_token: str, base_revision: str, diagram: dict, acceptance_level: str | None = None) -> dict:
+        if acceptance_level is not None:
+            ReviewLedger(context_token, acceptance_level=acceptance_level).save()
         try:
             return compose_diagram(self, context_token, base_revision, diagram)
         except CompositionError as error:
@@ -637,6 +674,7 @@ def create_cli_parser() -> argparse.ArgumentParser:
     p_apply.add_argument("--base-revision", required=True)
     p_apply.add_argument("--operations", help="JSON string of operations array")
     p_apply.add_argument("--operations-file", help="Path to JSON file containing operations")
+    p_apply.add_argument("--acceptance-level", choices=["low", "medium", "high"])
 
     # 6. check
     p_check = subparsers.add_parser("check", help="Run geometry and structural checks")
@@ -644,6 +682,8 @@ def create_cli_parser() -> argparse.ArgumentParser:
     p_check.add_argument("--expected", help="JSON string of expected semantic assertions")
     p_check.add_argument("--expected-file", help="Path to JSON file of expected semantic assertions")
     p_check.add_argument("--scope", default="all")
+    p_check.add_argument("--acceptance-level", choices=["low", "medium", "high"])
+    p_check.add_argument("--preview-id", help="Current registered preview for output readability checks")
 
     # 7. preview
     p_prev = subparsers.add_parser("preview", help="Render canvas to PNG preview")
@@ -667,6 +707,10 @@ def create_cli_parser() -> argparse.ArgumentParser:
     p_rev.add_argument("--check-result", help="JSON string of check result")
     p_rev.add_argument("--check-result-file", help="Path to JSON file of check result")
     p_rev.add_argument("--max-rounds", type=int, default=5)
+    p_rev.add_argument("--acceptance-level", choices=["low", "medium", "high"])
+    p_rev.add_argument("--visual-checks", help="JSON object of recorded visual checklist outcomes")
+    p_rev.add_argument("--dispositions", help="JSON array of per-issue PNG-based geometric adjudications")
+    p_rev.add_argument("--detail-preview-ids", help="Comma-separated current registered detail previews actually viewed")
 
     # 9. revert
     p_revt = subparsers.add_parser("revert", help="Undo last canvas transaction")
@@ -756,6 +800,7 @@ def cli_main() -> None:
                 context_token=args.context_token,
                 base_revision=args.base_revision,
                 operations=ops,
+                acceptance_level=args.acceptance_level,
             )
 
         elif sub == "check":
@@ -769,6 +814,8 @@ def cli_main() -> None:
                 context_token=args.context_token,
                 expected=expected,
                 scope=args.scope,
+                acceptance_level=args.acceptance_level,
+                preview_id=args.preview_id,
             )
 
         elif sub == "preview":
@@ -814,6 +861,10 @@ def cli_main() -> None:
                 changes_summary=args.changes_summary,
                 check_result=check_res,
                 max_rounds=args.max_rounds,
+                acceptance_level=args.acceptance_level,
+                visual_checks=json.loads(args.visual_checks) if args.visual_checks else None,
+                dispositions=json.loads(args.dispositions) if args.dispositions else None,
+                detail_preview_ids=args.detail_preview_ids.split(",") if args.detail_preview_ids else None,
             )
 
         elif sub == "revert":

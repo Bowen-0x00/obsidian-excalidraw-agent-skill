@@ -63,6 +63,7 @@
 
 - 对每条关键连接显式选source/destination的side/fixedPoint；多个RF输出或MUX输入必须分离。可在原生部件上加命名小端口/短stub；这些是实际图元，不把“Read Data1/2”写进说明就当已建端口。
 - connect的`from/to`用真实部件/anchor ID，`start/end`的anchor、fixedPoint、mode按实际API传，维护start/endBinding及目标boundElements。命名端口标签与正确fixedPoint结合；只有命名metadata没有几何连接不算完成。
+  按[分级验收](acceptance.md)区分真实网络关系与独立示意线：需随部件移动的关键连接使用原生绑定；自由总线/装饰指示箭头可不绑定，即使high也不强制100%绑定率。有绑定须一致、端口/语义须清楚；不能为提高绑定率把线接到错误对象。
 - 每个MUX须列出**每一路数据输入源和选择源**，逐项对应实际独立边；3:1旁路MUX不能只有ID/EX数据＋一根ForwardA虚线。Forwarding Unit只产生选择码，不产生旁路数据；EX/MEM.ALUResult与MEM/WB.WBData要分别到FwdA/FwdB数据端。load的EX/MEM值是地址而非读回数据，禁止当load value旁路。
 - ALUSrc的立即数、store write data、WB的rd地址与RegWrite、PC的branch target与PCSrc是不同信号。BEQ判决由Branch控制与比较结果形成；branch target加法器结果不是AND门的逻辑输入。图中只连接其中一部分时必须标未完成，不能用RF/ALU框内一句“所有端口”冒充完整连接。
 - 选择码必须与每个MUX输入编号一致（如MemtoReg=1是否选load，ForwardA的00/01/10各选何源）；不能只验“有三条入边”。信号表里写明选择映射，图内标号、控制输出说明、实际连接三者对照；如果采用非惯例编码，明确说明而非混用常见含义。
@@ -125,6 +126,7 @@
 5. **可读性**：按`preview.actualScale × text.fontSize`计算输出中的有效字高。若overview正文约6px、图细长到只剩一条线，必须调整布局/尺度或提供并实际查看每个必要区域的局部图，不能把complete=true当可读。约12–14px可作为overview正文设计起点而非通用硬上限；复杂图细节以局部图证明，最终用途决定尺度。
    局部预览不能把某个区域内对象的所有boundElements（尤其跨全图的箭头）无条件加入选区；否则被长线撑成另一张缩略全图。ids仅含目标区域及其绑定文字、**局部需要**的完整边；跨区网络用单独网络预览或真实区域裁剪。读取返回bounds/actualScale确认真的放大；若使用已有PNG裁剪，记录其原PNG/revision/区域且不冒充新注册preview。不改场景裁切用户内容，不将跨区线删掉来获得局部图。
 6. **真实视觉**：看整个PNG和必要局部（所有流水级、符号端口、旁路交叉、长标签）。符号未显示/端口错位/文字糊或遗漏必须修，不能visual_issues=[]。参考图的逻辑角色、空间层级和线网组织应可辨认，不强求像素临摹。
+   中高等级提交content/readability/occlusion的实际visual_checks，高级再提交connections/hierarchy_style。背景容器上的清晰文字是合法包含；线穿字、字互压、后画对象盖字优先修。几何候选若被当前PNG证实是空白相交或合法叠放，逐issueId记录dispositions，不全局关闭检查；未支持几何审查后披露限制，不要求凭空证明每根示意线都绑定。
 7. **交付诚实**：保存原生源、全图＋必要局部PNG、结构/语义清单及剩余限制。review只是Agent对真实PNG作出的评审记录，不是自动专业质量证明；未满足本任务硬件验收就不得标completed。
    绘图任务默认要求可追踪的逻辑/端口/时序假设，不要求凭空提供RTL仿真；没有RTL不是单独的视觉错误，也不能声称已仿真。发现具体缺线、选择码不一致、时序矛盾才列硬件问题；“未经独立RTL验证”作为明确范围限制，避免用泛泛免责声明替代逐条检查。达到本轮实际自动修复上限时，即使ledger因漏记前轮仍返回continue，也停止并报告needs_attention；不得把账本轮数当已经执行次数。
 

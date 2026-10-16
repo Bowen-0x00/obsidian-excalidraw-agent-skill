@@ -22,6 +22,7 @@
 - 硬件Skill固化分阶段制作/最小补丁迭代及保存后的逐段正交审计；信号默认水平/竖直，根据实际端口选显式正交折线或原生elbow，不凭flag验收。此项是工作流指导，不是新增硬件自动布线器或drawing_check内建断言。
 - 字体按当前宿主动态发现，由Agent基于证据判断用途，再按正文/代码/标签/注释等角色选实际family、测量和PNG验证，不假设固定安装名单；发现不等于字形覆盖/无回退。详见[通用字体工作流](skills/obsidian-excalidraw/references/typography.md)。Bridge 0.13.4在现有discovery中优先返回真实getFontFamilies结果及来源/错误。
 - PPT实心/轮廓宽箭可用于流程、架构、教学和对比图，不限演示页。路径长度、原生customData.blockArrowWidth、头部倍率和轮廓描边分别控制；Agent按空间选择粗短/细长，仅调宽保留绑定，PNG检查完整包络。Bridge 0.13.5开放block_arrow与block_arrow_outline，见[箭头尺寸工作流](skills/obsidian-excalidraw/references/layout-export-animation.md)。
+- 验收分low／medium（默认）／high，与模型effort独立，提示词或同轮选项可控。中高优先文字可读/遮挡，高级再细查连接与层级风格，不强制每根箭头绑定。按绘制顺序区分合法背景与字互压/线穿字/后画盖字；几何误报逐问题附当前PNG依据，保留advisories，不全局忽略。详见[分级验收与外部调研](skills/obsidian-excalidraw/references/acceptance.md)。中高review需实际visual_checks；等级与断言按context继承。
 
 ## 可编辑、多风格与服务器绘图
 

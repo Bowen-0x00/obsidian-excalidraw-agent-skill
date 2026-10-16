@@ -3,6 +3,9 @@ from __future__ import annotations
 import math
 from typing import Any
 
+from acceptance import decorate, issue_id, level, unsupported_issues
+from visual_diagnostics import inspect_visual_conflicts, is_visible, output_readability
+
 
 def _segment_intersects_box(
     p1: tuple[float, float],
@@ -450,6 +453,7 @@ def check_arrow_label_occlusion(
     elements_by_id: dict[str, dict[str, Any]],
 ) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
+    paint_order = {element["id"]: index for index, element in enumerate(active_elements)}
 
     # Find labels attached to arrows
     arrow_labels: list[dict[str, Any]] = []
@@ -491,6 +495,10 @@ def check_arrow_label_occlusion(
             oy = float(obs.get("y", 0))
             ow = float(obs.get("width", 0))
             oh = float(obs.get("height", 0))
+            if (paint_order.get(oid, 0) < paint_order.get(lid, 0)
+                    and ox <= lx and oy <= ly and ox + ow >= lx + lw and oy + oh >= ly + lh):
+                # A label above a containing background is not an occlusion.
+                continue
 
             inter_w = min(lx + lw, ox + ow) - max(lx, ox)
             inter_h = min(ly + lh, oy + oh) - max(ly, oy)
@@ -525,7 +533,7 @@ def check_unsupported_geometry(active_elements: list[dict[str, Any]]) -> list[di
                 ),
             })
 
-        if el.get("type") == "arrow":
+        if el.get("type") in ("arrow", "line"):
             roundness = el.get("roundness")
             is_elbowed = bool(el.get("elbowed"))
             is_curve = isinstance(roundness, dict) and roundness.get("type") == 2
@@ -534,7 +542,7 @@ def check_unsupported_geometry(active_elements: list[dict[str, Any]]) -> list[di
                 unsupported.append({
                     "elementId": el_id,
                     "type": "curved_arrow",
-                    "reason": f"Arrow {el_id} uses spline geometry; exact clearance needs visual verification.",
+                    "reason": f"Line/arrow {el_id} uses spline geometry; exact clearance needs visual verification.",
                 })
 
     return unsupported
@@ -649,6 +657,8 @@ def run_geometry_diagnostics(
     elements: list[dict[str, Any]],
     expected: list[dict[str, Any]] | None = None,
     structural_validation: dict[str, Any] | None = None,
+    acceptance_level: str = "medium",
+    output_scale: float | None = None,
 ) -> dict[str, Any]:
     """Run comprehensive geometry diagnostics on the canvas scene."""
     elements_by_id = {
@@ -656,6 +666,8 @@ def run_geometry_diagnostics(
         if isinstance(el, dict) and el.get("id") and not el.get("isDeleted", False)
     }
     active_elements = list(elements_by_id.values())
+    acceptance_level = level(acceptance_level)
+    visible_elements = [el for el in active_elements if is_visible(el)]
 
     all_issues: list[dict[str, Any]] = []
     for severity, name in (("error", "errors"), ("warning", "warnings")):
@@ -671,29 +683,35 @@ def run_geometry_diagnostics(
     all_issues.extend(check_bindings(active_elements, elements_by_id))
 
     # 2. Text containment
-    all_issues.extend(check_text_containment(active_elements, elements_by_id))
+    all_issues.extend(check_text_containment(visible_elements, elements_by_id))
 
     # 3. Body overlap
-    all_issues.extend(check_body_overlap(active_elements))
+    all_issues.extend(check_body_overlap(visible_elements))
 
     # 4. Arrow crossing
-    all_issues.extend(check_arrow_crossing(active_elements, elements_by_id))
+    all_issues.extend(check_arrow_crossing(visible_elements, elements_by_id))
 
     # 5. Arrow label occlusion
-    all_issues.extend(check_arrow_label_occlusion(active_elements, elements_by_id))
+    all_issues.extend(check_arrow_label_occlusion(visible_elements, elements_by_id))
+    all_issues.extend(inspect_visual_conflicts(visible_elements))
+    all_issues.extend(output_readability(visible_elements, output_scale))
 
     # 6. Semantic assertions
     if expected:
         all_issues.extend(check_semantic_assertions(active_elements, elements_by_id, expected))
 
     # 7. Unsupported geometry (mark unknown)
-    unsupported = check_unsupported_geometry(active_elements)
+    unsupported = check_unsupported_geometry(visible_elements)
+    for item in unsupported:
+        item["issueId"] = issue_id(unsupported_issues([item])[0])
+    all_issues = decorate(all_issues, acceptance_level)
+    blocking_count = sum(1 for issue in all_issues if issue["blocking"])
 
     error_count = sum(1 for iss in all_issues if iss.get("severity") == "error")
     warning_count = sum(1 for iss in all_issues if iss.get("severity") == "warning")
 
     # Determine status
-    if error_count > 0:
+    if blocking_count > 0:
         status = "fail"
     elif len(unsupported) > 0:
         # Mark unknown if there are unsupported checks; do not falsely declare passed
@@ -704,11 +722,21 @@ def run_geometry_diagnostics(
     return {
         "valid": (status == "pass"),
         "status": status,
+        "acceptanceLevel": acceptance_level,
+        "outputScale": output_scale,
+        "visualApplicability": {
+            "content": bool(active_elements),
+            "readability": any(e.get("type") == "text" and str(e.get("text", "")).strip() for e in visible_elements),
+            "occlusion": len(visible_elements) > 1,
+            "connections": any(e.get("type") in ("line", "arrow") for e in visible_elements),
+            "hierarchy_style": len(visible_elements) > 1,
+        },
         "summary": {
             "totalElements": len(active_elements),
             "errors": error_count,
             "warnings": warning_count,
             "unsupportedCount": len(unsupported),
+            "blocking": blocking_count,
         },
         "issues": all_issues,
         "unsupportedChecks": unsupported,
