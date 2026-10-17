@@ -19,7 +19,6 @@
     {"source":"Scripts/wave-drom/Feature-Wavedrom-Engine.md","target":"bridge/Scripts/wave-drom/Feature-Wavedrom-Engine.md"},
     {"source":"Scripts/library/Feature-Library-Engine.md","target":"bridge/Scripts/library/Feature-Library-Engine.md"},
     {"source":"Scripts/export/Feature-Export-Embeddable.md","target":"bridge/Scripts/export/Feature-Export-Embeddable.md"},
-    {"source":"Scripts/table/Feature-Table-Engine.md","target":"bridge/Scripts/table/Feature-Table-Engine.md"},
     {"source":"Scripts/arrow/Feature-Arrow-Head-Resize-Engine.md","target":"bridge/Scripts/arrow/Feature-Arrow-Head-Resize-Engine.md"}
   ]
 }

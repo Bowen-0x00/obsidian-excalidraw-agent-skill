@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — Retire the upstream table hook Engine
+
+- Remove the retired `Feature-Table-Engine.md` from the shared import manifest/lock, bundle inventory and bootstrap, and delete its bundled copy. Scripts `3a1f79f` moved table interaction to the host plugin; the obsolete required input caused scheduled shared-Engine synchronization to fail.
+- Keep missing-input and shared-copy drift protection intact for the 15 remaining Engines. Native tables continue through host capability discovery; legacy `create_table`/DSL grids are unchanged. This change does not deploy to vaults or unload already mounted hooks.
+
 ## Unreleased — Diverse README and native table themes
 
 - Retain the RISC-V showcase and add five different forms/domains: handwritten water-cycle landscape, dark calculus geometry with real TeX, transit wayfinding, mint Gantt planning and an academic ecology results page. Keep earlier examples in the gallery; include authored sources, editable canvases and actual PNGs.

@@ -19,6 +19,15 @@ Reviewed sources live under `examples/dsl/` (compiler input) and `examples/build
 - Configure `SKILL_SYNC_TOKEN` as an Actions repository secret in both repositories. Prefer an expiring fine-grained credential limited to this Agent repository with Contents read/write, Pull requests read/write and Metadata read. Never paste it in workflow YAML, commit it, enable secret-bearing jobs for untrusted PRs, or broaden repository-wide default permissions unnecessarily. Rotate by replacing both secrets.
 - PR creation is automatic; merge/release is a maintainer gate. A PR does not bump package versions, overwrite customized vault scripts, reload mounted Engines or deploy local/remote clients. Source existence, copied bundle and running Engine are distinct states.
 
+### Retired upstream Engines / 上游 Engine 退休
+
+The table Engine was intentionally removed in [Scripts `3a1f79f`](https://github.com/Bowen-0x00/obsidian-excalidraw-scripts/commit/3a1f79f4f63a81989a0c4a338e836c698ee591f4): Excalidraw-ymjr 2.29.0-4 and later own table interaction in the host. The Agent bundle now imports 15 shared Engines and no longer installs or starts `Feature-Table-Engine.md`. `drawing_table` still requires the discovered host `nativeTable.callable` capability; the legacy `create_table`/DSL grid contract is unchanged.
+
+A deliberate retirement must remove the source/target mapping, matching lock entry, bundle script/Engine entries, bootstrap dependency and bundled file together. Do not restore the old hook Engine or make the importer silently skip missing declared inputs just to obtain a green run. Restart an existing host after removing a previously mounted old Engine; this repository change does not modify local vault files or unload running hooks.
+
+表格脚本迁入宿主原生实现后，必须同步移除白名单、锁定项、bundle、启动依赖和旧副本。其他仍声明的文件删除／改名仍应报错；不要通过跳过错误来掩盖清单失配。
+
+
 ## Local validation commands
 
 The source checkout must contain the exact published commit when importing shared scripts:

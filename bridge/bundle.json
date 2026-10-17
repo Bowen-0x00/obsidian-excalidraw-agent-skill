@@ -21,7 +21,6 @@
     "wave-drom/Feature-Wavedrom-Engine.md",
     "library/Feature-Library-Engine.md",
     "export/Feature-Export-Embeddable.md",
-    "table/Feature-Table-Engine.md",
     "arrow/Feature-Arrow-Head-Resize-Engine.md"
   ],
   "engines": [
@@ -198,15 +197,6 @@
         "html2canvas"
       ],
       "category": "export",
-      "role": "dependency"
-    },
-    {
-      "id": "table",
-      "name": "Table Layout & Structure Engine",
-      "path": "table/Feature-Table-Engine.md",
-      "script_id": "ymjr.feature.table-engine",
-      "properties": [],
-      "category": "diagram",
       "role": "dependency"
     },
     {
