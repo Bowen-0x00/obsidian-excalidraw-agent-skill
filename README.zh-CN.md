@@ -62,6 +62,7 @@
 | 素材库、演示框架、交互、导航、动画等 | 原生 MCP＋对应 Skill 参考 | 使用真实宿主能力，不强塞进 DSL 或假装近似实现 |
 | 自动化脚本、批量流程 | `launcher.py cli`／`launcher.py dsl` | 不要求 LLM 或 MCP 客户端，但仍要求已连接 GUI 宿主 |
 | Agent 在无桌面的开发服务器 | 同一工具经 SSH loopback 隧道调用 | 服务器推理，本地桌面管理 vault、字体、素材与渲染 |
+| PNG不符合预期，常规状态／检查无法解释原因 | 可选 `drawing_debug(status|inspect)` | 用户开启只读CDP查看原生状态；微调仍走正常授权API，不用CDP改图 |
 
 **Skill 是工作指导，MCP／CLI 是执行入口，DSL 是可选编译器，Obsidian 原生 API 负责实际构造、保存和渲染。** 只装 Skill 不会自动获得连接；DSL 的 document 也不能当成 drawing_compose 的 diagram。
 
@@ -189,6 +190,25 @@ flowchart LR
 
 服务器不需要 GUI／X11；本地桌面负责字体、素材和渲染。宿主 vault 路径、客户端输出路径、私有 state 分开理解。remote-deploy 是面向 OMP 的便捷注册；其他客户端可启动同一远端 stdio runtime。完整步骤见 [接入说明](skills/obsidian-excalidraw/references/agent-setup.md)。
 
+## 可选 CDP 只读排错
+
+**默认关闭，由用户选择。** 绘制效果异常、常规 Bridge 状态／PNG 无法解释原因时，Agent 会提示是否开启详细诊断：图层顺序、显示／源文字、绑定、原生表格、图片引用、Canvas／视口与 renderer 异常计数。
+
+针对已经运行、用户明确选择的 Obsidian 调试实例：
+
+```sh
+uv run --frozen python launcher.py cdp -- status
+uv run --frozen python launcher.py cdp -- enable --endpoint http://127.0.0.1:19223 --vault-path "D:/Lab/MyVault"
+uv run --frozen python launcher.py cdp -- inspect --file "Drawings/Example.excalidraw.md"
+uv run --frozen python launcher.py cdp -- disable
+```
+
+端口与路径替换为实际宿主值。Obsidian 需要由用户明确以 `--remote-debugging-port=PORT` 启动；诊断工具不启动／重启程序。开发验收优先独立 profile **加独立 vault**；远端另行明确配置 CDP SSH 隧道，普通 Bridge 隧道不等于 CDP 隧道。
+
+MCP 只提供 **`drawing_debug(status|inspect)`**，没有开启权限或任意 JS 参数。目标必须已打开；不会打开文件、换焦点、点击、拖拽、暂停、保存、导出、重载插件或修改画布。固定查询使用 V8 副作用保护，无法确认安全就拒绝，禁止取消保护重试。开关保存在本客户端私有 state 中，不随远端安装自动开启。
+
+**微调仍走用户已授权的正常 Bridge／API 或 DSL 修改**，取得最新 revision，最终看 PNG／review；只允许诊断不等于允许修图。CDP 本身不是只读或沙箱，此限制适用于本包受保护诊断器，不约束其它调试客户端。不要公开调试端口，也不要用 browser／raw evaluate 绕过只读边界。[完整开关与排错流程](skills/obsidian-excalidraw/references/cdp-readonly.md)。
+
 ## 只读与你相关的文档
 
 | 主题 | 入口 |
@@ -200,6 +220,7 @@ flowchart LR
 | 硬件部件／端口／信号与保存后路由审计 | [微架构](skills/obsidian-excalidraw/references/microarchitecture.md) |
 | 风格、真实字体和视觉验收 | [风格](skills/obsidian-excalidraw/references/diagram-recipes.md) · [排版](skills/obsidian-excalidraw/references/typography.md) · [验收](skills/obsidian-excalidraw/references/acceptance.md) |
 | 可信脚本、插件原生 CLI、交互 | [脚本](skills/obsidian-excalidraw/references/script-execution.md) · [原生 CLI](skills/obsidian-excalidraw/references/native-cli.md) |
+| CDP只读开关、详细debug与安全微调 | [只读CDP排错](skills/obsidian-excalidraw/references/cdp-readonly.md) |
 | 共享 Engine 来源、同步与发布检查 | [维护说明](docs/maintenance.md) |
 | 与其他绘图工具的设计比较 | [next-ai-draw-io](skills/obsidian-excalidraw/references/next-ai-draw-io.md) |
 

@@ -27,6 +27,7 @@ drawing_compose(inspect=True) returns the checked PNG directly when no post-styl
 Granular plan/apply/check/preview and every advanced operation remain available; no validation or visual gate is skipped.
 Optional scene DSL: drawing_dsl(plan|render, document, font_family, state_id, filename|file_path) compiles measured spatial scenes and reconciles stable identities. First render needs a unique filename or explicit existing file; repeat the same state_id to update, never replay the graph with compose. Render returns actual checked PNG; view it then call drawing_review. Native tools remain the path for libraries, interaction and precise unmanaged edits.
 Native table themes: discover capabilities.nativeTable.callable, then drawing_table(create|style). The paired host TableManager owns schema-v2 cells, themes/borders/reflow; never simulate palettes/three-line borders. Older hosts fail TABLE_RUNTIME_REQUIRED. Native manager saves are not atomic Bridge undo transactions. The paired host feature may still be a development build; do not claim package install upgrades the host plugin.
+Opt-in troubleshooting: drawing_debug(status|inspect) offers fixed CDP read-only observations only after explicit user CLI enable. If PNG differs from expected and Bridge data cannot explain it, offer this diagnostic path; never auto-enable, send arbitrary JS/Input/Debugger commands, or mutate through CDP. Fine-tune only via normal authorized drawing APIs, fresh revisions and PNG/review.
 Acceptance levels low/medium/high (default medium) control QA depth, not model effort.
 Medium/high require actual content/readability/occlusion checks on the current PNG.
 High also checks connections and hierarchy/style; unbound arrows are legal unless binding is explicitly required.
@@ -103,6 +104,34 @@ def drawing_context(
         foldername=foldername,
         file_path=file_path,
     )
+
+
+@mcp.tool()
+def drawing_debug(
+    action: Literal["status", "inspect"] = "status",
+    file_path: str | None = None,
+    ids: list[str] | None = None,
+    offset: int = 0,
+    limit: int = 100,
+) -> dict[str, Any]:
+    """Opt-in CDP read-only state diagnostics, NOT arbitrary eval or UI control.
+
+    status reads client-private opt-in state without contacting CDP. User enables
+    with launcher.py cdp -- enable --endpoint LOOPBACK_URL --vault-path HOST_PATH.
+    inspect requires an already-open explicit drawing in the pinned host vault.
+    Returns scene/paint/text/binding/table/resource/viewport facts and event counts.
+    Queries use V8 throwOnSideEffect and fail closed; no unguarded fallback.
+    No open/focus/click/drag, save/export, write, plugin reload or breakpoint.
+    Debug evidence does not replace PNG, approve edits or prove font glyphs.
+    """
+    from cdp_readonly import DiagnosticError, inspect as inspect_cdp, status as cdp_status
+
+    if action == "status":
+        return cdp_status()
+    try:
+        return inspect_cdp(file_path, ids, offset, limit)
+    except DiagnosticError as error:
+        return {"ok": False, "error": {"code": error.code, "message": str(error), "details": error.details}}
 
 
 @mcp.tool()

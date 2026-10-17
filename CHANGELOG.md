@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Opt-in read-only CDP diagnostics
+
+- Add `drawing_debug(status|inspect)` and `launcher.py cdp -- status|enable|inspect|disable`. Default is off; explicit user CLI opt-in pins a numeric-loopback debugger endpoint and exact host vault. MCP cannot enable it, accept arbitrary JS/protocol commands or mutate a drawing.
+- Read fixed scene/paint/text/binding/table/image-reference/canvas/viewport snapshots plus renderer event counts through short CDP sessions. Require an already uniquely open file, validate vault/target identity, deny redirects/retargeted sockets, and use V8 `throwOnSideEffect` with no unguarded fallback. No input, navigation, pause, save/export, plugin changes or raw console arguments.
+- Route unexplained PNG/rendering problems to the optional diagnostic workflow. Skill and both READMEs distinguish observed state from hypotheses; any authorized fine-tuning uses fresh normal Bridge/API/DSL state followed by actual PNG/review, never CDP writes.
+- Keep diagnostic opt-in client-private and disabled for existing/remote installations. The unrestricted Electron debugger is not a sandbox or made read-only by this adapter; no host/plugin/Bridge script change or automatic debugging-port/SSH setup.
+
 ## Unreleased — Event-driven synchronization
 
 - Remove the six-hour shared-Engine synchronization schedule. Retain upstream push notifications and manual workflow dispatch; missed notifications require a manual catch-up rather than periodic polling. Import validation and PR policy are unchanged.

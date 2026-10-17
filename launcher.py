@@ -94,6 +94,8 @@ def main() -> int:
     cli.add_argument("arguments", nargs=argparse.REMAINDER)
     dsl = commands.add_parser("dsl", help="Render or incrementally update YAML/JSON scenes; options after -- are forwarded")
     dsl.add_argument("arguments", nargs=argparse.REMAINDER)
+    cdp = commands.add_parser("cdp", help="Opt-in fixed read-only CDP diagnostics; no input/eval/write commands")
+    cdp.add_argument("arguments", nargs=argparse.REMAINDER)
     metadata = commands.add_parser("library-maintain", help="Inspect local library files or apply reviewed description-only edits")
     metadata.add_argument("arguments", nargs=argparse.REMAINDER)
     for name in ("remote-deploy", "remote-tunnel"):
@@ -109,6 +111,11 @@ def main() -> int:
         forwarded = args.arguments[1:] if args.arguments[:1] == ["--"] else args.arguments
         sys.argv = ["launcher.py dsl", *forwarded]
         return scene_main()
+    if args.action == "cdp":
+        from cdp_readonly import main as cdp_main
+        forwarded = args.arguments[1:] if args.arguments[:1] == ["--"] else args.arguments
+        sys.argv = ["launcher.py cdp", *forwarded]
+        return cdp_main()
     if args.action == "library-maintain":
         forwarded = args.arguments[1:] if args.arguments[:1] == ["--"] else args.arguments
         sys.argv = [str(ROOT / "runtime/library_metadata.py"), *forwarded]

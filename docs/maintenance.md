@@ -10,6 +10,12 @@ Reviewed sources live under `examples/dsl/` (compiler input) and `examples/build
 
 `drawing_table` uses the existing paired host `TableManager` through Bridge `/v3/tables`; the Agent package does not contain a second theme palette, table border renderer or host plugin upgrade. Check `nativeTable.callable` and keep the development-host requirement visible in docs/examples. Native manager creation/style are saved but not one atomic Bridge-undo transaction; retain partial-failure receipts and never blindly recreate after an unknown result.
 
+## Optional read-only diagnostics
+
+`runtime/cdp_readonly.py` is a client-side fixed-observation adapter, not the development lab's unrestricted CDP harness. `drawing_debug` cannot enable itself; CLI opt-in lives only in the client's private `cdp-readonly.json`. Package synchronization must never copy/enable that file or launch/reload a host on the user's behalf. A separately authorized loopback debugger/tunnel and exact host-vault pin are prerequisites.
+
+Preserve the exact query/protocol allowlist and V8 side-effect checks; do not add arbitrary expressions, `Runtime.callFunctionOn`, Input, Page writes, breakpoints, save/export or an unguarded fallback. State collection failures are explicit limitations. Verify real scene/file bytes, selection and viewport are unchanged; tests alone cannot certify read-only host behavior. Keep the unrestricted debugger/security boundary visible in the [diagnostic guide](../skills/obsidian-excalidraw/references/cdp-readonly.md).
+
 ## Shared Engine source and automatic update PRs
 
 - [`bridge/shared-scripts.json`](../bridge/shared-scripts.json) is the explicit import allowlist. Shared Engines are maintained only in [Scripts](https://github.com/Bowen-0x00/obsidian-excalidraw-scripts); `mcp/Start-Agent-Drawing.md` and `mcp/Engine-Agent-Bridge.md` belong to this Agent repository and are never imported.

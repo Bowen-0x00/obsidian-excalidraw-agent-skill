@@ -62,6 +62,7 @@ These are actual Obsidian PNG exports of the included sources, not UI mockups. T
 | Libraries, frames/presentations, interaction, navigation, animation | Existing native MCP tools and focused Skill references | Use real host capabilities, not a forced DSL approximation |
 | Scripts, batch work, CI-side orchestration | `launcher.py cli` / `launcher.py dsl` | No LLM/MCP client required, but a connected GUI host is still required |
 | Agent on a headless development server | Same tools through an SSH loopback tunnel | Server reasons; desktop host owns vault/fonts/assets and rendering |
+| PNG looks wrong and normal state/checks do not explain why | Optional `drawing_debug(status|inspect)` | User enables read-only CDP; observe native state, then fine-tune through normal authorized APIs—not CDP |
 
 The **Skill is guidance**, **MCP/CLI are execution interfaces**, **DSL is an optional compiler**, and **Obsidian/its native APIs render and store the drawing**. Installing only the Skill does not create a connection. The scene DSL and ordinary `drawing_compose` diagram schemas are intentionally different.
 
@@ -189,6 +190,25 @@ flowchart LR
 
 No server GUI or X11 is needed. The desktop owns fonts/assets/renderer. Host vault paths, client output paths and private state are separate. `remote-deploy` is an OMP registration convenience; other clients can launch the same remote stdio runtime. Full instructions: [Agent setup](skills/obsidian-excalidraw/references/agent-setup.md).
 
+## Optional read-only CDP troubleshooting
+
+**Off by default.** If a drawing looks wrong and Bridge/PNG feedback cannot explain the cause, the Agent can offer deeper state diagnostics: paint order, displayed/source text, bindings, native tables, image references, canvas/viewport and renderer error counts.
+
+The user chooses whether to enable it. Against an already-running, explicitly selected Obsidian debugging instance:
+
+```sh
+uv run --frozen python launcher.py cdp -- status
+uv run --frozen python launcher.py cdp -- enable --endpoint http://127.0.0.1:19223 --vault-path "/absolute/HOST/vault"
+uv run --frozen python launcher.py cdp -- inspect --file "Drawings/Example.excalidraw.md"
+uv run --frozen python launcher.py cdp -- disable
+```
+
+Replace the example port/path with the host's actual endpoint and vault. Obsidian must have been started explicitly with `--remote-debugging-port=PORT`; this tool never starts/restarts it. Prefer a separate profile **and** a disposable vault for development. Remote clients need a separately authorized SSH tunnel; the normal Bridge tunnel does not expose CDP.
+
+MCP exposes only **`drawing_debug(status|inspect)`**, no enable action or arbitrary JS. The selected file must already be open; the tool does not open, focus, click, drag, pause, save, export, reload plugins or modify drawings. Fixed queries use V8 side-effect checks and fail closed—never retry without the guard. Private opt-in is scoped to this client state directory and is not auto-enabled on remote installations.
+
+**Fine-tuning remains a normal authorized Bridge/API or DSL edit**, using a fresh revision and final PNG/review. Diagnostics alone do not authorize repair. CDP itself is powerful and not a sandbox: the read-only restriction applies to this package's guarded inspector, not other debugging clients. Do not expose the debugging port publicly or use raw browser/evaluate tools to bypass it. [Full safety and debug workflow](skills/obsidian-excalidraw/references/cdp-readonly.md).
+
 ## Read only the relevant guide
 
 | Topic | Guide |
@@ -200,6 +220,7 @@ No server GUI or X11 is needed. The desktop owns fonts/assets/renderer. Host vau
 | Hardware symbols/ports/signals and saved-route audit | [Microarchitecture](skills/obsidian-excalidraw/references/microarchitecture.md) |
 | Style choices, actual fonts and visual acceptance | [Styles](skills/obsidian-excalidraw/references/diagram-recipes.md) · [Typography](skills/obsidian-excalidraw/references/typography.md) · [Acceptance](skills/obsidian-excalidraw/references/acceptance.md) |
 | Trusted scripts, native CLI and live interaction | [Scripts](skills/obsidian-excalidraw/references/script-execution.md) · [Native CLI](skills/obsidian-excalidraw/references/native-cli.md) |
+| Read-only CDP switch, diagnostics and safe fine-tuning | [CDP troubleshooting](skills/obsidian-excalidraw/references/cdp-readonly.md) |
 | Shared Engine source synchronization and release checks | [Maintenance](docs/maintenance.md) |
 | Comparison with other diagramming approaches | [next-ai-draw-io](skills/obsidian-excalidraw/references/next-ai-draw-io.md) |
 
