@@ -1,8 +1,8 @@
 # Real drawing gallery / 真实绘图画廊
 
-These previews are **actual Obsidian Excalidraw-ymjr exports** from the included sources: six YAML/DSL scenes and three Agent-authored Python/native-API showcases. They were decoded and visually inspected; checks, resource completeness and recorded visual review are separate gates. They are not mockups or external-renderer approximations.
+These previews are **actual Obsidian Excalidraw-ymjr exports**: six YAML/DSL examples, three retained systems/hardware examples and five new cross-domain native drawings. Sources, native canvases and real PNGs are included. The README selects RISC-V plus the five varied examples below; inference and matrix-engine diagrams remain archived here.
 
-以下图片全部由真实宿主渲染：六组 YAML／DSL 示例，三组 Agent 编写 Python／原生 API 的复杂图。每张都有源码与可编辑画布；制作方式不混称，不把手工布局经验宣传为一键自动布局或硬件仿真。
+以下展示均由真实宿主渲染。README 保留五级 RISC-V，并新增地球科学、数学、城市交通、项目计划、生态学五个不同领域／表现形式；原图保留在本画廊，不因更换展示删掉已有能力。
 
 ## Coverage and complexity / 范围与复杂度
 
@@ -17,6 +17,11 @@ These previews are **actual Obsidian Excalidraw-ymjr exports** from the included
 | Five-stage datapath / 五级数据通路 | Python + native API | 234 | 68 | 21 components, pipeline boundaries, forwarding, interlock and branch flush |
 | Inference fabric / 分布式推理 | Python + native API | 113 | 32 | 24 modules, separate prefill/decode, KV ownership, delivery and operations |
 | Matrix engine / 矩阵加速器 | Python + native API | 285 | 66 | 34 components including 16 MAC cells, two-bank staging and drain-only C lanes |
+| Water cycle / 手绘水循环 | Python + native API | 56 | — | Landscape, hand lettering, hachure, layered geography and physical-process arrows |
+| Calculus / 深色微积分 | Python + native API | 55 | — | True tangent, upper rectangles, integrated area and three rendered TeX equations |
+| Transit / 城市交通 | Python + native API | 57 | — | Three schematic services, twenty stations and two shared interchanges |
+| Project Gantt / 项目计划 | Python + native TableManager | 61 | — | Mint semantic table, measured unequal columns and aligned seven-week timeline |
+| Ecology / 学术三线表 | Python + native TableManager | 56 | — | Native academic border template, editable botanical symbols and mass-ratio equation |
 
 Counts include active native labels, binding anchors and port markers; they are not logical-node counts or a performance benchmark. Dashboard zero connections is intentional. Example metrics and hardware states are synthetic teaching material.
 
@@ -106,6 +111,44 @@ Sixteen individual MAC cells forward A east and B south. C remains local during 
 
 [Array detail](images/accelerator-array.png) · [Memory/staging detail](images/accelerator-staging.png). Dimensions specify this synthetic teaching tile, not a real chip capacity/performance claim; precision, edge skew/buffering and cycle schedules are outside the figure.
 
+## README selection: five different domains / 五个跨领域展示
+
+These are authored in [`diverse_showcase.py`](../examples/builders/diverse_showcase.py), using [`showcase_support.py`](../examples/builders/showcase_support.py) only as thin native-operation helpers. It is not another renderer, graph DSL or one-click layout engine.
+
+### Earth science / 暖色手绘风景
+
+![Actual native water-cycle landscape](images/water_cycle.png)
+
+[Native canvas](../examples/native/water_cycle.excalidraw.md) · [Terrain/river selection](images/water_cycle-land.png). Six complete processes remain labeled: evaporation, condensation, precipitation, runoff, infiltration and groundwater return. Landscape/tree overlays and water arrows passing through soil/aquifer are intentional geography, not unrelated graph-node collisions. The river spline was actually viewed; exact curve clearance is not claimed by the automated checker.
+
+### Mathematics / 深色几何与公式
+
+![Actual native calculus plate](images/calculus.png)
+
+[Native canvas](../examples/native/calculus.excalidraw.md). For `f(x)=x²/16+1`, the highlighted point is `(4,2)`, the tangent slope is `1/2`, and the integral over `[0,8]` is `56/3`. Eight right-endpoint rectangles deliberately overestimate this increasing function. The three equations use real MathJax with TeX retained; area/strips/marker remain editable native geometry. Requires compatible host MathJax to regenerate the equations.
+
+### Urban transport / 导视线路图
+
+![Actual native schematic transit map](images/transit.png)
+
+[Native canvas](../examples/native/transit.excalidraw.md). Twenty unique stations, three bidirectional services and two interchange coordinates: Central joins N/T, Civic joins T/G. No arrowheads imply false one-way service; a crossing without a station ring is not a transfer. This is an original imaginary city, not geography or navigation data.
+
+### Project operations / 原生表格与甘特图
+
+![Actual native mint table and Gantt](images/gantt.png)
+
+[Native canvas](../examples/native/gantt.excalidraw.md). Native `light-mint + grid`, 15 semantic cells, unequal columns and intact bound text. Research/prototype/pilot/release occupy W1–2/W2–4/W4–6/W6–7; bars align with the corresponding table rows. Colors/template/layout come from the host manager, not per-cell palette simulation.
+
+### Ecology / 论文式原生三线表
+
+![Actual native academic ecology page](images/academic.png)
+
+[Native canvas](../examples/native/academic.excalidraw.md). Native `academic + three-line`, 12 semantic cells. Three rules are renderer-owned table borders, not extra scene lines. Botanical drawings and the gravimetric mass-ratio expression are editable native shapes/text; this page does not claim its stacked fraction is TeX. All values are synthetic, not experimental findings.
+
+**Table dependency:** the last two examples were rendered in the existing isolated paired native-table development host. This does not publish/replace the host plugin. Use [`drawing_table`](../skills/obsidian-excalidraw/references/table-native.md) only after `nativeTable.callable:true`; legacy `create_table` and DSL tables retain their old contract. Old hosts must report the missing prerequisite, not silently approximate the new renderer.
+
+**Acceptance:** all five current PNGs were actually viewed and their medium reviews completed. Water/geometry plates retain scoped, individually explained intentional-overlap/curve candidates; a completed visual review is not a raw geometry pass. See [public provenance](diverse-showcase-provenance.json) for hashes, exact counts, themes and limits.
+
 ## Reproduce and edit / 复现与修改
 
 ### YAML / DSL scenes
@@ -127,6 +170,20 @@ uv run --frozen python examples/builders/advanced_showcase.py accelerator --font
 ```
 
 These exact three entrypoints were smoke-run against the real host. Each creates an independent canvas and report/PNG; it refuses an existing output receipt, does not reconcile an earlier canvas, and does not automatically approve its own output. The report retains target/revision, refs, declared routes and check results for subsequent native read/apply/preview/review. Use original IDs and local patches to refine an existing diagram; do not rerun the builder to hide a failed check.
+
+### Diverse native scenes
+
+```sh
+uv run --frozen python examples/builders/diverse_showcase.py water_cycle --font "ACTUAL_HOST_FAMILY" --filename Unique-Water --output ./output/water.json
+uv run --frozen python examples/builders/diverse_showcase.py calculus --font "ACTUAL_HOST_FAMILY" --filename Unique-Calculus --output ./output/calculus.json
+uv run --frozen python examples/builders/diverse_showcase.py transit --font "ACTUAL_HOST_FAMILY" --filename Unique-Transit --output ./output/transit.json
+uv run --frozen python examples/builders/diverse_showcase.py gantt --font "ACTUAL_HOST_FAMILY" --filename Unique-Gantt --output ./output/gantt.json
+uv run --frozen python examples/builders/diverse_showcase.py academic --font "ACTUAL_HOST_FAMILY" --filename Unique-Academic --output ./output/academic.json
+```
+
+All five were executed against real hosts. The two table commands require the paired development host; the water scene additionally uses discovered Excalifont and the ecology title uses a discovered font override. Substitute only fonts actually available on your host, then remeasure/review. The builder creates fresh canvases, not a managed update session; edit an existing drawing through its real IDs.
+
+Exit `2` is intentional when raw geometry needs adjudication: the water landscape and calculus marker have legitimate overlaps. Inspect actual PNGs and record specific current-issue dispositions through `drawing_review`; do not blanket-ignore geometry or let the builder approve itself. CLI completion is not visual acceptance.
 
 
 ## Provenance and limits / 证据与限制

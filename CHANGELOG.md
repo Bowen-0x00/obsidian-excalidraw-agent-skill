@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — Diverse README and native table themes
+
+- Retain the RISC-V showcase and add five different forms/domains: handwritten water-cycle landscape, dark calculus geometry with real TeX, transit wayfinding, mint Gantt planning and an academic ecology results page. Keep earlier examples in the gallery; include authored sources, editable canvases and actual PNGs.
+- Add `drawing_table(create|style)` and Python `DrawingClient.table`, backed by Bridge 0.13.6 `/v3/tables` and the paired host `TableManager`. Discover `nativeTable.callable`, use the host's eight theme/five border IDs, preserve native semantic cells and bound text, and report non-atomic saves/partial failures. Older hosts fail explicitly; legacy create_table/DSL contracts are unchanged.
+- Exercise native theme/border application without changing IDs/content/geometry, reject stale revisions and invalid requests before mutation, and verify omitted-font creation returns a real PNG through stdio MCP. Preserve native table order above page backgrounds; do not copy palettes or simulate table borders.
+- Five final medium PNG reviews completed. Landscape/point superpositions and the river curve retain specific visual dispositions, not a fake raw-geometry pass. All five CLI sources ran on real hosts; 78 runtime regressions and the 16 locked Engine checks passed.
+- Native table appearance was rendered in the existing isolated paired development host. This Agent change is not a host plugin/Extras release and does not replace the personal-vault plugin or rewrite shared Table Engine scripts.
+
 ## Unreleased — Advanced native showcase gallery
 
 - Lead the English/Chinese READMEs with real five-stage RISC-V, disaggregated inference and 4×4 matrix-engine diagrams. Keep the six DSL examples and explicitly distinguish DSL compilation from Agent-authored Python/native API drawing.

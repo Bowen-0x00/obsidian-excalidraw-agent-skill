@@ -18,19 +18,37 @@
 
 [Python／原生 API 源码](examples/builders/advanced_showcase.py) · [可编辑画布](examples/native/pipeline.excalidraw.md) · [EX 局部大图](docs/images/pipeline-execute.png)。独立部件、命名端口和 68 条声明连接；覆盖 ALU／load／store／BEQ 教学子集，不冒充完整 RV32I 实现或 RTL 仿真。
 
-### 分布式推理：从请求接入到 Token 交付
+### 地球科学 · 暖色手绘风景
 
-![分离调度、Prefill、Decode、交付与运维平面的推理系统全景](docs/images/inference.png)
+![包含蒸发、凝结、降水、径流、入渗与地下水回流的可编辑水循环风景图](docs/images/water_cycle.png)
 
-[Python／原生 API 源码](examples/builders/advanced_showcase.py) · [可编辑画布](examples/native/inference.excalidraw.md)。展示 Prefill／Decode 分离、分页 KV 安装与读取、KV-ready 交接、逐 Token 循环、取消回收、背压和版本发布；是参考架构，不是实测部署。
+[源码](examples/builders/diverse_showcase.py) · [可编辑画布](examples/native/water_cycle.excalidraw.md)。原生手绘线、斜线填充、山体和河流，不再是另一张架构卡片图。
 
-### 分块矩阵加速器与数据复用
+### 数学教学 · 深色几何板书
 
-![双 Bank 暂存、四乘四 PE 阵列和独立累加器排出通路](docs/images/accelerator.png)
+![真实切线、八段上和近似与MathJax公式组成的深色微积分图](docs/images/calculus.png)
 
-[Python／原生 API 源码](examples/builders/advanced_showcase.py) · [可编辑画布](examples/native/accelerator.excalidraw.md) · [PE 阵列局部大图](docs/images/accelerator-array.png)。16 个 MAC 单元，操作数向东／向南传递，计算时本地累加，结束后独立 drain。
+[源码](examples/builders/diverse_showcase.py) · [可编辑画布](examples/native/calculus.excalidraw.md)。函数、切点、斜率和积分结果一致；三条公式真实渲染并保留源 TeX。
 
-**这三组复杂图由 Agent 编写 Python、调用已有原生 API 制作，不是 DSL 自动生成，也不是一键硬件自动布局的效果。** [画廊](docs/gallery.md) 标明源码、PNG 检查和能力边界；原来的六组 YAML／DSL 示例仍全部保留，包括原生表格／ECharts、长中文分支、Tomasulo 和图片／LaTeX 等效果。
+### 城市交通 · 导视线路图
+
+![三条线路、二十个独立站点和两处真实共用坐标换乘站](docs/images/transit.png)
+
+[源码](examples/builders/diverse_showcase.py) · [可编辑画布](examples/native/transit.excalidraw.md)。用线路、站点与换乘符号表达拓扑；原创虚构网络，不是导航数据。
+
+### 项目管理 · 原生表格与甘特时间轴
+
+![薄荷主题语义表格与按行对齐的七周甘特计划](docs/images/gantt.png)
+
+[源码](examples/builders/diverse_showcase.py) · [可编辑画布](examples/native/gantt.excalidraw.md)。直接使用宿主 **light-mint 主题＋grid 模板**，不是逐格模拟样式。
+
+### 生态学 · 论文式原生三线表
+
+![原生学术三线表、植物符号和可编辑质量比公式组成的结果页](docs/images/academic.png)
+
+[源码](examples/builders/diverse_showcase.py) · [可编辑画布](examples/native/academic.excalidraw.md)。直接使用宿主 **academic 主题＋three-line 模板**；数值全部是演示数据，不作为实验结论。
+
+**这六张 README 展示由 Agent 编写源码、调用原生 API 制作，不是 DSL 输出，也不是整图截图贴进画布。** 两张新版表格图需要**配套原生表格开发版宿主**，安装本包不会自动升级宿主插件。发现 `nativeTable.callable` 后使用 [`drawing_table(create|style)`](skills/obsidian-excalidraw/references/table-native.md)；旧宿主明确报依赖缺失，不模拟新版能力。原有六组 YAML／DSL 及其它示例仍保留在[完整画廊](docs/gallery.md)。
 
 ## 选择使用方式
 
@@ -40,6 +58,7 @@
 | 一次性的普通节点关系图 | `drawing_compose(..., inspect=true)` | Agent 提交普通 diagram，执行层合并测量、布局、提交、检查和导出 |
 | 可版本管理、重复生成、嵌套区域、表格、多端口 | `drawing_dsl` 或 `launcher.py dsl` | Agent 或人编写精简场景，编译器按稳定身份增量更新 |
 | 已有图改字、移动、重连一小部分 | `drawing_read` → `drawing_apply` | 按真实 ID／revision 精确操作，保留无关内容 |
+| 原生表格主题与边框模板 | 发现 `nativeTable.callable` 后用 `drawing_table(create|style)` | 由宿主 TableManager 维护语义单元格、主题、边框与排版；需要配套开发版宿主 |
 | 素材库、演示框架、交互、导航、动画等 | 原生 MCP＋对应 Skill 参考 | 使用真实宿主能力，不强塞进 DSL 或假装近似实现 |
 | 自动化脚本、批量流程 | `launcher.py cli`／`launcher.py dsl` | 不要求 LLM 或 MCP 客户端，但仍要求已连接 GUI 宿主 |
 | Agent 在无桌面的开发服务器 | 同一工具经 SSH loopback 隧道调用 | 服务器推理，本地桌面管理 vault、字体、素材与渲染 |

@@ -1,0 +1,54 @@
+{
+  "method": "Real host rendering, actual PNG inspection and specific geometric adjudication; not a mocked renderer",
+  "bridgeAdapterSource": "0.13.6",
+  "hostBuildBoundary": "Gantt and academic use the isolated paired native-table development build. No personal-vault plugin replacement or host plugin release.",
+  "source": "examples/builders/diverse_showcase.py",
+  "helper": "examples/builders/showcase_support.py",
+  "sourceSHA256": "0c2333a671b8fb50ff48d3a9afaa4805aa779f1d5661fd77f7e80d57d6b330f4",
+  "examples": {
+    "water_cycle": {
+      "native": "examples/native/water_cycle.excalidraw.md", "preview": "docs/images/water_cycle.png",
+      "nativeElements": 56, "visualReview": "completed", "acceptance": "medium", "resourcesComplete": true,
+      "rawGeometryStatus": "fail", "intentionalGeometricDispositions": 16,
+      "scope": "Conceptual landscape; legal layered vegetation, terrain and hydrological process overlays. River spline visually inspected; no automatic exact-clearance claim.",
+      "nativeSHA256": "1a6ef4ce4544773edc4f677767ca399ca1d60d91cccbfbfdf34379d7bf6eef20",
+      "previewSHA256": "0dcf7895192eadf06325d01b5f1666acb2ccc8a3c46b805d0db8ce247a5bb89d"
+    },
+    "calculus": {
+      "native": "examples/native/calculus.excalidraw.md", "preview": "docs/images/calculus.png",
+      "nativeElements": 55, "visualReview": "completed", "acceptance": "medium", "resourcesComplete": true,
+      "rawGeometryStatus": "fail", "intentionalGeometricDispositions": 3,
+      "scope": "f(x)=x²/16+1 on [0,8]. Marker at (4,2) intentionally overlays area/strips. Eight right-endpoint rectangles are an upper approximation; three actual rendered TeX sources retained.",
+      "nativeSHA256": "d61c8556c7cf0fd3e97e0955194482a04b16c386a1fc96df154388fc73bb0839",
+      "previewSHA256": "da50e03287a4a12fdcbdf8443437e2750267a14dd4b3d2b25305e10ac25ddc93"
+    },
+    "transit": {
+      "native": "examples/native/transit.excalidraw.md", "preview": "docs/images/transit.png",
+      "nativeElements": 57, "visualReview": "completed", "acceptance": "medium", "resourcesComplete": true,
+      "rawGeometryStatus": "pass", "intentionalGeometricDispositions": 0,
+      "scope": "Twenty unique stations, three services, shared Central/Civic coordinates; original imaginary network, not navigation data.",
+      "nativeSHA256": "a7bb536bee58e796c7e869b3c442df85d36aa00598c909762f261526d37f6700",
+      "previewSHA256": "ae6a227f5edecd0a3481bc4b23bfe4249e892b3c73a0eaaa5f5e5dc31276bd49"
+    },
+    "gantt": {
+      "native": "examples/native/gantt.excalidraw.md", "preview": "docs/images/gantt.png",
+      "nativeElements": 61, "visualReview": "completed", "acceptance": "medium", "resourcesComplete": true,
+      "rawGeometryStatus": "pass", "intentionalGeometricDispositions": 0,
+      "requiresPairedDevelopmentHost": true,
+      "table": {"schemaVersion": 2, "theme": "light-mint", "border": "grid", "cells": 15, "columnWidths": [250, 120, 160], "nativeBoundTextVerified": true},
+      "scope": "Synthetic seven-week plan; four task durations 2/3/3/2 weeks. Native theme/layout, not simulated cell styling.",
+      "nativeSHA256": "1c0b53e727a6addb70dc9a3d0d58e0849546b82002004439da75de88d9303518",
+      "previewSHA256": "a8c06a74c5d35235d60dddd426a53903f0d90b90ef6c00b733822fcbb2add197"
+    },
+    "academic": {
+      "native": "examples/native/academic.excalidraw.md", "preview": "docs/images/academic.png",
+      "nativeElements": 56, "visualReview": "completed", "acceptance": "medium", "resourcesComplete": true,
+      "rawGeometryStatus": "pass", "intentionalGeometricDispositions": 0,
+      "requiresPairedDevelopmentHost": true,
+      "table": {"schemaVersion": 2, "theme": "academic", "border": "three-line", "cells": 12, "columnWidths": [260, 205, 205], "nativeBoundTextVerified": true},
+      "scope": "Synthetic ecology results. Three table rules come from the native renderer; mass-ratio equation is an editable text/line composition, not claimed as TeX.",
+      "nativeSHA256": "1f16bee4e0d7d1bdc2a9aef05d0f6469711ea11feb8e727a19a0ab7f7a290a9f",
+      "previewSHA256": "0cf24c050818941831d1f34ddda43f98235cb6fdc458b1a14cfd1f02a12289bf"
+    }
+  }
+}

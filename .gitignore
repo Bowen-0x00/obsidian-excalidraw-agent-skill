@@ -38,6 +38,7 @@
 !/skills/obsidian-excalidraw/references/native-features.md
 !/skills/obsidian-excalidraw/references/native-cli.md
 !/skills/obsidian-excalidraw/references/library-catalog.md
+!/skills/obsidian-excalidraw/references/table-native.md
 !/skills/obsidian-excalidraw/references/images-assets.md
 !/skills/obsidian-excalidraw/references/script-execution.md
 !/skills/obsidian-excalidraw/references/interaction-navigation.md
@@ -100,5 +101,6 @@ __pycache__/
 !/docs/
 !/docs/*.md
 !/docs/gallery-provenance.json
+!/docs/diverse-showcase-provenance.json
 !/docs/images/
 !/docs/images/*.png

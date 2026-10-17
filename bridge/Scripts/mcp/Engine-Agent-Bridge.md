@@ -2,14 +2,14 @@
 name: Excalidraw Agent Bridge
 description: Local authenticated MCP bridge for Obsidian Excalidraw.
 author: local
-version: 0.13.5
+version: 0.13.6
 autorun: false
 ---
 /*
 ```javascript
 */
 
-const BRIDGE_VERSION = "0.13.5";
+const BRIDGE_VERSION = "0.13.6";
 const PROTOCOL_VERSION = "3";
 const DEFAULT_PORT = 27124;
 
@@ -3336,6 +3336,15 @@ function runtimeCapabilitiesResponse() {
         Boolean(api?.ShapeCache),
     },
     latex: mathJaxStatus(),
+    nativeTable: {
+      callable: typeof ea.targetView?.tableManager?.stage === "function" &&
+        typeof ea.targetView?.tableManager?.applyTheme === "function",
+      schemaVersion: 2,
+      endpoint: "/v3/tables",
+      themes: ["light-blue", "light-mint", "dark-slate", "dark-ink", "morandi-sage", "morandi-rose", "academic", "sketch"],
+      borders: ["grid", "framed", "dashed", "three-line", "none"],
+      source: "Paired view.tableManager; catalog IDs only, palettes and borders remain host-owned",
+    },
 
     fonts: {
       supportsRegisteredFonts:
@@ -13311,6 +13320,83 @@ function bindingObject(
     return run;
   }
   
+  async function nativeTableResponse(payload) {
+    const view = ea.targetView;
+    const manager = view?.tableManager;
+    assert(typeof manager?.stage === "function" && typeof manager?.applyTheme === "function",
+      "TABLE_RUNTIME_REQUIRED", "This operation requires the paired native table appearance build.", 409);
+    const beforeRevision = sceneRevision();
+    assert(payload.baseRevision === beforeRevision, "REVISION_CONFLICT",
+      "Read the current canvas before modifying a native table.", 409,
+      { expected: payload.baseRevision, actual: beforeRevision });
+    const themes = ["light-blue", "light-mint", "dark-slate", "dark-ink", "morandi-sage", "morandi-rose", "academic", "sketch"];
+    const borders = ["grid", "framed", "dashed", "three-line", "none"];
+    assert(payload.action === "create" || payload.action === "style", "INVALID_TABLE_ACTION", "Use create or style.");
+    if (payload.theme !== undefined) assert(themes.includes(payload.theme), "INVALID_TABLE_THEME", "Unknown native table theme.");
+    if (payload.border !== undefined) assert(borders.includes(payload.border), "INVALID_TABLE_BORDER", "Unknown native table border template.");
+    const options = payload.options || {};
+    let dimensions;
+    if (payload.action === "create") {
+      const rows = integerInRange(options.rows, 1, 500, "rows");
+      const cols = integerInRange(options.cols, 1, 500, "cols");
+      assert(rows * cols <= MAX_OPERATIONS, "TABLE_TOO_LARGE", "At most 500 native cells per request.");
+      const cellWidth = positiveNumber(options.cellWidth ?? 160, "cellWidth");
+      const cellHeight = positiveNumber(options.cellHeight ?? 60, "cellHeight");
+      assert(cellWidth >= 40 && cellHeight >= 32, "INVALID_TABLE_DIMENSIONS", "Minimum native cell size is 40 × 32.");
+      dimensions = { x: finiteNumber(options.x, "x"), y: finiteNumber(options.y, "y"), rows, cols, cellWidth, cellHeight, cells: options.cells };
+      if (options.cells !== undefined) assert(Array.isArray(options.cells) && options.cells.length === rows &&
+        options.cells.every(row => Array.isArray(row) && row.length === cols && row.every(text => typeof text === "string")),
+        "INVALID_TABLE_CELLS", "cells must be a rows × cols matrix of strings.");
+      if (options.columnWidths !== undefined) assert(Array.isArray(options.columnWidths) &&
+        options.columnWidths.length === cols && options.columnWidths.every(value => Number.isFinite(value) && value >= 40),
+        "INVALID_TABLE_WIDTHS", "columnWidths must contain one width >= 40 per column.");
+    }
+    if (payload.action === "style") assert(typeof payload.target === "string" && payload.target.length > 0,
+      "TABLE_TARGET_REQUIRED", "style requires an explicit native table root or cell ID.");
+    let cell = payload.action === "style" ? manager.getCell(payload.target) : null;
+    if (payload.action === "style") assert(cell, "TABLE_CELL_NOT_FOUND", "target must identify an existing native table.", 404);
+    let result = null;
+    const refs = {};
+    let committed = false;
+    try {
+      if (dimensions) {
+        ea.reset();
+        resetStyleFor("text", options.style || {});
+        ea.style.roundness = null;
+        ea.style.roughness = 0;
+        result = manager.stage(ea, dimensions);
+        ea.getElement(result.rootId).customData.isContainer = true;
+        await ea.addElementsToView(false, true, true);
+        committed = true;
+        cell = manager.getCell(result.cellIds[0][0]);
+        assert(cell, "TABLE_CREATION_FAILED", "The native manager did not commit its first cell.", 500);
+        if (options.columnWidths) {
+          options.columnWidths.forEach((width, index) => manager.setColumnWidth(result.cellIds[0][index], width));
+        }
+        if (payload.ref) {
+          refs[payload.ref] = result.rootId;
+          result.cellIds.forEach((row, r) => row.forEach((id, c) => {
+            refs[`${payload.ref}:${r}:${c}`] = id;
+            const element = getViewElements().find(item => item.id === id);
+            const text = element?.boundElements?.find(item => item.type === "text");
+            if (text) refs[`${payload.ref}:${r}:${c}:label`] = text.id;
+          }));
+        }
+      }
+      if (payload.theme !== undefined) { manager.applyTheme(cell.id, payload.theme); committed = true; }
+      if (payload.border !== undefined) { manager.setAppearance(cell.id, { border: payload.border }); committed = true; }
+      await view.forceSave(true);
+      const root = manager.getRoot(cell);
+      return { file: activeFilePath(), previousRevision: beforeRevision, revision: sceneRevision(),
+        rootId: root.id, cellIds: result?.cellIds, refs, table: clone(root.customData.table),
+        persistence: "saved", atomic: false, undo: "Native manager transactions; not drawing_revert history" };
+    } catch (error) {
+      error.details = { ...(error.details || {}), file: activeFilePath(), committed,
+        rootId: result?.rootId, refs, revision: sceneRevision(), atomic: false };
+      throw error;
+    }
+  }
+
   function normalizeRoute(pathname) {
     if (pathname.startsWith("/v2/")) {
       return (
@@ -13460,6 +13546,9 @@ function bindingObject(
     );
   
     switch (pathname) {
+      case "/v3/tables":
+        return withTargetView(payload.contextToken, true, () => nativeTableResponse(payload));
+
       case "/v3/libraries/list":
         return listLibrariesResponse(payload);
 

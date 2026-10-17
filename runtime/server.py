@@ -26,6 +26,7 @@ Fast path: create -> drawing_compose(diagram) -> optional drawing_apply(post-sty
 drawing_compose(inspect=True) returns the checked PNG directly when no post-styling is needed.
 Granular plan/apply/check/preview and every advanced operation remain available; no validation or visual gate is skipped.
 Optional scene DSL: drawing_dsl(plan|render, document, font_family, state_id, filename|file_path) compiles measured spatial scenes and reconciles stable identities. First render needs a unique filename or explicit existing file; repeat the same state_id to update, never replay the graph with compose. Render returns actual checked PNG; view it then call drawing_review. Native tools remain the path for libraries, interaction and precise unmanaged edits.
+Native table themes: discover capabilities.nativeTable.callable, then drawing_table(create|style). The paired host TableManager owns schema-v2 cells, themes/borders/reflow; never simulate palettes/three-line borders. Older hosts fail TABLE_RUNTIME_REQUIRED. Native manager saves are not atomic Bridge undo transactions. The paired host feature may still be a development build; do not claim package install upgrades the host plugin.
 Acceptance levels low/medium/high (default medium) control QA depth, not model effort.
 Medium/high require actual content/readability/occlusion checks on the current PNG.
 High also checks connections and hierarchy/style; unbound arrows are legal unless binding is explicitly required.
@@ -182,6 +183,29 @@ def drawing_plan(
         context_token=context_token,
         diagram=diagram,
     )
+
+
+@mcp.tool()
+def drawing_table(
+    context_token: str,
+    base_revision: str,
+    action: Literal["create", "style"],
+    target: str | None = None,
+    options: dict[str, Any] | None = None,
+    theme: str | None = None,
+    border: str | None = None,
+    ref: str | None = None,
+) -> dict[str, Any]:
+    """Create/style a native schema-v2 table through the paired host TableManager.
+
+    Discover capabilities.nativeTable first. Create options: x/y, rows/cols,
+    cellWidth>=40, cellHeight>=32, cells string matrix, optional columnWidths
+    and text style. Themes/borders come from that capability catalog.
+    Style needs an explicit native root/cell target. Content and sizing survive
+    theme/border changes. Host native undo applies; not atomic/drawing_revert.
+    Older hosts fail TABLE_RUNTIME_REQUIRED rather than simulating a theme.
+    """
+    return client.table(context_token, base_revision, action, target, options, theme, border, ref)
 
 
 @mcp.tool()

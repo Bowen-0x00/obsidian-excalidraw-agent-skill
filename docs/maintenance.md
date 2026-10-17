@@ -8,6 +8,8 @@ User entrypoints are documented in [README](../README.md), [中文README](../REA
 
 Reviewed sources live under `examples/dsl/` (compiler input) and `examples/builders/` (Agent-authored Python calling native APIs); native examples under `examples/native/`; actual PNGs under `docs/images/`. Preserve that distinction in README/gallery/provenance. Other user canvases, connection settings, private identity files, logs and artifacts remain ignored. Changes to geometry/fonts require re-rendering the affected real examples; text-source checks do not prove image quality.
 
+`drawing_table` uses the existing paired host `TableManager` through Bridge `/v3/tables`; the Agent package does not contain a second theme palette, table border renderer or host plugin upgrade. Check `nativeTable.callable` and keep the development-host requirement visible in docs/examples. Native manager creation/style are saved but not one atomic Bridge-undo transaction; retain partial-failure receipts and never blindly recreate after an unknown result.
+
 ## Shared Engine source and automatic update PRs
 
 - [`bridge/shared-scripts.json`](../bridge/shared-scripts.json) is the explicit import allowlist. Shared Engines are maintained only in [Scripts](https://github.com/Bowen-0x00/obsidian-excalidraw-scripts); `mcp/Start-Agent-Drawing.md` and `mcp/Engine-Agent-Bridge.md` belong to this Agent repository and are never imported.

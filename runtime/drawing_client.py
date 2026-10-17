@@ -270,6 +270,20 @@ class DrawingClient:
                 raise BridgeError("Incomplete element page", code="INVALID_RESPONSE", status=502)
             cursor += len(page["elements"])
 
+    def table(self, context_token: str, base_revision: str, action: str,
+              target: str | None = None, options: dict[str, Any] | None = None,
+              theme: str | None = None, border: str | None = None, ref: str | None = None) -> dict[str, Any]:
+        """Create/style a paired native table; host owns themes, borders and layout.
+
+        This is separate from the legacy create_table grid. Native transactions
+        are saved but not atomic across create/theme/width changes.
+        """
+        return self.request("POST", "/v3/tables", {
+            "contextToken": context_token, "baseRevision": base_revision, "action": action,
+            **{key: value for key, value in {"target": target, "options": options,
+                "theme": theme, "border": border, "ref": ref}.items() if value is not None},
+        })
+
     def measure(
         self,
         context_token: str,
