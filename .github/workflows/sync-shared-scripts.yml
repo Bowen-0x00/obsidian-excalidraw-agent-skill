@@ -4,8 +4,6 @@ on:
   repository_dispatch:
     types: [shared-scripts-updated]
   workflow_dispatch:
-  schedule:
-    - cron: '23 */6 * * *'
 
 permissions:
   contents: read

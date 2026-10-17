@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — Event-driven synchronization
+
+- Remove the six-hour shared-Engine synchronization schedule. Retain upstream push notifications and manual workflow dispatch; missed notifications require a manual catch-up rather than periodic polling. Import validation and PR policy are unchanged.
+
 ## Unreleased — Retire the upstream table hook Engine
 
 - Remove the retired `Feature-Table-Engine.md` from the shared import manifest/lock, bundle inventory and bootstrap, and delete its bundled copy. Scripts `3a1f79f` moved table interaction to the host plugin; the obsolete required input caused scheduled shared-Engine synchronization to fail.
