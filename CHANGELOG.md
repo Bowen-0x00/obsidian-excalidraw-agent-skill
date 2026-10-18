@@ -6,6 +6,10 @@
 - Read fixed scene/paint/text/binding/table/image-reference/canvas/viewport snapshots plus renderer event counts through short CDP sessions. Require an already uniquely open file, validate vault/target identity, deny redirects/retargeted sockets, and use V8 `throwOnSideEffect` with no unguarded fallback. No input, navigation, pause, save/export, plugin changes or raw console arguments.
 - Route unexplained PNG/rendering problems to the optional diagnostic workflow. Skill and both READMEs distinguish observed state from hypotheses; any authorized fine-tuning uses fresh normal Bridge/API/DSL state followed by actual PNG/review, never CDP writes.
 - Keep diagnostic opt-in client-private and disabled for existing/remote installations. The unrestricted Electron debugger is not a sandbox or made read-only by this adapter; no host/plugin/Bridge script change or automatic debugging-port/SSH setup.
+## Unreleased — Four arrow path styles documented
+
+- Document the actual `sharp`, `round`, `elbow` and modified-fork `curveArrow` path renderers separately from arrowhead types. Specify fields, selection semantics, S-curve limits, bindings, readback and PNG/unknown geometry acceptance.
+- Clarify that `routing:"curve"` is not a public alias for the fork's `customData.curveArrow`; no arbitrary Bezier/control-point or obstacle-avoidance guarantee is added. Keep microarchitecture signals on sharp/elbow by default.
 
 ## Unreleased — Event-driven synchronization
 
