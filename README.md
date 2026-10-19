@@ -127,6 +127,8 @@ Setup deploys reviewed scripts into `Agent-Drawing/` under the plugin's configur
 
 Existing installations must use their existing private state directory, selected by `EXCALIDRAW_AGENT_STATE_DIR`, rather than accidentally configuring a second connection. `launcher.py status` reports the selected directory and target without exposing a bearer token.
 
+Starting the Agent inside another vault does **not** switch its user-level Bridge connection. Check `vault_path` first. `configured:true` is not proof of a live service; if Advanced URI is unavailable, run the stated bootstrap manually. Never bypass a managed-script conflict by rewriting installation ownership or searching session history for tokens. Long-lived clients follow updated private connection settings on their next request; reload an older MCP process once to load this fix. [Connection troubleshooting](skills/obsidian-excalidraw/references/agent-setup.md).
+
 ## Natural-language drawing
 
 Ordinary requests do not need DSL knowledge:

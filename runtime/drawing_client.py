@@ -90,15 +90,27 @@ class DrawingClient:
         bridge_token: str | None = None,
         timeout: float | None = None,
     ) -> None:
-        resolved_url, resolved_token, resolved_timeout = resolve_bridge_credentials()
-        self.bridge_url = (bridge_url or resolved_url).rstrip("/")
-        self.bridge_token = bridge_token if bridge_token is not None else resolved_token
-        # Authenticated loopback traffic must never leave the machine through an environment proxy.
-        host = urllib.parse.urlsplit(self.bridge_url).hostname
-        self.opener = urllib.request.build_opener(
-            urllib.request.ProxyHandler({}) if host in ("127.0.0.1", "localhost", "::1") else urllib.request.ProxyHandler()
-        )
-        self.timeout = timeout if timeout is not None else resolved_timeout
+        self._connection_overrides = (bridge_url, bridge_token, timeout)
+        self.bridge_url = ""
+        self._refresh_connection()
+
+    def _refresh_connection(self) -> None:
+        """Resolve unpinned settings before each request; never retry a write."""
+        url_override, token_override, timeout_override = self._connection_overrides
+        if any(value is None for value in self._connection_overrides):
+            resolved_url, resolved_token, resolved_timeout = resolve_bridge_credentials()
+        else:
+            resolved_url, resolved_token, resolved_timeout = "", "", 180.0
+        url = (url_override if url_override is not None else resolved_url).rstrip("/")
+        if url != self.bridge_url:
+            # Loopback credentials must never pass through an environment proxy.
+            host = urllib.parse.urlsplit(url).hostname
+            self.opener = urllib.request.build_opener(
+                urllib.request.ProxyHandler({}) if host in ("127.0.0.1", "localhost", "::1") else urllib.request.ProxyHandler()
+            )
+            self.bridge_url = url
+        self.bridge_token = token_override if token_override is not None else resolved_token
+        self.timeout = timeout_override if timeout_override is not None else resolved_timeout
 
     def request(
         self,
@@ -110,6 +122,7 @@ class DrawingClient:
 
         Raises BridgeError on failures.
         """
+        self._refresh_connection()
         if not self.bridge_token:
             raise BridgeError(
                 "EXCALIDRAW_BRIDGE_TOKEN is not configured.",

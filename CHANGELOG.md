@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — Refresh long-lived Bridge connections
+
+- Re-resolve unpinned URL/token/timeout settings before every request, so a live MCP follows an intentionally updated private connection instead of retaining stale credentials while setup reports connected. Explicit constructor/environment overrides retain precedence; malformed config fails closed and failed writes are never retried.
+- Reproduce the stale-connection bug with real loopback HTTP services, then verify connection rotation and explicit-override/error boundaries. Document cwd-versus-vault selection, unavailable automatic startup, ownership-conflict handling and the prohibition on forging installation hashes or mining historical tokens.
+
 ## Unreleased — Opt-in read-only CDP diagnostics
 
 - Add `drawing_debug(status|inspect)` and `launcher.py cdp -- status|enable|inspect|disable`. Default is off; explicit user CLI opt-in pins a numeric-loopback debugger endpoint and exact host vault. MCP cannot enable it, accept arbitrary JS/protocol commands or mutate a drawing.

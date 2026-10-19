@@ -127,6 +127,8 @@ uv run --frozen python launcher.py doctor
 
 已有安装继续使用原私有 state 目录，通过 `EXCALIDRAW_AGENT_STATE_DIR` 指定，避免意外配置第二条连接。`launcher.py status` 会说明当前目录和目标，不输出 bearer token。
 
+在另一个vault目录启动Agent，**不会自动切换用户级Bridge连接**；先核对`vault_path`。`configured:true`不证明服务已连接；缺Advanced URI时按提示手动运行启动命令。脚本覆盖保护不可通过重写安装所有权或搜历史token绕过。长驻客户端现会在下一次请求前读取最新私有连接配置；旧MCP进程需reload一次加载此修复。[连接排错](skills/obsidian-excalidraw/references/agent-setup.md)。
+
 ## 自然语言绘图
 
 普通用户不需要懂 DSL：
