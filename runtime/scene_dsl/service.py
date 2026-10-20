@@ -82,6 +82,7 @@ def execute(
     acceptance_level: str | None = None,
     source_directory: Path | None = None,
     output_path: Path | None = None,
+    brief: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Plan without scene mutation, or reconcile then check/export one exact revision.
 
@@ -117,16 +118,18 @@ def execute(
             except Exception as error:
                 if getattr(error, "code", None) not in ("CONTEXT_NOT_FOUND", "INVALID_CONTEXT", "CONTEXT_EXPIRED"):
                     raise
-                token = client.context("bind", file_path=state["file"])["contextToken"]
+                token = client.context("bind", file_path=state["file"], brief=brief)["contextToken"]
+            if brief is not None:
+                token = client.context("bind", file_path=state["file"], brief=brief)["contextToken"]
         elif file_path:
-            context = client.context("bind", file_path=file_path)
+            context = client.context("bind", file_path=file_path, brief=brief)
             token = context["contextToken"]
         elif action == "plan":
             raise DslError("file_path", "read-only planning needs existing managed state or an explicit existing canvas for native measurement")
         elif not filename:
             raise DslError("filename", "first render needs a unique filename or an explicit existing file_path")
         else:
-            context = client.context("create", filename=filename, foldername=foldername or "Agent-Diagrams")
+            context = client.context("create", filename=filename, foldername=foldername or "Agent-Diagrams", brief=brief)
             token = context["contextToken"]
             # Keep the empty target identity even if compilation fails. A retry
             # must not silently create a second canvas.
@@ -134,6 +137,9 @@ def execute(
                      "contextToken": token, "revision": context["revision"],
                      "ids": {}, "snapshots": {}, "entities": {}, "post": [], "features": []}
             save_state(path, state)
+        if action == "render":
+            settings = client.review_settings(token, doc.get("acceptance"))
+            doc["acceptance"] = settings.acceptance_level
         plan = Compiler(client, token, doc, font).compile()
         scene = client.read(token, detail="full")
         if scene["revision"] != plan["baseRevision"]:

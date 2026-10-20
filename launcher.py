@@ -42,14 +42,31 @@ def serve() -> None:
     server.mcp.run("stdio")
 
 
-def smoke(filename: str) -> dict[str, Any]:
+def smoke(filename: str, font_family: str) -> dict[str, Any]:
     from drawing_client import DrawingClient
 
     client = DrawingClient()
-    context = client.context("create", filename=filename, foldername="Agent-Diagrams")
+    fonts = client.context("discover")["capabilities"]["fonts"]["registered"]
+    if font_family not in fonts:
+        raise ValueError("Use --font with an exact family returned by discovery/fonts")
+    brief = {
+        "task_id": "installation-smoke:" + filename,
+        "preferences": {
+            key: {"value": value, "source": "user",
+                  "evidence": "Explicit invocation of the documented fixed installation smoke with --font; not a general artwork request"}
+            for key, value in {"style": "professional", "review": "medium",
+                               "palette": "semantic diagnostic blue/green/orange", "background": "white",
+                               "font": font_family}.items()
+        },
+        "requirements": [
+            {"id": "branches", "description": "Keep approved and rejected branches with complete Chinese labels"},
+            {"id": "native", "description": "Keep native editable shapes, text and directed bound arrows"},
+        ],
+    }
+    context = client.context("create", filename=filename, foldername="Agent-Diagrams", brief=brief)
     token = context["contextToken"]
     initial = client.read(token)
-    diagram = {"diagramId": "installation-smoke", "kind": "flowchart", "style": "professional",
+    diagram = {"diagramId": "installation-smoke", "kind": "flowchart", "style": {"profile": "professional", "fontFamily": font_family},
                "nodes": [{"id": "request", "shape": "rectangle", "label": "提交申请", "variant": "primary"},
                          {"id": "review", "shape": "diamond", "label": "审核"},
                          {"id": "approve", "shape": "rectangle", "label": "发放凭据", "variant": "success"},
@@ -90,6 +107,7 @@ def main() -> int:
     start.add_argument("--no-open", action="store_true")
     trial = commands.add_parser("smoke", help="Create a real native diagram and PNG without fabricated visual approval")
     trial.add_argument("--filename", default="Drawing-Installation-Smoke")
+    trial.add_argument("--font", required=True, help="Exact host-discovered font for this fixed diagnostic drawing")
     cli = commands.add_parser("cli", help="Run the full drawing CLI; options after -- are forwarded")
     cli.add_argument("arguments", nargs=argparse.REMAINDER)
     dsl = commands.add_parser("dsl", help="Render or incrementally update YAML/JSON scenes; options after -- are forwarded")
@@ -138,7 +156,7 @@ def main() -> int:
         elif args.action == "start":
             result = start_bridge(not args.no_open)
         elif args.action == "smoke":
-            result = smoke(args.filename)
+            result = smoke(args.filename, args.font)
         else:
             result = setup_status()
         print(json.dumps(result, ensure_ascii=False, indent=2))

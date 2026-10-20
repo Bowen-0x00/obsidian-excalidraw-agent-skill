@@ -141,7 +141,7 @@ uv run --frozen python launcher.py doctor
 
 > 修改我指定的已有画布中的一个节点标签，其他内容和样式不变。
 
-Agent 只询问会实质影响结果的缺失选择，发现当前字体／资源，选择入口，读回全图、检查、查看 PNG，再局部修复。硬件按部件／端口／信号规划；一个 kind 字段不是硬件自动布局器。
+新图先真实询问未定的 **style 和 review 等级**，与色板、背景、字体意图合并一轮；推荐值不是用户回答，“重试／继续／帮我画”不是免问。明确指定、原图／同套图继承、用户明确授权默认值逐项记录到必需的`brief`；用户需求逐项验收。见[偏好与任务单格式](skills/obsidian-excalidraw/references/diagram-recipes.md)和[验收证据](skills/obsidian-excalidraw/references/acceptance.md)。硬件仍按部件／端口／信号组织；kind或泳道都不是硬件自动布局器。
 
 ## 用 DSL 维护可重复生成的图
 
@@ -149,10 +149,13 @@ Agent 只询问会实质影响结果的缺失选择，发现当前字体／资�
 
 ```sh
 uv run --frozen python launcher.py dsl -- fonts
-uv run --frozen python launcher.py dsl -- render examples/dsl/release-flow.yaml --font "EXACT_HOST_FAMILY" --state-id release-demo --filename "Release-Demo-Unique" --output ./output/release.json
+uv run --frozen python launcher.py dsl -- render examples/dsl/release-flow.yaml --font "EXACT_HOST_FAMILY" --brief-file ./drawing-brief.json --state-id release-demo --filename "Release-Demo-Unique" --output ./output/release.json
 ```
 
 `EXACT_HOST_FAMILY` 必须替换为当前发现的精确字体名。命令生成原生元素，以及客户端上的 `release.json`／`release.png`。修改 YAML 后复用**同一个 state-id**再次 render，更新原 ID，不追加第二张图；以后可省略 filename。相同源是零绘图操作。不能删 state 或改用 compose 整图重放绕过冲突。
+
+首绘前按上述格式，将真实选择来源与需求保存为`drawing-brief.json`，不能复制示例伪称用户已同意。CLI与MCP执行相同门禁。旧画布首次写入先bind并补齐brief；只读发现／读取／测量不要求任务单。重绑继承同任务／文件的验收历史。Bridge 0.13.7在提交任何批量元素前拒绝错位／未知字段；原生文字的字体、字号、行高测量复用创建路径。
+
 
 MCP Agent 使用新增的 **`drawing_dsl(action, document, font_family, state_id, ...)`**，document 是同一场景的已解析 JSON 对象。首次 render 需要唯一 filename 或明确现有 file_path；只读 plan 需要已有 state／file_path 来真实测量文字。返回实际检查后的 PNG ImageContent，不会自动宣布视觉通过。CLI 与 MCP 共用一个编译执行实现。
 
@@ -231,6 +234,9 @@ MCP 只提供 **`drawing_debug(status|inspect)`**，没有开启权限或任意 
 ## 更新与安全
 
 克隆安装：停止本包 MCP，pull、`uv sync --frozen`、同步已复制 Skill，再重启 MCP。OMP 按接入说明执行 marketplace update／plugin upgrade；Windows 先断开旧 MCP，避免缓存被锁。重新连接**同一 vault**更新受管脚本，自定义文件仍受冲突保护；必要时重载 Engine／Obsidian。保留私有连接配置、DSL 身份状态和评审产物。
+
+**0.10.0 升级：**逐个更新／连接已配置 vault 的受管 bundle，再运行各库的 `Agent-Drawing/mcp/Start-Agent-Drawing`，并重载 MCP。bootstrap 与 Bridge 都应为 **0.13.7**；仅更新 Skill 不会替换运行中的宿主。新图先询问未定 style／review，并提交已回答的 `brief`；评审增加逐项用户需求覆盖。固定安装诊断命令为 `launcher.py smoke --font "当前发现的精确字体" --filename 唯一测试名`。保留私有状态，不重写备份或旧版本快照。
+
 
 Bridge 是有 vault 读写权限的可信本地代码，**不是沙箱**；监听 loopback 并鉴权。凭据不进入 prompt、场景、公开报告或 Git。包含代码的 customData／素材脚本、外部应用写入和附加 Engine，不因用户要求画图就自动授信。模型提供方会接收其处理的 prompt／图片。
 

@@ -14,7 +14,6 @@ from mcp.server.fastmcp import FastMCP
 from mcp.types import CallToolResult, ImageContent, TextContent
 
 from drawing_client import BridgeError, DrawingClient
-from review_ledger import ReviewLedger
 
 mcp = FastMCP(
     "obsidian-excalidraw",
@@ -22,17 +21,17 @@ mcp = FastMCP(
 Obsidian Excalidraw MCP Server for professional diagramming.
 
 Workflow:
-Fast path: create -> drawing_compose(diagram) -> optional drawing_apply(post-style, inspect=True) -> view PNG -> drawing_review.
+Fast path: ask unresolved style/review and other preferences -> create(brief) -> drawing_compose(diagram) -> optional drawing_apply(post-style, inspect=True) -> view PNG -> drawing_review(requirement_checks).
 drawing_compose(inspect=True) returns the checked PNG directly when no post-styling is needed.
 Granular plan/apply/check/preview and every advanced operation remain available; no validation or visual gate is skipped.
 Optional scene DSL: drawing_dsl(plan|render, document, font_family, state_id, filename|file_path) compiles measured spatial scenes and reconciles stable identities. First render needs a unique filename or explicit existing file; repeat the same state_id to update, never replay the graph with compose. Render returns actual checked PNG; view it then call drawing_review. Native tools remain the path for libraries, interaction and precise unmanaged edits.
 Native table themes: discover capabilities.nativeTable.callable, then drawing_table(create|style). The paired host TableManager owns schema-v2 cells, themes/borders/reflow; never simulate palettes/three-line borders. Older hosts fail TABLE_RUNTIME_REQUIRED. Native manager saves are not atomic Bridge undo transactions. The paired host feature may still be a development build; do not claim package install upgrades the host plugin.
 Opt-in troubleshooting: drawing_debug(status|inspect) offers fixed CDP read-only observations only after explicit user CLI enable. If PNG differs from expected and Bridge data cannot explain it, offer this diagnostic path; never auto-enable, send arbitrary JS/Input/Debugger commands, or mutate through CDP. Fine-tune only via normal authorized drawing APIs, fresh revisions and PNG/review.
-Acceptance levels low/medium/high (default medium) control QA depth, not model effort.
+Acceptance levels low/medium/high control QA depth, not model effort. For a new drawing resolve review explicitly with the user; medium is only a recommendation or an explicitly delegated default.
 Medium/high require actual content/readability/occlusion checks on the current PNG.
 High also checks connections and hierarchy/style; unbound arrows are legal unless binding is explicitly required.
 Geometric candidates can be adjudicated individually with current PNG evidence, never blanket-ignored.
-1. drawing_context(action="discover"|"create"|"bind"): acquire contextToken for the active or newly created canvas.
+1. drawing_context(action="discover"|"create"|"bind", brief?): create requires resolved per-choice provenance and user requirements; bind keeps file-scoped review history.
 2. drawing_read(context_token, detail="summary"|"detail"|"full"): read all active elements or specific IDs.
 3. drawing_measure(context_token, text, font_family, font_size, line_height, width?): measure text dimensions using native Bridge renderer.
 4. drawing_plan(context_token, diagram): compute layered layout, dimensions, and operations without modifying canvas.
@@ -87,12 +86,16 @@ def drawing_context(
     filename: str | None = None,
     foldername: str | None = None,
     file_path: str | None = None,
+    brief: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Acquire canvas context: discover runtime capabilities, create a new canvas, or bind an existing file.
 
-    Returns contextToken, file, revision, and capabilities.
-    Before creating a new drawing, use the client's real choice UI for unspecified
-    visual preferences per the Skill; do not re-ask specified choices or restyle edits.
+    Create requires brief={task_id,preferences,requirements}. Preferences must include
+    style/review/palette/background/font, each {value,source,evidence}; source is
+    user/answer/inherited/delegated. Ask unresolved style and review before creation.
+    requirements=[{id,description}] records the user request, not generated labels.
+    Bind without brief remains read-only unless this file already has a brief.
+    Rebinding a file preserves review history; never create another file to bypass failure.
     capabilities.fonts.registered lists current host families; source/error expose
     native getFontFamilies versus legacy registry evidence. Availability is not
     glyph coverage or suitability. Follow typography.md to assess fonts and choose
@@ -103,6 +106,7 @@ def drawing_context(
         filename=filename,
         foldername=foldername,
         file_path=file_path,
+        brief=brief,
     )
 
 
@@ -247,6 +251,7 @@ def drawing_dsl(
     foldername: str | None = None,
     file_path: str | None = None,
     scale: str | float = "auto",
+    brief: dict[str, Any] | None = None,
     acceptance_level: Literal["low", "medium", "high"] | None = None,
 ) -> Any:
     """Compile an optional declarative scene into native editable elements.
@@ -270,7 +275,7 @@ def drawing_dsl(
     try:
         result = execute(client, action, document, font_family=font_family, state_id=state_id,
                          filename=filename, foldername=foldername, file_path=file_path,
-                         scale=scale, acceptance_level=acceptance_level)
+                         scale=scale, acceptance_level=acceptance_level, brief=brief)
         if action == "plan":
             return result
         image = result["preview"].pop("_base64")
@@ -336,7 +341,7 @@ def drawing_apply(
     """
     started = time.perf_counter()
     if acceptance_level is not None or expected is not None:
-        settings = ReviewLedger(context_token, acceptance_level=acceptance_level)
+        settings = client.review_settings(context_token, acceptance_level)
         if expected is not None:
             settings.expected = expected
         settings.save()
@@ -425,6 +430,7 @@ def drawing_review(
     visual_checks: dict[str, str] | None = None,
     dispositions: list[dict[str, Any]] | None = None,
     detail_preview_ids: list[str] | None = None,
+    requirement_checks: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Record review round in persistent ledger and determine whether to continue, complete, or seek attention.
 
@@ -432,10 +438,13 @@ def drawing_review(
     Medium requires visual_checks content/readability/occlusion; high also requires
     connections/hierarchy_style. Values: pass, not_applicable, fail. Low keeps a
     lighter checklist but never bypasses broken references or missing resources.
-    dispositions: [{issue_id,decision:"false_positive"|"intentional",reason}] apply
-    only to current geometric candidates after real PNG inspection, not semantic
-    or native structural errors. Findings remain disclosed; detail IDs must be
-    registered at this revision. Level and expected assertions persist per context.
+    dispositions require {issue_id,element_ids,preview_id,decision,reason}, with a
+    distinct element-specific explanation for every issue. Text conflicts permit
+    only false_positive with a readable registered detail PNG covering those IDs.
+    Never blanket-waive collisions or mark unreadable text intentional.
+    requirement_checks=[{requirement_id,outcome:"pass"|"fail",element_ids,evidence}]
+    must cover every brief requirement with current native IDs. Completion records
+    this attestation; it is not an independent proof of hardware/math correctness.
     """
     return client.review(
         context_token=context_token,
@@ -450,6 +459,7 @@ def drawing_review(
         visual_checks=visual_checks,
         dispositions=dispositions,
         detail_preview_ids=detail_preview_ids,
+        requirement_checks=requirement_checks,
     )
 
 
@@ -569,7 +579,7 @@ def drawing_compose(
     """
     started = time.perf_counter()
     if acceptance_level is not None or expected is not None:
-        settings = ReviewLedger(context_token, acceptance_level=acceptance_level)
+        settings = client.review_settings(context_token, acceptance_level)
         if expected is not None:
             settings.expected = expected
         settings.save()

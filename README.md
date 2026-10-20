@@ -141,7 +141,7 @@ Ordinary requests do not need DSL knowledge:
 
 > Rename one node in the exact existing canvas I specify. Leave other content and styles alone.
 
-The Agent resolves only meaningful missing choices, discovers actual fonts/resources, selects an entrypoint, checks the full scene, views PNG and repairs specific problems. Hardware planning is component/port/signal based; a `kind` string is not a hardware router.
+Before a new drawing, the Agent asks unresolved **style and review depth** first, together with palette, background and font intent in one round. A recommendation is not a user answer; “retry/continue/draw this” does not waive questions. Explicit choices, deliberate inheritance and an explicit request to use defaults are recorded per field in a required `brief`. Its user requirements are checked individually at review. See the [choice/brief format](skills/obsidian-excalidraw/references/diagram-recipes.md) and [review evidence](skills/obsidian-excalidraw/references/acceptance.md). Hardware remains component/port/signal based; a kind string or swimlane is not a hardware router.
 
 ## Repeatable scenes with the DSL
 
@@ -149,10 +149,13 @@ The compiler is included—no separate repository, backend path or language serv
 
 ```sh
 uv run --frozen python launcher.py dsl -- fonts
-uv run --frozen python launcher.py dsl -- render examples/dsl/release-flow.yaml --font "EXACT_HOST_FAMILY" --state-id release-demo --filename "Release-Demo-Unique" --output ./output/release.json
+uv run --frozen python launcher.py dsl -- render examples/dsl/release-flow.yaml --font "EXACT_HOST_FAMILY" --brief-file ./drawing-brief.json --state-id release-demo --filename "Release-Demo-Unique" --output ./output/release.json
 ```
 
 Replace `EXACT_HOST_FAMILY` with a current discovered family. The command creates native elements plus `release.json`/`release.png` on the client. Edit YAML and render again with the **same state-id**; the original IDs are updated, not a second graph appended. Omit filename afterward. Identical input is a no-op. Do not delete state or switch to compose to bypass a conflict.
+
+Create `drawing-brief.json` from the cited choices and requirements using the linked format before the first render; do not copy fabricated user answers from an example. CLI authoring uses the same gate as MCP. Bind an existing canvas with its brief before a first write; read-only discovery/read/measurement remain available without it. Rebind preserves task/file review history. Bridge 0.13.7 rejects unknown/misplaced operation fields before any batch element is committed; native font/size/line-height measurement uses the same host path as text creation.
+
 
 MCP Agents use the new **`drawing_dsl(action, document, font_family, state_id, ...)`** with a parsed JSON scene object. First render needs a unique filename or explicit existing file_path; read-only plan needs existing state/file_path for native measurements. Render returns checked PNG ImageContent, not visual approval. The same compiler serves CLI and MCP.
 
@@ -231,6 +234,9 @@ User `.excalidrawlib` assets are not redistributed here. Query the actual curren
 ## Updates and safety
 
 For a checkout: stop this package's MCP process, pull, `uv sync --frozen`, refresh copied Skill files and restart MCP. For OMP, follow the supported marketplace update/plugin upgrade instructions in Agent setup; disconnect the old MCP first on Windows to avoid locked-cache failures. Reconnect the **same vault** to update managed scripts, preserving customized-file conflict checks; reload Engines/Obsidian when needed. Preserve private connection settings, DSL identity state and review artifacts.
+
+**0.10.0 migration:** update/reconnect each configured vault's managed bundle, then run its `Agent-Drawing/mcp/Start-Agent-Drawing` and reload MCP. Both bootstrap and Bridge must report **0.13.7**; updating only the Skill does not replace a running host. New artwork asks unresolved style/review first and passes a resolved `brief`; native reviews additionally cover every user requirement. The fixed installation diagnostic is `launcher.py smoke --font "EXACT_DISCOVERED_FAMILY" --filename Unique-Smoke`. Existing private state is retained; backups/old package snapshots are not rewritten.
+
 
 The Bridge is trusted local code with vault read/write access, **not a sandbox**. It listens on loopback and authenticates requests. Keep credentials out of prompts, scenes, public reports and Git. Code-bearing customData/library scripts, external writes and additional Engines are not automatically trusted because you asked for a diagram. The model provider receives the prompts/images it processes.
 

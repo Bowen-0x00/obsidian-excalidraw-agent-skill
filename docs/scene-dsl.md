@@ -11,10 +11,13 @@ From the installed package/repository directory, with the same private connectio
 ```sh
 uv run --frozen python launcher.py status
 uv run --frozen python launcher.py dsl -- fonts
-uv run --frozen python launcher.py dsl -- render examples/dsl/release-flow.yaml --font "EXACT_HOST_FAMILY" --state-id release-demo --filename "Release-Demo-Unique" --output ./output/release.json
+uv run --frozen python launcher.py dsl -- render examples/dsl/release-flow.yaml --font "EXACT_HOST_FAMILY" --brief-file ./drawing-brief.json --state-id release-demo --filename "Release-Demo-Unique" --output ./output/release.json
 ```
 
 `EXACT_HOST_FAMILY` is a placeholder: select an exact string returned by `fonts`, not a machine-specific name copied from a screenshot. Open an Excalidraw canvas if discovery reports `NO_EXCALIDRAW_VIEW`. The output directory is on the CLI/MCP client, not necessarily on the graphical host. Set the existing `EXCALIDRAW_AGENT_STATE_DIR` environment variable when selecting a non-default connection.
+
+Before a first render, save the resolved choices and user requirements in `drawing-brief.json` using the [brief format](../skills/obsidian-excalidraw/references/diagram-recipes.md). Ask unresolved style/review first. CLI and MCP share this gate; source layout and generated labels do not replace the user's requirement list. Existing managed state keeps its task brief on subsequent renders.
+
 
 Edit the YAML and repeat the same command with **the same `--state-id`**; omit `--filename` after the first render. This updates the original managed elements rather than appending a second diagram. Omitting state-id uses the document's stable `id`; use distinct state IDs for distinct canvases of the same source.
 
@@ -39,10 +42,12 @@ For a first plan without managed state, replace `--state-id release-demo` with `
 | `filename`, `foldername` | First new canvas name and optional vault folder |
 | `file_path` | Explicit existing vault canvas; needed for a first read-only plan or deliberate addition to an existing file |
 | `scale` | `auto` by default or a numeric native export scale |
-| `acceptance_level` | Optional low/medium/high override of the document's choice |
+| `acceptance_level` | Optional low/medium/high, must match the task's resolved review choice |
+| `brief` | Required for a new drawing: task_id, per-choice provenance and user requirements; same structure as CLI --brief-file |
 
-```json
-{
+```javascript
+const request = {
+  brief: resolvedDrawingBrief, // actual per-choice answers and requirement list from the linked format
   "action": "render",
   "document": {
     "version": 1,
@@ -54,7 +59,7 @@ For a first plan without managed state, replace `--state-id release-demo` with `
       "approve": {"from": "review.right", "to": "done.left"}
     }
   },
-  "font_family": "EXACT_HOST_FAMILY",
+  font_family: discoveredFamily,
   "state_id": "approval-demo",
   "filename": "Approval-Demo-Unique"
 }
@@ -72,7 +77,10 @@ Actually open the generated PNG. For medium acceptance record content, readabili
 {
   "visual_checks": {"content": "pass", "readability": "pass", "occlusion": "pass"},
   "visual_issues": [],
-  "changes_summary": "Describe what was actually inspected and any repairs."
+  "changes_summary": "Describe what was actually inspected and any repairs.",
+  "requirement_checks": [
+    {"requirement_id":"the actual brief requirement ID","outcome":"pass","element_ids":["current native IDs"],"evidence":"Explain the observed content/relationship and limitations, not just that a label was generated."}
+  ]
 }
 ```
 
@@ -81,6 +89,9 @@ uv run --frozen python launcher.py dsl -- review --report ./output/release.json 
 ```
 
 MCP callers use existing `drawing_review` with the returned contextToken, previewId and revision. Existing check/preview tools can supply readable detail crops. A render never fabricates a visual checklist or automatically approves itself.
+
+Text-conflict false positives require matching element IDs, a distinct reason, and a current readable registered detail PNG. Intentional text collisions and repeated blanket reasons are rejected. Small overview text requires readable detail coverage at medium/high. `rawCheckStatus` preserves the unwaived diagnostics; a completed review is not proof of hardware/math correctness or that every glyph avoided font fallback.
+
 
 CLI exit codes: **0** = command succeeded (render still needs visual review), **1** = parse/compile/conflict/execution error, **2** = rendered but checks/resources need attention or review is not completed. A nonzero post-commit result is not a rollback. Read `committedReceipt` and current state before any retry; never replay an unknown transaction blindly.
 

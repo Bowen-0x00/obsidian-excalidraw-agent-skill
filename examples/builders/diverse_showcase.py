@@ -1,7 +1,7 @@
 """Five different domains/forms, authored through native Excalidraw APIs.
 
 Run from the package root with a connected graphical host:
- uv run --frozen python examples/builders/diverse_showcase.py water_cycle --font "ACTUAL_HOST_FAMILY" --filename Unique-Water --output ./output/water.json
+ uv run --frozen python examples/builders/diverse_showcase.py water_cycle --font "ACTUAL_HOST_FAMILY" --brief-file ./drawing-brief.json --filename Unique-Water --output ./output/water.json
 
 Gantt and academic require capabilities.nativeTable.callable: the paired native
 TableManager owns theme colors, border templates, semantic cells and reflow.
@@ -760,6 +760,7 @@ def main():
     parser.add_argument("--font", required=True)
     parser.add_argument("--filename", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--brief-file", type=Path, required=True, help="Resolved preferences and user requirements")
     args = parser.parse_args()
     if args.output.exists():
         raise ValueError(
@@ -776,7 +777,8 @@ def main():
             "Paired native TableManager host/Bridge required; no simulated table fallback"
         )
     context = client.context(
-        "create", filename=args.filename, foldername="Agent-Diagrams/Diverse-Showcase"
+        "create", filename=args.filename, foldername="Agent-Diagrams/Diverse-Showcase",
+        brief=json.loads(args.brief_file.read_text(encoding="utf-8"))
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

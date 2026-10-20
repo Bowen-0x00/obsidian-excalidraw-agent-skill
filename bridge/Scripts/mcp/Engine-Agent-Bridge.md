@@ -2,14 +2,14 @@
 name: Excalidraw Agent Bridge
 description: Local authenticated MCP bridge for Obsidian Excalidraw.
 author: local
-version: 0.13.6
+version: 0.13.7
 autorun: false
 ---
 /*
 ```javascript
 */
 
-const BRIDGE_VERSION = "0.13.6";
+const BRIDGE_VERSION = "0.13.7";
 const PROTOCOL_VERSION = "3";
 const DEFAULT_PORT = 27124;
 
@@ -313,6 +313,7 @@ if (window.__EXCALIDRAW_AGENT_BRIDGE__?.server) {
 
 const state = {
   server: null,
+  bridgeVersion: BRIDGE_VERSION,
   startedAt: new Date().toISOString(),
   startedAtMs: Date.now(),
   scriptPath: BRIDGE_SCRIPT_PATH,
@@ -562,6 +563,76 @@ const TEXT_STYLE_KEYS = new Set([
   "lineHeight",
   "labelPosition",
 ]);
+
+// Validate the entire batch before staging: ignored fields corrupt layout intent.
+const OPERATION_FIELDS = Object.fromEntries(Object.entries({
+  create_shape: "ref id type x y width height style patch customData label",
+  create_text: "ref id x y text style textAlign verticalAlign autoResize wrapAt width height customData",
+  create_linear: "ref id kind x y points style patch customData polygon closed elbowed startArrowhead endArrowhead arrowHeadSize",
+  create_svg_path: "ref id x y width height path viewBox closed style customData",
+  create_draw: "ref id x y points pressures simulatePressure style patch customData metadata",
+  create_frame: "ref x y width height name style customData",
+  create_image: "ref x y width height source scale anchor customData",
+  create_latex: "ref x y tex scaleX scaleY customData",
+  create_table: "ref groupRef x y rows cols cellWidth cellHeight cells style",
+  create_embeddable: "ref id x y width height source url file filePath mdProps patch customData",
+  connect: "ref id from to start end waypoints elbowed startArrowhead endArrowhead arrowHeadSize style customData label labelRef",
+  patch_element: "target expectedVersion patch",
+  patch_custom_data: "target expectedVersion merge remove",
+  set_feature: "feature targets config",
+  clear_feature: "feature targets",
+  set_text_global_style: "targets style bold fontWeight font_weight color gradient",
+  set_text_partial_style: "targets style ranges boldRanges colorRanges",
+  set_arrow_style: "targets strokeWidth startArrowhead endArrowhead arrowHeadSize edge",
+  translate: "targets dx dy includeBoundText",
+  resize: "target width height anchor includeBoundText",
+  rotate: "targets groupId degrees fromCenter",
+  scale_selection: "targets groupId factor fromCenter",
+  set_text: "target text style",
+  bind_text: "container text padding",
+  unbind_text: "text",
+  rebind_arrow: "arrow startTarget endTarget start end preservePoints",
+  unbind_arrow: "arrow end",
+  delete: "targets cascadeBoundText",
+  duplicate: "target ref dx dy",
+  group: "targets ref",
+  ungroup: "targets groupId",
+  add_to_frame: "frame targets",
+  remove_from_frame: "targets",
+  center_in: "target container axis includeBoundText",
+  align: "targets alignment includeBoundText",
+  distribute: "targets direction includeBoundText",
+}).map(([op, fields]) => [op, new Set(["op", ...fields.split(" ")])]));
+
+function assertOperationFields(operation, operationIndex) {
+  const path = `operations[${operationIndex}]`;
+  assert(isPlainObject(operation), "INVALID_OPERATION", `${path} must be an object`);
+  const allowed = OPERATION_FIELDS[operation.op];
+  assert(allowed, "UNKNOWN_OPERATION", `${path}.op is not a supported operation: ${operation.op}`);
+  for (const field of Object.keys(operation)) {
+    const hint = TEXT_STYLE_KEYS.has(field) || COMMON_STYLE_KEYS.has(field)
+      ? ` Put ${field} in ${path}.style.${field} when supported, not at operation top level.` : "";
+    assert(allowed.has(field), "UNKNOWN_OPERATION_FIELD", `${path}.${field} is not accepted by ${operation.op}.${hint}`,
+      400, { operationIndex, field, path: `${path}.${field}`, phase: "validation", committed: false });
+  }
+  if (operation.style && !["set_text_global_style", "set_text_partial_style"].includes(operation.op)) {
+    assert(isPlainObject(operation.style), "INVALID_STYLE", `${path}.style must be an object`);
+    for (const field of Object.keys(operation.style)) {
+      assert(COMMON_STYLE_KEYS.has(field) || TEXT_STYLE_KEYS.has(field) || field === "edge",
+        "UNKNOWN_STYLE_FIELD", `${path}.style.${field} is not a supported style field`,
+        400, { operationIndex, field, path: `${path}.style.${field}`, phase: "validation", committed: false });
+    }
+  }
+  if (isPlainObject(operation.label)) {
+    const fields = new Set(["text", "ref", "padding", "autoResize", "style", "customData"]);
+    for (const field of Object.keys(operation.label)) {
+      assert(fields.has(field), "UNKNOWN_LABEL_FIELD", `${path}.label.${field} is not supported; text styling belongs in label.style`);
+    }
+    if (operation.label.style) {
+      assertOperationFields({ op: "create_text", style: operation.label.style }, operationIndex);
+    }
+  }
+}
 
 const PATCHABLE_KEYS = new Set([
   ...COMMON_STYLE_KEYS,
@@ -4558,6 +4629,17 @@ function resetStyleFor(
   return resolved;
 }
 
+function refreshNativeText(element) {
+  const refresh = getActiveView().packages?.excalidrawLib?.refreshTextDimensions;
+  assert(typeof refresh === "function", "NATIVE_TEXT_MEASUREMENT_UNAVAILABLE",
+    "The active Excalidraw package must expose refreshTextDimensions; no estimated text sizing is used.", 409);
+  const elements = new Map([...getViewElements(), ...ea.getElements()].map((item) => [item.id, item]));
+  const dimensions = refresh(element, null, elements);
+  assert(dimensions && Number.isFinite(dimensions.width) && Number.isFinite(dimensions.height),
+    "TEXT_MEASUREMENT_FAILED", "Native text measurement did not return finite dimensions.", 422);
+  Object.assign(element, dimensions);
+}
+
 function patchElementFields(
   element,
   patch = {},
@@ -6084,6 +6166,7 @@ function bindingObject(
         "create_shape",
         "create_draw",
         "create_text",
+        "create_linear",
         "create_svg_path",
         "create_frame",
         "create_image",
@@ -6117,6 +6200,7 @@ function bindingObject(
         "align",
         "distribute",
       ],
+      operationFields: Object.fromEntries(Object.entries(OPERATION_FIELDS).map(([name, fields]) => [name, [...fields]])),
       selectionTransforms: {
         angleUnit: "element.angle is radians; rotate.degrees is a relative signed degree change; positive is clockwise",
         targets: "Choose exact native targets[] OR one native groupId; bound text follows its container",
@@ -7349,6 +7433,8 @@ function bindingObject(
       "TOO_MANY_OPERATIONS",
       `At most ${MAX_OPERATIONS} operations are allowed in one transaction`,
     );
+
+    operations.forEach(assertOperationFields);
   
     const validationMode =
       payload.validationMode ||
@@ -7830,13 +7916,7 @@ function bindingObject(
         "text",
       );
   
-      try {
-        ea.refreshTextElementSize(
-          text.id,
-        );
-      } catch {
-        // Use fallback layout.
-      }
+      refreshNativeText(text);
   
       layoutBoundText(
         container,
@@ -8039,6 +8119,11 @@ function bindingObject(
         element,
         resolvedStyle,
       );
+
+      // Measure using the applied native font/size, never a character-count guess.
+      refreshNativeText(element);
+      assert(Number.isFinite(element.width) && Number.isFinite(element.height),
+        "TEXT_MEASUREMENT_FAILED", "Native text measurement did not return finite dimensions.", 422);
   
       element.autoResize =
         operation.autoResize !== false;
@@ -9985,13 +10070,7 @@ function bindingObject(
             );
           }
   
-          try {
-            ea.refreshTextElementSize(
-              element.id,
-            );
-          } catch {
-            // Keep existing dimensions.
-          }
+          refreshNativeText(element);
   
           if (element.containerId) {
             const container =
@@ -13017,9 +13096,14 @@ function bindingObject(
       style,
     );
   
-    const size = ea.measureText(
-      String(payload.text ?? ""),
-    );
+    // EA.measureText may use a different default line height than committed text.
+    // Measure an uncommitted native text using the exact creation/refresh path.
+    const id = ea.addText(0, 0, String(payload.text ?? ""), { autoResize: true });
+    const element = ea.getElement(id);
+    patchElementFields(element, normalizeStyleForType(style, "text"));
+    refreshNativeText(element);
+    const size = { width: element.width, height: element.height };
+    ea.reset();
   
     return {
       text:

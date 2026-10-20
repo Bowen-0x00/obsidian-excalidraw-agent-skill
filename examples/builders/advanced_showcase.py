@@ -1,7 +1,7 @@
 """Reproducible advanced native showcases; real host APIs, no scene JSON renderer.
 
 Run from a connected package checkout:
-  uv run --frozen python examples/builders/advanced_showcase.py pipeline --font "EXACT_HOST_FAMILY" --filename Unique-Pipeline --output ./output/pipeline.json
+  uv run --frozen python examples/builders/advanced_showcase.py pipeline --font "EXACT_HOST_FAMILY" --brief-file ./drawing-brief.json --filename Unique-Pipeline --output ./output/pipeline.json
 
 These are explicit authored examples, not a generic hardware compiler or RTL
 simulator. A report/PNG is not visual approval; inspect then drawing_review.
@@ -375,10 +375,11 @@ def main():
     parser.add_argument("--font",required=True)
     parser.add_argument("--filename",required=True)
     parser.add_argument("--output",type=Path,required=True)
+    parser.add_argument("--brief-file",type=Path,required=True,help="Resolved preferences and user requirements")
     args=parser.parse_args()
     if args.output.exists():raise ValueError("Use a new output report; existing receipts must not be overwritten by a blind rebuild")
     client=DrawingClient()
-    context=client.context("create",filename=args.filename,foldername="Agent-Diagrams/Advanced-Showcase")
+    context=client.context("create",filename=args.filename,foldername="Agent-Diagrams/Advanced-Showcase",brief=json.loads(args.brief_file.read_text(encoding="utf-8")))
     args.output.parent.mkdir(parents=True,exist_ok=True)
     args.output.write_text(json.dumps({**context,"stage":"created_before_planning"},ensure_ascii=False,indent=2),encoding="utf-8")
     capabilities=client.context("discover")["capabilities"]

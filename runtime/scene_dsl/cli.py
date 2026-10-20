@@ -27,6 +27,7 @@ def parser() -> argparse.ArgumentParser:
         command.add_argument("--output", type=Path, required=True, help="Client-side report JSON; render also writes a same-name PNG")
         command.add_argument("--scale", type=float, default=None)
         command.add_argument("--acceptance-level", choices=("low", "medium", "high"))
+        command.add_argument("--brief-file", type=Path, help="Resolved user choices and requirements; required for a new drawing")
     review = commands.add_parser("review", help="Record actual observations of a registered current PNG")
     review.add_argument("--report", type=Path, required=True)
     review.add_argument("--checks", type=Path, required=True, help="JSON containing observed visual_checks and visual_issues")
@@ -53,6 +54,7 @@ def main() -> int:
                                    visual_issues=observations.get("visual_issues", []),
                                    dispositions=observations.get("dispositions"),
                                    detail_preview_ids=observations.get("detail_preview_ids"),
+                                   requirement_checks=observations.get("requirement_checks"),
                                    check_result=report["check"],
                                    changes_summary=observations.get("changes_summary", "Actual scene DSL PNG review"))
         else:
@@ -63,7 +65,8 @@ def main() -> int:
                              state_id=args.state_id, filename=args.filename, foldername=args.foldername,
                              file_path=args.file_path, scale=args.scale if args.scale is not None else "auto",
                              acceptance_level=args.acceptance_level, source_directory=args.source.resolve().parent,
-                             output_path=args.output)
+                             output_path=args.output,
+                             brief=json.loads(args.brief_file.read_text(encoding="utf-8")) if args.brief_file else None)
             if "preview" in result:
                 result["preview"].pop("_base64", None)
         encoded = json.dumps(result, ensure_ascii=False, indent=2) + "\n"

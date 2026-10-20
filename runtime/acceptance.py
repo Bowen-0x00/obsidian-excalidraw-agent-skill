@@ -12,6 +12,8 @@ LEVELS = ("low", "medium", "high")
 DEFAULT_LEVEL = "medium"
 VISUAL_CODES = frozenset({"BODY_OVERLAP", "ARROW_CROSSES_NODE", "ARROW_LABEL_OCCLUSION", "TEXT_OUTSIDE_CONTAINER",
     "TEXT_TEXT_OVERLAP", "TEXT_PAINTED_OVER", "LINE_THROUGH_TEXT", "BORDER_THROUGH_TEXT", "SMALL_OUTPUT_TEXT", "UNSUPPORTED_GEOMETRY"})
+TEXT_CONFLICT_CODES = frozenset({"TEXT_TEXT_OVERLAP", "TEXT_PAINTED_OVER", "LINE_THROUGH_TEXT",
+    "BORDER_THROUGH_TEXT", "TEXT_OUTSIDE_CONTAINER", "ARROW_LABEL_OCCLUSION"})
 REQUIRED_VISUAL_CHECKS = {
     "low": (),
     "medium": ("content", "readability", "occlusion"),
@@ -70,13 +72,26 @@ def triage(issues: list[dict], acceptance_level: str, dispositions: list[dict] |
     decorated = decorate(issues, acceptance_level)
     by_id = {issue["issueId"]: issue for issue in decorated}
     decisions = {}
+    reasons: set[str] = set()
     for decision in dispositions or []:
         identity = decision.get("issue_id")
         if identity in decisions or identity not in by_id:
             raise ValueError("Disposition must identify one current issue exactly once")
         issue = by_id[identity]
-        if not is_resolvable(issue) or decision.get("decision") not in ("false_positive", "intentional") or not str(decision.get("reason", "")).strip():
-            raise ValueError("Only geometric candidates may be adjudicated with a reason and actual PNG evidence")
+        reason = decision.get("reason")
+        if not is_resolvable(issue) or decision.get("decision") not in ("false_positive", "intentional") or not isinstance(reason, str) or not reason.strip():
+            raise ValueError("Only current geometric candidates may be adjudicated with specific PNG evidence")
+        normalized = " ".join(reason.casefold().split())
+        if normalized in reasons:
+            raise ValueError("Repeated disposition reasons cannot blanket-waive different issues; inspect and explain each element pair")
+        reasons.add(normalized)
+        ids = decision.get("element_ids")
+        if not isinstance(ids, list) or not ids or set(ids) != set(issue.get("elementIds", [])):
+            raise ValueError("Disposition element_ids must exactly match the current issue's native elements")
+        if not isinstance(decision.get("preview_id"), str) or not decision["preview_id"]:
+            raise ValueError("Disposition requires the registered current PNG preview_id actually inspected")
+        if issue.get("code") in TEXT_CONFLICT_CODES and decision["decision"] != "false_positive":
+            raise ValueError("Text collision, occlusion and overflow are not intentional layout exemptions; repair them")
         decisions[identity] = decision
     for issue in decorated:
         decision = decisions.get(issue["issueId"])

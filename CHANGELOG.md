@@ -1,31 +1,47 @@
 # Changelog
 
-## Unreleased — Refresh long-lived Bridge connections
+## 0.10.0 — Choice-first drawing, strict review and matched startup (2026-10-20)
+
+### Bootstrap and upgrade
+
+- Update every active managed bootstrap together with its paired Bridge to 0.13.7. Start reports the actual version/path and rejects mismatched runtime identity; retain 15 declared feature Engines and do not restart retired table hooks.
+- New drawings/native writes require a cited drawing brief; reviews require per-user-requirement evidence. Installation smoke now takes an explicit discovered `--font` and adopts its documented fixed diagnostic design, rather than silently bypassing the new contract.
+- Upgrade package/marketplace/Python lock metadata to 0.10.0. Preserve private connections, DSL state, user canvases, customized scripts and archived version snapshots.
+
+### Choice-first drawing and enforceable review evidence
+
+- Make unresolved style and review depth first-class questions before creation; retain per-choice user/answer/inherited/delegated provenance in a required drawing brief, alongside the user's content requirements. Read/discovery stay available without a brief.
+- Bind tasks to one canvas and persist review history across context-token changes. Reject recreating an already-started task, silently replacing unresolved requirements, and lowering a task's selected review depth. This is workflow bookkeeping, not verification of user dialogue or a sandbox against arbitrary trusted code.
+- Bridge 0.13.7 rejects unknown/misplaced operation, style and label fields before staging any batch element. Native text creation and measurement share the host's `refreshTextDimensions`, including the actual requested line height.
+- Require current native IDs and per-requirement coverage at review. Text-conflict exemptions cannot be intentional; false positives need registered readable detail PNGs and specific matching IDs. Reject duplicate blanket reasons and retain raw diagnostics even when a justified candidate is adjudicated.
+- Smoke-exercise an isolated real Obsidian host: wrong fields leave the scene unchanged, 13-point Chinese text measures identically to committed geometry, blanket waivers fail, rebind retains history, local repair preserves every native ID, and the inspected final PNG passes high review. Runtime regressions cover the corresponding boundaries.
+
+### Refresh long-lived Bridge connections
 
 - Re-resolve unpinned URL/token/timeout settings before every request, so a live MCP follows an intentionally updated private connection instead of retaining stale credentials while setup reports connected. Explicit constructor/environment overrides retain precedence; malformed config fails closed and failed writes are never retried.
 - Reproduce the stale-connection bug with real loopback HTTP services, then verify connection rotation and explicit-override/error boundaries. Document cwd-versus-vault selection, unavailable automatic startup, ownership-conflict handling and the prohibition on forging installation hashes or mining historical tokens.
 
-## Unreleased — Opt-in read-only CDP diagnostics
+### Opt-in read-only CDP diagnostics
 
 - Add `drawing_debug(status|inspect)` and `launcher.py cdp -- status|enable|inspect|disable`. Default is off; explicit user CLI opt-in pins a numeric-loopback debugger endpoint and exact host vault. MCP cannot enable it, accept arbitrary JS/protocol commands or mutate a drawing.
 - Read fixed scene/paint/text/binding/table/image-reference/canvas/viewport snapshots plus renderer event counts through short CDP sessions. Require an already uniquely open file, validate vault/target identity, deny redirects/retargeted sockets, and use V8 `throwOnSideEffect` with no unguarded fallback. No input, navigation, pause, save/export, plugin changes or raw console arguments.
 - Route unexplained PNG/rendering problems to the optional diagnostic workflow. Skill and both READMEs distinguish observed state from hypotheses; any authorized fine-tuning uses fresh normal Bridge/API/DSL state followed by actual PNG/review, never CDP writes.
 - Keep diagnostic opt-in client-private and disabled for existing/remote installations. The unrestricted Electron debugger is not a sandbox or made read-only by this adapter; no host/plugin/Bridge script change or automatic debugging-port/SSH setup.
-## Unreleased — Four arrow path styles documented
+### Four arrow path styles documented
 
 - Document the actual `sharp`, `round`, `elbow` and modified-fork `curveArrow` path renderers separately from arrowhead types. Specify fields, selection semantics, S-curve limits, bindings, readback and PNG/unknown geometry acceptance.
 - Clarify that `routing:"curve"` is not a public alias for the fork's `customData.curveArrow`; no arbitrary Bezier/control-point or obstacle-avoidance guarantee is added. Keep microarchitecture signals on sharp/elbow by default.
 
-## Unreleased — Event-driven synchronization
+### Event-driven synchronization
 
 - Remove the six-hour shared-Engine synchronization schedule. Retain upstream push notifications and manual workflow dispatch; missed notifications require a manual catch-up rather than periodic polling. Import validation and PR policy are unchanged.
 
-## Unreleased — Retire the upstream table hook Engine
+### Retire the upstream table hook Engine
 
 - Remove the retired `Feature-Table-Engine.md` from the shared import manifest/lock, bundle inventory and bootstrap, and delete its bundled copy. Scripts `3a1f79f` moved table interaction to the host plugin; the obsolete required input caused scheduled shared-Engine synchronization to fail.
 - Keep missing-input and shared-copy drift protection intact for the 15 remaining Engines. Native tables continue through host capability discovery; legacy `create_table`/DSL grids are unchanged. This change does not deploy to vaults or unload already mounted hooks.
 
-## Unreleased — Diverse README and native table themes
+### Diverse README and native table themes
 
 - Retain the RISC-V showcase and add five different forms/domains: handwritten water-cycle landscape, dark calculus geometry with real TeX, transit wayfinding, mint Gantt planning and an academic ecology results page. Keep earlier examples in the gallery; include authored sources, editable canvases and actual PNGs.
 - Add `drawing_table(create|style)` and Python `DrawingClient.table`, backed by Bridge 0.13.6 `/v3/tables` and the paired host `TableManager`. Discover `nativeTable.callable`, use the host's eight theme/five border IDs, preserve native semantic cells and bound text, and report non-atomic saves/partial failures. Older hosts fail explicitly; legacy create_table/DSL contracts are unchanged.
@@ -33,7 +49,7 @@
 - Five final medium PNG reviews completed. Landscape/point superpositions and the river curve retain specific visual dispositions, not a fake raw-geometry pass. All five CLI sources ran on real hosts; 78 runtime regressions and the 16 locked Engine checks passed.
 - Native table appearance was rendered in the existing isolated paired development host. This Agent change is not a host plugin/Extras release and does not replace the personal-vault plugin or rewrite shared Table Engine scripts.
 
-## Unreleased — Advanced native showcase gallery
+### Advanced native showcase gallery
 
 - Lead the English/Chinese READMEs with real five-stage RISC-V, disaggregated inference and 4×4 matrix-engine diagrams. Keep the six DSL examples and explicitly distinguish DSL compilation from Agent-authored Python/native API drawing.
 - Include the executable source, editable native canvases, actual overview/detail PNGs and scoped provenance. Exercise all three builder CLI entrypoints against the real host; verify declared endpoints/reciprocal bindings and inspect readable details rather than treating an overview or check pass as complete visual proof.

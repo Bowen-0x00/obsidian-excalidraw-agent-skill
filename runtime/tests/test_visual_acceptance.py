@@ -152,7 +152,8 @@ class TieredReviewTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             ledger = self.ledger(directory)
             result = ledger.record_round("r", "p", True, check_result={"status": "fail", "issues": [issue]}, visual_checks=CHECKS,
-                dispositions=[{"issue_id": identity, "decision": "false_positive", "reason": "Current PNG shows only overlapping blank text-box padding; glyphs remain separate."}])
+                detail_preview_ids=["detail"], dispositions=[{"issue_id": identity, "element_ids": ["a", "b"], "preview_id": "detail",
+                "decision": "false_positive", "reason": "Label a's trailing blank box intersects b's left padding; the readable detail confirms the actual glyphs remain separate."}])
             self.assertEqual(result["status"], "completed")
             self.assertEqual(result["advisories"][0]["code"], "TEXT_TEXT_OVERLAP")
             self.assertEqual(ledger.rounds[0]["hardIssues"], [issue])
@@ -164,13 +165,14 @@ class TieredReviewTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as directory:
                 with self.assertRaises(ValueError):
                     self.ledger(directory, "high").record_round("r", "p", True, check_result={"status": "fail", "issues": [issue]}, visual_checks=CHECKS,
-                        dispositions=[{"issue_id": identity, "decision": "intentional", "reason": "Not a geometry decision"}])
+                        dispositions=[{"issue_id": identity, "element_ids": ["a"], "preview_id": "p",
+                                       "decision": "intentional", "reason": "Not a geometry decision"}])
 
     def test_stale_or_global_disposition_does_not_silence_findings(self):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaises(ValueError):
                 self.ledger(directory).record_round("r", "p", True, check_result={"status": "pass"}, visual_checks=CHECKS,
-                    dispositions=[{"issue_id": "all", "decision": "intentional", "reason": "Ignore all overlaps"}])
+                    dispositions=[{"issue_id": "all", "element_ids": ["a"], "preview_id": "p", "decision": "intentional", "reason": "Ignore all overlaps"}])
 
     def test_explicit_failed_visual_check_blocks_even_with_empty_issue_list(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -201,10 +203,40 @@ class TieredReviewTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             ledger = self.ledger(directory, "high")
             result = ledger.record_round("r", "p", True, check_result=check, visual_checks=CHECKS,
-                dispositions=[{"issue_id": candidate["issueId"], "decision": "intentional",
-                               "reason": "Actual current PNG confirms the isolated rotated decoration is intentional and clear."}])
+                dispositions=[{"issue_id": candidate["issueId"], "element_ids": [candidate["elementId"]], "preview_id": "p",
+                               "decision": "intentional", "reason": "The current PNG shows p as an isolated rotated decoration with no neighboring content."}])
             self.assertEqual(result["status"], "completed")
             self.assertEqual(result["advisories"][0]["code"], "UNSUPPORTED_GEOMETRY")
+
+    def test_repeated_reason_cannot_waive_all_text_findings(self):
+        issues = [{"code": "TEXT_TEXT_OVERLAP", "elementIds": ["a", other], "severity": "error"} for other in ("b", "c")]
+        decisions = [{"issue_id": i["issueId"], "element_ids": i["elementIds"], "preview_id": "detail",
+                      "decision": "false_positive", "reason": "All labels inspected and legible"} for i in decorate(issues, "medium")]
+        with self.assertRaisesRegex(ValueError, "Repeated"):
+            triage(issues, "medium", decisions)
+
+    def test_text_conflict_cannot_be_intentional_even_with_specific_ids(self):
+        issue = {"code": "LINE_THROUGH_TEXT", "elementIds": ["wire", "label"], "severity": "warning"}
+        decision = {"issue_id": decorate([issue], "medium")[0]["issueId"], "element_ids": ["wire", "label"],
+                    "preview_id": "detail", "decision": "intentional", "reason": "The wire intentionally crosses this label"}
+        with self.assertRaisesRegex(ValueError, "not intentional"):
+            triage([issue], "medium", [decision])
+
+    def test_text_false_positive_requires_current_detail_evidence(self):
+        issue = {"code": "TEXT_TEXT_OVERLAP", "elementIds": ["a", "b"], "severity": "error"}
+        decision = {"issue_id": decorate([issue], "medium")[0]["issueId"], "element_ids": ["a", "b"],
+                    "preview_id": "overview", "decision": "false_positive", "reason": "Only blank box padding intersects"}
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "detail PNG"):
+                self.ledger(directory).record_round("r", "overview", True,
+                    check_result={"status": "fail", "issues": [issue]}, visual_checks=CHECKS, dispositions=[decision])
+
+    def test_disposition_cannot_substitute_unrelated_element_ids(self):
+        issue = {"code": "BODY_OVERLAP", "elementIds": ["a", "b"], "severity": "error"}
+        decision = {"issue_id": decorate([issue], "medium")[0]["issueId"], "element_ids": ["decoration"],
+                    "preview_id": "p", "decision": "intentional", "reason": "An isolated layered decoration"}
+        with self.assertRaisesRegex(ValueError, "exactly match"):
+            triage([issue], "medium", [decision])
 
 
 if __name__ == "__main__":

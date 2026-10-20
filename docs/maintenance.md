@@ -16,6 +16,15 @@ Reviewed sources live under `examples/dsl/` (compiler input) and `examples/build
 
 Preserve the exact query/protocol allowlist and V8 side-effect checks; do not add arbitrary expressions, `Runtime.callFunctionOn`, Input, Page writes, breakpoints, save/export or an unguarded fallback. State collection failures are explicit limitations. Verify real scene/file bytes, selection and viewport are unchanged; tests alone cannot certify read-only host behavior. Keep the unrestricted debugger/security boundary visible in the [diagnostic guide](../skills/obsidian-excalidraw/references/cdp-readonly.md).
 
+## Drawing workflow gates
+
+New drawing creation requires a `brief` with a stable task ID, individually resolved style/review/palette/background/font provenance and user requirements. Native edits require an explicitly bound brief too; read-only observations do not. Rebind maps to file/task-scoped review history, not a fresh token budget. Existing pre-brief diagnostic logs remain preserved; they are not retroactively claimed as verified user choices.
+
+Bridge 0.13.7 preflights all native operation keys before staging, and uses the active host package's `refreshTextDimensions` for text measurement/creation. The native library is required; do not restore an estimated-width or font-default-line-height fallback. The small-text trigger requires readable detail evidence at medium/high, not a larger arbitrary full-canvas scale.
+
+Review must retain raw diagnostics. Text-conflict adjudication permits only specific false-positive evidence with matching IDs and readable registered detail PNGs; repeated boilerplate or intentional unreadability must fail. Requirement coverage and claimed user-choice provenance are Agent attestations, not independent semantic/pixel proofs or a security boundary against arbitrary trusted Bridge/OS code.
+
+
 ## Shared Engine source and automatic update PRs
 
 - [`bridge/shared-scripts.json`](../bridge/shared-scripts.json) is the explicit import allowlist. Shared Engines are maintained only in [Scripts](https://github.com/Bowen-0x00/obsidian-excalidraw-scripts); `mcp/Start-Agent-Drawing.md` and `mcp/Engine-Agent-Bridge.md` belong to this Agent repository and are never imported.

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from runtime_config import artifact_directory
-from acceptance import DEFAULT_LEVEL, level, triage, unsupported_issues, visual_check_issues
+from acceptance import DEFAULT_LEVEL, TEXT_CONFLICT_CODES, issue_id, level, triage, unsupported_issues, visual_check_issues
 
 
 class ReviewLedger:
@@ -19,10 +19,12 @@ class ReviewLedger:
         ledger_path: str | None = None,
         max_rounds: int | None = None,
         acceptance_level: str | None = None,
+        canvas_key: str | None = None,
     ) -> None:
         if max_rounds is not None and (isinstance(max_rounds, bool) or not isinstance(max_rounds, int) or max_rounds < 1):
             raise ValueError("max_rounds must be a positive integer")
         self.context_token = context_token
+        self.canvas_key = canvas_key
         self.max_rounds = max_rounds or 5
 
         if ledger_path:
@@ -44,7 +46,10 @@ class ReviewLedger:
     def _load(self) -> None:
         if self.path.exists():
             data = json.loads(self.path.read_text(encoding="utf-8"))
-            if data.get("contextToken") != self.context_token:
+            if self.canvas_key is not None:
+                if data.get("canvasKey") != self.canvas_key:
+                    raise ValueError("Review ledger belongs to a different canvas")
+            elif data.get("contextToken") != self.context_token:
                 raise ValueError("Review ledger belongs to a different canvas context")
             self.max_rounds = data["maxRounds"]
             self.rounds = data["rounds"]
@@ -56,6 +61,7 @@ class ReviewLedger:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         data = {
             "contextToken": self.context_token,
+            "canvasKey": self.canvas_key,
             "maxRounds": self.max_rounds,
             "acceptanceLevel": self.acceptance_level,
             "expected": self.expected,
@@ -95,6 +101,7 @@ class ReviewLedger:
         visual_checks: dict[str, str] | None = None,
         dispositions: list[dict[str, Any]] | None = None,
         detail_preview_ids: list[str] | None = None,
+        requirement_checks: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Count initial review as round one; never bypass the cap on unknown/incomplete output."""
         if len(self.rounds) >= self.max_rounds:
@@ -119,6 +126,14 @@ class ReviewLedger:
             all_round_issues.append({"code": "CHECK_NOT_PASSED", "severity": "error", "reason": "Hard check evidence is absent or inconsistent"})
         if dispositions and not visual_reviewed:
             raise ValueError("A geometric disposition requires inspection of the current PNG")
+        issues_by_id = {issue_id(issue): issue for issue in all_round_issues}
+        for decision in dispositions or []:
+            preview = decision.get("preview_id")
+            if preview not in {preview_id, *(detail_preview_ids or [])}:
+                raise ValueError("Disposition evidence must be a current registered PNG listed as actually viewed")
+            issue = issues_by_id.get(decision.get("issue_id"))
+            if issue and issue.get("code") in TEXT_CONFLICT_CODES and preview not in (detail_preview_ids or []):
+                raise ValueError("A text-conflict false positive requires a readable current detail PNG, not only an overview")
         for issue in all_round_issues:
             issue.setdefault("severity", "error")
             if issue["severity"] not in ("error", "warning", "info"):
@@ -143,6 +158,7 @@ class ReviewLedger:
             "changesSummary": changes_summary,
             "acceptanceLevel": self.acceptance_level,
             "visualChecks": visual_checks or {},
+            "requirementChecks": requirement_checks or [],
             "dispositions": dispositions or [],
             "detailPreviewIds": detail_preview_ids or [],
             "advisories": advisories,
@@ -161,6 +177,7 @@ class ReviewLedger:
             "maxRounds": self.max_rounds,
             "acceptanceLevel": self.acceptance_level,
             "advisories": advisories,
+            "rawCheckStatus": check.get("status"),
             "visualChecks": visual_checks or {},
             "unresolvedIssues": unresolved,
             "visualReviewed": visual_reviewed,

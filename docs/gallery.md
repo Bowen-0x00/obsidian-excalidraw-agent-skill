@@ -163,10 +163,13 @@ The three larger diagrams use [one executable example builder](../examples/build
 
 After connecting the package to a graphical host, discover the exact available font family with the normal context/discovery workflow, then run from the package root:
 
+Before invoking a builder, resolve preferences and save a task-specific `drawing-brief.json` using the [brief format](../skills/obsidian-excalidraw/references/diagram-recipes.md). Use a separate task ID/requirements per requested figure. Explicitly invoking a fixed published example can adopt its declared design; a generic new user drawing still asks unresolved choices. Do not present historical gallery reviews as verification of a fresh run.
+
+
 ```sh
-uv run --frozen python examples/builders/advanced_showcase.py pipeline --font "ACTUAL_DISCOVERED_FAMILY" --filename "My-Unique-Pipeline" --output "./output/pipeline.json"
-uv run --frozen python examples/builders/advanced_showcase.py inference --font "ACTUAL_DISCOVERED_FAMILY" --filename "My-Unique-Inference" --output "./output/inference.json"
-uv run --frozen python examples/builders/advanced_showcase.py accelerator --font "ACTUAL_DISCOVERED_FAMILY" --filename "My-Unique-Accelerator" --output "./output/accelerator.json"
+uv run --frozen python examples/builders/advanced_showcase.py pipeline --font "ACTUAL_DISCOVERED_FAMILY" --brief-file ./drawing-brief.json --filename "My-Unique-Pipeline" --output "./output/pipeline.json"
+uv run --frozen python examples/builders/advanced_showcase.py inference --font "ACTUAL_DISCOVERED_FAMILY" --brief-file ./drawing-brief.json --filename "My-Unique-Inference" --output "./output/inference.json"
+uv run --frozen python examples/builders/advanced_showcase.py accelerator --font "ACTUAL_DISCOVERED_FAMILY" --brief-file ./drawing-brief.json --filename "My-Unique-Accelerator" --output "./output/accelerator.json"
 ```
 
 These exact three entrypoints were smoke-run against the real host. Each creates an independent canvas and report/PNG; it refuses an existing output receipt, does not reconcile an earlier canvas, and does not automatically approve its own output. The report retains target/revision, refs, declared routes and check results for subsequent native read/apply/preview/review. Use original IDs and local patches to refine an existing diagram; do not rerun the builder to hide a failed check.
@@ -174,11 +177,11 @@ These exact three entrypoints were smoke-run against the real host. Each creates
 ### Diverse native scenes
 
 ```sh
-uv run --frozen python examples/builders/diverse_showcase.py water_cycle --font "ACTUAL_HOST_FAMILY" --filename Unique-Water --output ./output/water.json
-uv run --frozen python examples/builders/diverse_showcase.py calculus --font "ACTUAL_HOST_FAMILY" --filename Unique-Calculus --output ./output/calculus.json
-uv run --frozen python examples/builders/diverse_showcase.py transit --font "ACTUAL_HOST_FAMILY" --filename Unique-Transit --output ./output/transit.json
-uv run --frozen python examples/builders/diverse_showcase.py gantt --font "ACTUAL_HOST_FAMILY" --filename Unique-Gantt --output ./output/gantt.json
-uv run --frozen python examples/builders/diverse_showcase.py academic --font "ACTUAL_HOST_FAMILY" --filename Unique-Academic --output ./output/academic.json
+uv run --frozen python examples/builders/diverse_showcase.py water_cycle --font "ACTUAL_HOST_FAMILY" --brief-file ./drawing-brief.json --filename Unique-Water --output ./output/water.json
+uv run --frozen python examples/builders/diverse_showcase.py calculus --font "ACTUAL_HOST_FAMILY" --brief-file ./drawing-brief.json --filename Unique-Calculus --output ./output/calculus.json
+uv run --frozen python examples/builders/diverse_showcase.py transit --font "ACTUAL_HOST_FAMILY" --brief-file ./drawing-brief.json --filename Unique-Transit --output ./output/transit.json
+uv run --frozen python examples/builders/diverse_showcase.py gantt --font "ACTUAL_HOST_FAMILY" --brief-file ./drawing-brief.json --filename Unique-Gantt --output ./output/gantt.json
+uv run --frozen python examples/builders/diverse_showcase.py academic --font "ACTUAL_HOST_FAMILY" --brief-file ./drawing-brief.json --filename Unique-Academic --output ./output/academic.json
 ```
 
 All five were executed against real hosts. The two table commands require the paired development host; the water scene additionally uses discovered Excalifont and the ecology title uses a discovered font override. Substitute only fonts actually available on your host, then remeasure/review. The builder creates fresh canvases, not a managed update session; edit an existing drawing through its real IDs.

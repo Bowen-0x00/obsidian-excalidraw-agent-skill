@@ -25,6 +25,8 @@ from runtime_config import artifact_directory, load_connection
 
 from geometry_diagnostics import run_geometry_diagnostics
 from review_ledger import ReviewLedger
+from drawing_workflow import (attach_context, for_context, require_context, reserve_create,
+                              requirement_issues, review_path, validate_brief)
 from diagram_layout import FONT, Metrics, plan_diagram
 from drawing_templates import get_template, plan_template, template_catalog
 from drawing_composition import CompositionError, compose_diagram, create_presentation
@@ -195,12 +197,19 @@ class DrawingClient:
                 status=504,
             ) from e
 
+    def _require_native_contract(self) -> None:
+        capabilities = self.request("GET", "/v3/capabilities")
+        if not capabilities.get("operationFields"):
+            raise BridgeError("The running host Bridge lacks strict operation fields. Update the managed Bridge and run Start-Agent-Drawing on the host; reloading only MCP is insufficient.",
+                              code="BRIDGE_UPDATE_REQUIRED", status=409)
+
     def context(
         self,
         action: str,
         filename: str | None = None,
         foldername: str | None = None,
         file_path: str | None = None,
+        brief: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Manage canvas context: discover capabilities, create a new canvas, or bind an existing one."""
         action_lower = action.lower()
@@ -215,18 +224,27 @@ class DrawingClient:
             }
 
         elif action_lower == "create":
+            validate_brief(brief)
+            self._require_native_contract()
+            reserve_create(brief)
             payload: dict[str, Any] = {}
             if filename:
                 payload["filename"] = filename
             if foldername:
                 payload["foldername"] = foldername
-            return self.request("POST", "/v3/canvases/create", payload)
+            context = self.request("POST", "/v3/canvases/create", payload)
+            attach_context(context, brief)
+            return {**context, "brief": brief}
 
         elif action_lower == "bind":
+            if brief is not None:
+                validate_brief(brief)
             payload = {}
             if file_path:
                 payload["filePath"] = file_path
-            return self.request("POST", "/v3/canvases/bind", payload)
+            context = self.request("POST", "/v3/canvases/bind", payload)
+            record = attach_context(context, brief)
+            return {**context, "brief": record["brief"] if record else None}
 
         else:
             raise BridgeError(
@@ -234,6 +252,17 @@ class DrawingClient:
                 code="INVALID_ARGUMENT",
                 status=400,
             )
+
+    def review_settings(self, context_token: str, acceptance_level: str | None = None,
+                        max_rounds: int | None = None) -> ReviewLedger:
+        record = for_context(context_token)
+        if record:
+            selected = record["brief"]["preferences"]["review"]["value"]
+            if acceptance_level is not None and acceptance_level != selected:
+                raise ValueError("REVIEW_CHOICE_CONFLICT: keep the review depth selected in this drawing brief")
+            return ReviewLedger(context_token, str(review_path(record["file"], record["brief"]["task_id"])),
+                                max_rounds=max_rounds, acceptance_level=selected, canvas_key=record["file"])
+        return ReviewLedger(context_token, max_rounds=max_rounds, acceptance_level=acceptance_level)
 
     def read(
         self,
@@ -291,6 +320,7 @@ class DrawingClient:
         This is separate from the legacy create_table grid. Native transactions
         are saved but not atomic across create/theme/width changes.
         """
+        require_context(context_token)
         return self.request("POST", "/v3/tables", {
             "contextToken": context_token, "baseRevision": base_revision, "action": action,
             **{key: value for key, value in {"target": target, "options": options,
@@ -386,8 +416,10 @@ class DrawingClient:
         acceptance_level: str | None = None,
     ) -> dict[str, Any]:
         """Apply a batch of operations to the canvas."""
+        require_context(context_token)
+        self._require_native_contract()
         if acceptance_level is not None:
-            ReviewLedger(context_token, acceptance_level=acceptance_level).save()
+            self.review_settings(context_token, acceptance_level).save()
         return self.request(
             "POST",
             "/v3/operations/apply",
@@ -422,7 +454,7 @@ class DrawingClient:
     ) -> dict[str, Any]:
         """Check the complete exact scene; a failed validator is not a successful check."""
         scene = self.read(context_token, detail="full")
-        ledger = ReviewLedger(context_token, acceptance_level=acceptance_level)
+        ledger = self.review_settings(context_token, acceptance_level)
         if expected is not None:
             ledger.expected = expected
         ledger.save()
@@ -526,30 +558,61 @@ class DrawingClient:
         visual_checks: dict[str, str] | None = None,
         dispositions: list[dict[str, Any]] | None = None,
         detail_preview_ids: list[str] | None = None,
+        requirement_checks: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Review a registered, current PNG; re-run hard checks rather than trusting model-supplied results."""
         receipt = self._preview_receipt(context_token, preview_id, revision)
         if receipt["scope"] != "all":
             raise BridgeError("Completion requires an all-canvas overview", code="INCOMPLETE_COVERAGE", status=422)
+        record = require_context(context_token)
+        scene = self.read(context_token, detail="full")
+        if scene["revision"] != revision:
+            raise BridgeError("Canvas changed after PNG export", code="STALE_PREVIEW", status=409)
+        by_id = {element["id"]: element for element in scene["elements"] if not element.get("isDeleted")}
+        detail_receipts = {}
         for detail_id in detail_preview_ids or []:
             detail = self._preview_receipt(context_token, detail_id, revision)
             if not detail.get("complete"):
                 raise BridgeError("Detail preview has missing resources", code="PREVIEW_INCOMPLETE", status=422)
-        ledger = ReviewLedger(context_token, max_rounds=max_rounds, acceptance_level=acceptance_level)
+            detail_receipts[detail_id] = detail
+        for decision in dispositions or []:
+            evidence = detail_receipts.get(decision.get("preview_id"))
+            if evidence:
+                ids = decision.get("element_ids", [])
+                if evidence["scope"] != "ids" or not set(ids).issubset(evidence.get("ids") or []):
+                    raise ValueError("A disposition detail must explicitly include every affected native element ID")
+                if any(identity in by_id and by_id[identity].get("type") == "text"
+                       and by_id[identity].get("fontSize", 20) * evidence.get("actualScale", 0) < 10 for identity in ids):
+                    raise ValueError("Disposition detail text remains too small; export a readable local PNG")
+        ledger = self.review_settings(context_token, acceptance_level, max_rounds)
         # Carry prior assertions forward; a review without check_result must not drop them.
         expected = list(ledger.expected)
         for assertion in (check_result or {}).get("expected") or []:
             if assertion not in expected:
                 expected.append(assertion)
         fresh_check = self.check(context_token, expected=expected, acceptance_level=ledger.acceptance_level, preview_id=preview_id)
+        small_ids = {identity for issue in fresh_check["issues"] if issue["code"] == "SMALL_OUTPUT_TEXT"
+                     for identity in issue.get("elementIds", [])}
+        covered = {identity for detail in detail_receipts.values() if detail.get("scope") == "ids"
+                   for identity in detail.get("ids", []) if identity in by_id
+                   and by_id[identity].get("fontSize", 20) * detail.get("actualScale", 0) >= 10}
+        if ledger.acceptance_level != "low" and small_ids - covered:
+            fresh_check["issues"].append({"code": "READABLE_DETAIL_REQUIRED", "severity": "error",
+                "elementIds": sorted(small_ids - covered),
+                "message": "Overview has small text; inspect registered readable detail PNGs for every affected label or repair the layout"})
+        coverage_issues = requirement_issues(record["brief"]["requirements"], requirement_checks, set(by_id))
+        fresh_check["issues"].extend(coverage_issues)
+        if coverage_issues:
+            fresh_check["status"] = "fail"
         if fresh_check["revision"] != revision:
             raise BridgeError("Canvas changed after PNG export", code="STALE_PREVIEW", status=409)
-        ledger = ReviewLedger(context_token, max_rounds=max_rounds, acceptance_level=ledger.acceptance_level)
+        ledger = self.review_settings(context_token, ledger.acceptance_level, max_rounds)
         return ledger.record_round(
             revision=revision, preview_id=preview_id, visual_reviewed=visual_reviewed,
             visual_issues=visual_issues, changes_summary=changes_summary,
             check_result=fresh_check, preview_complete=receipt["complete"],
             visual_checks=visual_checks, dispositions=dispositions, detail_preview_ids=detail_preview_ids,
+            requirement_checks=requirement_checks,
         )
 
     def revert(
@@ -615,6 +678,7 @@ class DrawingClient:
             payload["scale"] = scale
             payload["trustedLocalLibrary"] = trusted_local_library
         if action == "insert":
+            require_context(context_token)
             if not base_revision:
                 raise ValueError("Native insertion requires the current base_revision")
             payload.update(baseRevision=base_revision, position=position, createAnchorProxy=create_anchor_proxy,
@@ -635,8 +699,9 @@ class DrawingClient:
         return result
 
     def compose(self, context_token: str, base_revision: str, diagram: dict, acceptance_level: str | None = None) -> dict:
+        require_context(context_token)
         if acceptance_level is not None:
-            ReviewLedger(context_token, acceptance_level=acceptance_level).save()
+            self.review_settings(context_token, acceptance_level).save()
         try:
             return compose_diagram(self, context_token, base_revision, diagram)
         except CompositionError as error:
@@ -646,6 +711,7 @@ class DrawingClient:
                                        "cause": getattr(error.cause, "details", None), "atomic": False}) from error
 
     def present(self, context_token: str, base_revision: str, presentation: dict) -> dict:
+        require_context(context_token)
         try:
             return create_presentation(self, context_token, base_revision, presentation)
         except CompositionError as error:
@@ -669,6 +735,8 @@ def create_cli_parser() -> argparse.ArgumentParser:
     p_ctx.add_argument("--filename", help="Target filename for create")
     p_ctx.add_argument("--foldername", help="Target folder for create")
     p_ctx.add_argument("--file-path", help="Existing file path for bind")
+    p_ctx.add_argument("--brief", help="JSON drawing brief with cited resolved preferences and user requirements")
+    p_ctx.add_argument("--brief-file", help="Path to a JSON drawing brief")
 
     # 2. read
     p_read = subparsers.add_parser("read", help="Read elements from canvas")
@@ -738,6 +806,7 @@ def create_cli_parser() -> argparse.ArgumentParser:
     p_rev.add_argument("--visual-checks", help="JSON object of recorded visual checklist outcomes")
     p_rev.add_argument("--dispositions", help="JSON array of per-issue PNG-based geometric adjudications")
     p_rev.add_argument("--detail-preview-ids", help="Comma-separated current registered detail previews actually viewed")
+    p_rev.add_argument("--requirement-checks", help="JSON per-requirement outcomes, current element_ids and specific evidence")
 
     # 9. revert
     p_revt = subparsers.add_parser("revert", help="Undo last canvas transaction")
@@ -771,6 +840,7 @@ def cli_main() -> None:
                 filename=args.filename,
                 foldername=args.foldername,
                 file_path=args.file_path,
+                brief=json.loads(Path(args.brief_file).read_text(encoding="utf-8")) if args.brief_file else json.loads(args.brief) if args.brief else None,
             )
 
         elif sub == "read":
@@ -892,6 +962,7 @@ def cli_main() -> None:
                 visual_checks=json.loads(args.visual_checks) if args.visual_checks else None,
                 dispositions=json.loads(args.dispositions) if args.dispositions else None,
                 detail_preview_ids=args.detail_preview_ids.split(",") if args.detail_preview_ids else None,
+                requirement_checks=json.loads(args.requirement_checks) if args.requirement_checks else None,
             )
 
         elif sub == "revert":
