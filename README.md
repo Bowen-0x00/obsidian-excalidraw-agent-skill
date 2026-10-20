@@ -143,6 +143,9 @@ Ordinary requests do not need DSL knowledge:
 
 Before a new drawing, the Agent asks unresolved **style and review depth** first, together with palette, background and font intent in one round. A recommendation is not a user answer; “retry/continue/draw this” does not waive questions. Explicit choices, deliberate inheritance and an explicit request to use defaults are recorded per field in a required `brief`. Its user requirements are checked individually at review. See the [choice/brief format](skills/obsidian-excalidraw/references/diagram-recipes.md) and [review evidence](skills/obsidian-excalidraw/references/acceptance.md). Hardware remains component/port/signal based; a kind string or swimlane is not a hardware router.
 
+Mathematical content is routed by **meaning, not dollar delimiters**: matrices, mathematical vectors/transposes, fractions, sums and structured subscripts use the existing source-preserving LaTeX path. Do not align matrices with spaces or simulate math with Unicode/small offset text. RTL identifiers/slices, bitstrings, pins and waveforms remain native text/geometry. [Math routing and mixed-content QA](skills/obsidian-excalidraw/references/visual-content.md#数学内容分流-先认语义再选元素) separates retained TeX, actual formula resources and PNG inspection from numeric correctness; this Skill workflow is not an automatic semantic-math validator.
+
+
 ## Repeatable scenes with the DSL
 
 The compiler is included—no separate repository, backend path or language server is required. CLI examples:

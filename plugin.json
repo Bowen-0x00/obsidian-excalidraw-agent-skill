@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "obsidian-excalidraw-agent-skill",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Native Obsidian Excalidraw MCP and Skill with optional measured scene DSL, editable diagrams and real PNG review.",
   "author": {"name": "Bowen-0x00"},
   "homepage": "https://github.com/Bowen-0x00/obsidian-excalidraw-agent-skill",

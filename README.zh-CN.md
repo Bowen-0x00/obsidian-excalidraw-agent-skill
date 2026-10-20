@@ -143,6 +143,9 @@ uv run --frozen python launcher.py doctor
 
 新图先真实询问未定的 **style 和 review 等级**，与色板、背景、字体意图合并一轮；推荐值不是用户回答，“重试／继续／帮我画”不是免问。明确指定、原图／同套图继承、用户明确授权默认值逐项记录到必需的`brief`；用户需求逐项验收。见[偏好与任务单格式](skills/obsidian-excalidraw/references/diagram-recipes.md)和[验收证据](skills/obsidian-excalidraw/references/acceptance.md)。硬件仍按部件／端口／信号组织；kind或泳道都不是硬件自动布局器。
 
+数学内容按**语义而非美元符号**分流：矩阵、数学向量／转置、分式、求和与结构化上下标走已有保留源TeX的LaTeX入口，不用空格／Unicode或偏移小字模拟。RTL标识／总线切片、位串、引脚和波形仍保留原生文字／图元。[数学分流与混排验收](skills/obsidian-excalidraw/references/visual-content.md#数学内容分流-先认语义再选元素)分别核对源TeX、真实公式资源与PNG，不把数值正确当排版通过；这是Skill工作流，不冒充自动数学语义校验器。
+
+
 ## 用 DSL 维护可重复生成的图
 
 编译器随包提供，不另建安装，也不需要 `--backend` 指向另一份 runtime：

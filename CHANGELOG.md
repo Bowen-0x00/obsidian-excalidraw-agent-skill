@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.1 — Semantic LaTeX routing and math-specific visual review (2026-10-20)
+
+- Route mathematical matrices, vectors/transposes, fractions, sums, recurrences and structured scripts before font choice or generic text helpers, even when input contains no dollar delimiters. Reject ASCII-space matrices and Unicode/offset-text imitations in the Skill workflow.
+- Keep RTL identifiers/slices, literal code, bitstrings, pin names and waveforms as editable native text/geometry. Separate Chinese prose from source-preserving native LaTeX resources; measure real formula bounds, scale uniformly, group mixed content and preserve owners/bindings during local replacement.
+- Add math-specific requirement/PNG review: exact saved TeX, real image/fileId resources, matrix shape/brackets, script ownership, sum bounds, fraction/root structure, mixed baselines and readability. Numeric verification and label-copy assertions do not certify typography. This is Agent guidance, not a new automatic semantic parser or runtime enforcement claim.
+- Real-host verification created eight formula resources for GEMV matrices/vectors, transpose, sum, recurrence, mixed prose and a fraction/root. Source TeX round-tripped exactly, resource geometry matched native measurement, literal RTL/bit labels stayed text, and actual PNG high review completed. Existing runtime/Bridge APIs remain unchanged; bootstrap and Bridge stay 0.13.7.
+
 ## 0.10.0 — Choice-first drawing, strict review and matched startup (2026-10-20)
 
 ### Bootstrap and upgrade
