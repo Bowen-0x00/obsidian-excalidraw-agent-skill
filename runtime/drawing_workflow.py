@@ -11,14 +11,56 @@ from pathlib import Path
 from typing import Any
 
 from runtime_config import artifact_directory, load_connection
+from drawing_entry import diagram_type
+from representation_contract import validate_contract
+from typing import Annotated, Literal
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from representation_contract import RepresentationContract
+
+
+class Choice(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    value: Annotated[str, Field(min_length=1)]
+    source: Literal["user", "answer", "inherited", "delegated"]
+    evidence: Annotated[str, Field(min_length=1)]
+
+
+class Preferences(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    style: Choice
+    review: Choice
+    palette: Choice
+    background: Choice
+    font: Choice
+
+
+class Requirement(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    id: Annotated[str, Field(min_length=1)]
+    description: Annotated[str, Field(min_length=1)]
+
+
+class DrawingBrief(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    task_id: Annotated[str, Field(min_length=1)]
+    preferences: Preferences
+    requirements: Annotated[list[Requirement], Field(min_length=1)]
+    diagram_type: Literal["auto", "general", "microarchitecture", "circuit", "math"] = "auto"
+    representation: RepresentationContract | None = None
+
+    @model_validator(mode="after")
+    def resolved(self):
+        validate_brief(self.model_dump(exclude_unset=True))
+        return self
 
 PREFERENCES = ("style", "review", "palette", "background", "font")
 SOURCES = {"user", "answer", "inherited", "delegated"}
 
 
 def validate_brief(brief: Any) -> dict:
-    if not isinstance(brief, dict) or set(brief) != {"task_id", "preferences", "requirements"}:
-        raise ValueError("DRAWING_BRIEF_REQUIRED: brief needs task_id, preferences and requirements; ask unresolved choices before creating a canvas")
+    required = {"task_id", "preferences", "requirements"}
+    if not isinstance(brief, dict) or not required.issubset(brief) or set(brief) - required - {"diagram_type", "representation"}:
+        raise ValueError("DRAWING_BRIEF_REQUIRED: brief needs task_id, preferences and requirements; optional diagram_type and representation; use drawing_begin before creating a canvas")
     if not isinstance(brief["task_id"], str) or not brief["task_id"].strip():
         raise ValueError("brief.task_id must identify this user drawing request")
     preferences = brief["preferences"]
@@ -41,6 +83,8 @@ def validate_brief(brief: Any) -> dict:
         if item["id"] in identities:
             raise ValueError("Requirement IDs must be unique")
         identities.add(item["id"])
+    kind = diagram_type("\n".join(item["description"] for item in requirements), brief.get("diagram_type", "auto"))
+    validate_contract(brief.get("representation"), kind)
     return json.loads(json.dumps(brief, ensure_ascii=False, allow_nan=False))
 
 
@@ -106,7 +150,10 @@ def attach_context(context: dict, brief: dict | None = None) -> dict | None:
                 raise ValueError("CANVAS_TASK_CONFLICT: repair the existing task; only a new request after completed review can replace its brief")
         if previous and previous["brief"] != brief:
             raise ValueError("TASK_BRIEF_CONFLICT: do not silently change requirements or selected review depth")
-        owner = {"brief": brief, "file": file, "status": "bound"}
+        owner = {**(owner or {}), "brief": brief, "file": file, "status": "bound"}
+        if not previous or previous["brief"]["task_id"] != brief["task_id"]:
+            owner.pop("representationBindings", None)
+            owner.pop("delivery", None)
         _save(path, owner)
         _save(canvas_path(file), owner)
     if owner:
@@ -149,3 +196,37 @@ def requirement_issues(requirements: list[dict], checks: list[dict] | None, elem
         supplied[identity] = check
     return [{"code": "REQUIREMENT_NOT_VERIFIED", "severity": "error", "requirementId": r["id"], "elementIds": [],
              "message": r["description"]} for r in requirements if supplied.get(r["id"], {}).get("outcome") != "pass"]
+
+
+def set_representation_bindings(token: str, bindings: dict[str, list[str]]) -> dict:
+    record = require_context(token)
+    if record["brief"].get("representation") is None:
+        raise ValueError("REPRESENTATION_REQUIRED: no component/port/signal contract was declared in this task brief")
+    if not isinstance(bindings, dict) or any(not isinstance(k, str) or not isinstance(v, list) or not v or any(not isinstance(i, str) or not i for i in v) for k, v in bindings.items()):
+        raise ValueError("bindings must map declared component/signal IDs to nonempty lists of native element IDs")
+    record["representationBindings"] = bindings
+    record.pop("delivery", None)
+    _save(canvas_path(record["file"]), record)
+    _save(task_path(record["brief"]["task_id"]), record)
+    return record
+
+
+def save_delivery(token: str, receipt: dict) -> None:
+    record = require_context(token)
+    record["delivery"] = receipt
+    _save(canvas_path(record["file"]), record)
+    _save(task_path(record["brief"]["task_id"]), record)
+
+
+def delivery_evidence(record: dict, scene: dict, receipt: dict, ledger: Any) -> dict:
+    """Identity/completion gate shared by native and CLI delivery."""
+    if scene["file"] != record["file"] or receipt["file"] != record["file"] or receipt["revision"] != scene["revision"]:
+        raise ValueError("STALE_DELIVERY: current task, canvas and PNG must name the same file/revision")
+    if receipt["scope"] != "all" or not receipt["complete"]:
+        raise ValueError("INCOMPLETE_DELIVERY: a complete all-canvas PNG is required")
+    last = ledger.rounds[-1] if ledger.rounds else None
+    if ledger.status != "completed" or not last or last["status"] != "completed" or last["revision"] != receipt["revision"] or last["previewId"] != receipt["previewId"]:
+        raise ValueError("DELIVERY_REVIEW_REQUIRED: no completed review for this exact current PNG; check=pass is not completion")
+    if not last["visualReviewed"] or not last["previewComplete"]:
+        raise ValueError("DELIVERY_REVIEW_REQUIRED: current PNG was not actually reviewed or resources were incomplete")
+    return last

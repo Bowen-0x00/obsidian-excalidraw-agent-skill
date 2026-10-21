@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.2 — Executable start, native input, topology and delivery gates (2026-10-21)
+
+- Add drawing_begin with actual bundled Skill/task-reference content and hashes, current host discovery and optional existing canvas/review evidence; preparation does not create or modify a canvas.
+- Expose native op-discriminated Pydantic input models and validate the full batch before HTTP for MCP, Python and CLI. Keep feature/customData execution checks at the host; do not alias invalid historical operations.
+- Require declared component/port/signal representation for hardware tasks; map saved native IDs with drawing_contract and recompute body types, world ports, endpoints, bindings and orthogonality at check/review/delivery. Text cannot replace a declared body. Unsupported exact geometry is explicit, not waived as an overlap.
+- Add drawing_deliver: require same owned file/current revision/full registered PNG/hash, completed review and current requirements/topology. Preserve raw check status/advisories and trust limits; successful writes or exports are not completion.
+- Existing Bridge/bootstrap remain 0.13.7; this runtime/Skill change does not require restarting or replacing host scripts. Upgrade the package and reload MCP/Skill to discover the three new tools. Preserve private connection, task/DSL state, user canvases and historical package snapshots.
+- Verification: 115 runtime tests and 7 shared-sync tests passed; 15 shared Engines checked. Real stdio MCP rejected invalid batches before mutation and blocked text-only hardware delivery; native topology passed, a deliberately shifted signal invalidated delivery, and same-ID repair/rebind retained review history. The actual final PNG was viewed and high review completed; CLI delivery succeeded. Redhat discovered 21 tools and the same 36 native operation models through the real host connection.
+
 ## 0.10.1 — Semantic LaTeX routing and math-specific visual review (2026-10-20)
 
 - Route mathematical matrices, vectors/transposes, fractions, sums, recurrences and structured scripts before font choice or generic text helpers, even when input contains no dollar delimiters. Reject ASCII-space matrices and Unicode/offset-text imitations in the Skill workflow.

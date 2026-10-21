@@ -143,6 +143,11 @@ Ordinary requests do not need DSL knowledge:
 
 Before a new drawing, the Agent asks unresolved **style and review depth** first, together with palette, background and font intent in one round. A recommendation is not a user answer; “retry/continue/draw this” does not waive questions. Explicit choices, deliberate inheritance and an explicit request to use defaults are recorded per field in a required `brief`. Its user requirements are checked individually at review. See the [choice/brief format](skills/obsidian-excalidraw/references/diagram-recipes.md) and [review evidence](skills/obsidian-excalidraw/references/acceptance.md). Hardware remains component/port/signal based; a kind string or swimlane is not a hardware router.
 
+Use **`drawing_begin(request, action="prepare")`** first: the tool returns the actual bundled Skill, task-specific references, native operation examples and live host evidence—even if the client did not activate the Skill automatically. Resolve the brief, then `drawing_begin(create|bind, ...)`. Native `drawing_apply` now exposes an op-discriminated schema and rejects unknown/misplaced fields before any HTTP write. Hardware briefs declare a component/port/signal contract; `drawing_contract` maps actual body/wire IDs and check/review/deliver recompute the saved topology. Text reports cannot satisfy native component bodies.
+
+After inspecting the current PNG and obtaining a completed review, call **`drawing_deliver(context_token, revision, preview_id)`**. Only its `deliverable` receipt confirms the same owned file, current revision, complete overview PNG/hash, completed review and current requirement/representation checks. Writes, check pass and exported PNGs alone are not completion. [Executable format, CLI entrypoints and geometry/trust limits](skills/obsidian-excalidraw/references/workflow-details.md#启动表达与交付的执行契约). This is workflow evidence, not electrical/scientific validation or control over arbitrary model chat.
+
+
 Mathematical content is routed by **meaning, not dollar delimiters**: matrices, mathematical vectors/transposes, fractions, sums and structured subscripts use the existing source-preserving LaTeX path. Do not align matrices with spaces or simulate math with Unicode/small offset text. RTL identifiers/slices, bitstrings, pins and waveforms remain native text/geometry. [Math routing and mixed-content QA](skills/obsidian-excalidraw/references/visual-content.md#数学内容分流-先认语义再选元素) separates retained TeX, actual formula resources and PNG inspection from numeric correctness; this Skill workflow is not an automatic semantic-math validator.
 
 
@@ -237,6 +242,9 @@ User `.excalidrawlib` assets are not redistributed here. Query the actual curren
 ## Updates and safety
 
 For a checkout: stop this package's MCP process, pull, `uv sync --frozen`, refresh copied Skill files and restart MCP. For OMP, follow the supported marketplace update/plugin upgrade instructions in Agent setup; disconnect the old MCP first on Windows to avoid locked-cache failures. Reconnect the **same vault** to update managed scripts, preserving customized-file conflict checks; reload Engines/Obsidian when needed. Preserve private connection settings, DSL identity state and review artifacts.
+
+**0.10.2 upgrade:** update the runtime package **and** copied Skill, then reload MCP/Skill. The tool list must include drawing_begin, drawing_contract and drawing_deliver; copying only the Skill cannot add these APIs. New hardware tasks declare their representation before creation and map saved body/wire IDs before review. Start/Bridge remain **0.13.7**: an already-running matching host needs no restart or reconnection. Keep private connection/task/DSL state and historical version caches.
+
 
 **0.10.0 migration:** update/reconnect each configured vault's managed bundle, then run its `Agent-Drawing/mcp/Start-Agent-Drawing` and reload MCP. Both bootstrap and Bridge must report **0.13.7**; updating only the Skill does not replace a running host. New artwork asks unresolved style/review first and passes a resolved `brief`; native reviews additionally cover every user requirement. The fixed installation diagnostic is `launcher.py smoke --font "EXACT_DISCOVERED_FAMILY" --filename Unique-Smoke`. Existing private state is retained; backups/old package snapshots are not rewritten.
 

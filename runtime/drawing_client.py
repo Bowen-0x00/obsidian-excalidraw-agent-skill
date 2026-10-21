@@ -26,7 +26,11 @@ from runtime_config import artifact_directory, load_connection
 from geometry_diagnostics import run_geometry_diagnostics
 from review_ledger import ReviewLedger
 from drawing_workflow import (attach_context, for_context, require_context, reserve_create,
-                              requirement_issues, review_path, validate_brief)
+                              requirement_issues, review_path, validate_brief, set_representation_bindings, save_delivery, delivery_evidence)
+from drawing_entry import diagram_type, guidance
+from operation_schema import validate_operations, operation_examples
+from representation_contract import check_representation
+from acceptance import decorate, issue_id, triage
 from diagram_layout import FONT, Metrics, plan_diagram
 from drawing_templates import get_template, plan_template, template_catalog
 from drawing_composition import CompositionError, compose_diagram, create_presentation
@@ -203,6 +207,56 @@ class DrawingClient:
             raise BridgeError("The running host Bridge lacks strict operation fields. Update the managed Bridge and run Start-Agent-Drawing on the host; reloading only MCP is insufficient.",
                               code="BRIDGE_UPDATE_REQUIRED", status=409)
 
+    def begin(self, request: str, diagram_type: str = "auto", action: str = "prepare",
+              brief: dict[str, Any] | None = None, filename: str | None = None,
+              foldername: str | None = None, file_path: str | None = None) -> dict[str, Any]:
+        """Return actual bundled guidance, host evidence and one explicit task target."""
+        if not isinstance(request, str) or not request.strip():
+            raise ValueError("request must retain the user's actual drawing request")
+        from drawing_entry import diagram_type as classify
+        kind = classify(request, diagram_type)
+        instructions = guidance(kind, request)
+        if action not in ("prepare", "create", "bind"):
+            raise ValueError("drawing_begin.action must be prepare/create/bind")
+        if brief is not None:
+            validate_brief({**brief, "diagram_type": kind})
+        if action != "prepare":
+            if brief is None:
+                raise ValueError("DRAWING_BRIEF_REQUIRED: resolve cited preferences/requirements first; prepare is read-only")
+            brief = {**brief, "diagram_type": kind}
+            validate_brief(brief)
+            if action == "bind" and not file_path:
+                raise ValueError("TARGET_REQUIRED: bind requires an explicit vault-relative file_path")
+            context = self.context(action, filename, foldername, file_path, brief)
+            return {**context, "status": "ready_to_draw", "delivery_ready": False, "guidance": instructions,
+                    "operation_examples": operation_examples()}
+        discovery = self.context("discover")
+        evidence = None
+        if file_path:
+            context = self.context("bind", file_path=file_path)
+            scene = self.read(context["contextToken"], detail="summary")
+            record = for_context(context["contextToken"])
+            ledger = self.review_settings(context["contextToken"])
+            evidence = {"file": scene["file"], "revision": scene["revision"], "canvas": scene,
+                        "brief": record["brief"] if record else None, "review_status": ledger.status,
+                        "review_rounds": len(ledger.rounds), "last_review": ledger.rounds[-1] if ledger.rounds else None}
+        return {"status": "prepared_not_created", "delivery_ready": False, "guidance": instructions,
+                "discovery": discovery, "existing_evidence": evidence,
+                "unresolved_preferences": ["style", "review", "palette", "background", "font"] if brief is None else [],
+                "operation_examples": operation_examples()}
+
+    def contract(self, context_token: str, bindings: dict[str, list[str]]) -> dict[str, Any]:
+        """Map logical bodies/signals to saved native IDs, without mutating the canvas."""
+        scene = self.read(context_token, detail="full")
+        record = require_context(context_token)
+        issues = check_representation(scene["elements"], record["brief"].get("representation"), bindings)
+        if issues:
+            return {"status": "needs_repair", "delivery_ready": False, "file": scene["file"],
+                    "revision": scene["revision"], "issues": issues, "bindings_saved": False}
+        set_representation_bindings(context_token, bindings)
+        return {"status": "mapped_needs_review", "delivery_ready": False, "file": scene["file"],
+                "revision": scene["revision"], "issues": [], "bindings_saved": True}
+
     def context(
         self,
         action: str,
@@ -234,7 +288,8 @@ class DrawingClient:
                 payload["foldername"] = foldername
             context = self.request("POST", "/v3/canvases/create", payload)
             attach_context(context, brief)
-            return {**context, "brief": brief}
+            return {**context, "brief": brief, "delivery_ready": False,
+                    "guidance": guidance(diagram_type("\n".join(r["description"] for r in brief["requirements"]), brief.get("diagram_type", "auto")))}
 
         elif action_lower == "bind":
             if brief is not None:
@@ -416,11 +471,12 @@ class DrawingClient:
         acceptance_level: str | None = None,
     ) -> dict[str, Any]:
         """Apply a batch of operations to the canvas."""
+        operations = validate_operations(operations)
         require_context(context_token)
         self._require_native_contract()
         if acceptance_level is not None:
             self.review_settings(context_token, acceptance_level).save()
-        return self.request(
+        receipt = self.request(
             "POST",
             "/v3/operations/apply",
             {
@@ -429,6 +485,7 @@ class DrawingClient:
                 "operations": operations,
             },
         )
+        return {**receipt, "status": "applied_needs_review", "delivery_ready": False}
 
     def _preview_receipt(self, context_token: str, preview_id: str, revision: str | None = None) -> dict[str, Any]:
         if not re.fullmatch(r"prev_[0-9]+_[0-9a-f]{8}", preview_id):
@@ -465,6 +522,14 @@ class DrawingClient:
             raise BridgeError("Canvas changed between geometry and structural checks", code="REVISION_CONFLICT", status=409)
         diagnostics = run_geometry_diagnostics(scene["elements"], expected=expected, structural_validation=validation,
             acceptance_level=ledger.acceptance_level, output_scale=preview.get("actualScale") if preview else None)
+        record = for_context(context_token)
+        representation = check_representation(scene["elements"], record["brief"].get("representation"), record.get("representationBindings")) if record else []
+        if representation:
+            diagnostics["issues"] = decorate([*diagnostics["issues"], *representation], ledger.acceptance_level)
+            diagnostics["status"], diagnostics["valid"] = "fail", False
+            diagnostics["summary"]["errors"] += len(representation)
+            diagnostics["summary"]["blocking"] += len(representation)
+        diagnostics["representation"] = {"required": bool(record and record["brief"].get("representation")), "issues": representation}
         diagnostics.update(revision=scene["revision"], contextToken=context_token, coverage="complete", expected=expected or [])
         return diagnostics
 
@@ -614,6 +679,36 @@ class DrawingClient:
             visual_checks=visual_checks, dispositions=dispositions, detail_preview_ids=detail_preview_ids,
             requirement_checks=requirement_checks,
         )
+
+    def deliver(self, context_token: str, revision: str, preview_id: str) -> dict[str, Any]:
+        """Issue delivery evidence only for the current task, full PNG and completed review."""
+        record = require_context(context_token)
+        receipt = self._preview_receipt(context_token, preview_id, revision)
+        scene = self.read(context_token, detail="full")
+        ledger = self.review_settings(context_token)
+        try:
+            last = delivery_evidence(record, scene, receipt, ledger)
+        except ValueError as error:
+            raise BridgeError(str(error), code=str(error).split(":")[0], status=422) from error
+        for detail_id in last.get("detailPreviewIds", []):
+            self._preview_receipt(context_token, detail_id, revision)
+        ids = {e["id"] for e in scene["elements"] if not e.get("isDeleted")}
+        coverage = requirement_issues(record["brief"]["requirements"], last.get("requirementChecks"), ids)
+        checked = self.check(context_token, preview_id=preview_id)
+        reviewed_issues = {issue_id(i) for i in last["hardIssues"]}
+        new_issues = [i for i in checked["issues"] if issue_id(i) not in reviewed_issues and i.get("blocking")]
+        representation = check_representation(scene["elements"], record["brief"].get("representation"), record.get("representationBindings"))
+        unresolved, _ = triage(last["allIssues"], ledger.acceptance_level, last.get("dispositions"))
+        if coverage or new_issues or representation or unresolved or not last["visualReviewed"] or not last["previewComplete"]:
+            raise BridgeError("Current task checks no longer support completed delivery", code="DELIVERY_CHECK_FAILED", status=422,
+                              details={"issues": [*coverage, *new_issues, *representation, *unresolved]})
+        result = {"status": "deliverable", "delivery_ready": True, "task_id": record["brief"]["task_id"],
+                  "file": scene["file"], "revision": revision, "previewId": preview_id, "png": receipt["out_path"],
+                  "sha256": receipt["sha256"], "reviewRound": last["round"], "acceptanceLevel": ledger.acceptance_level,
+                  "rawCheckStatus": checked["status"], "advisories": last.get("advisories", []),
+                  "limits": "Current native state and PNG/review evidence verified; user-evidence and visual judgments are Agent attestations, not electrical/scientific proof."}
+        save_delivery(context_token, result)
+        return result
 
     def revert(
         self,
@@ -817,7 +912,7 @@ def create_cli_parser() -> argparse.ArgumentParser:
     p_json = subparsers.add_parser("json", help="Execute single-payload JSON request or read from stdin")
     p_json.add_argument("--request", help="JSON request payload string")
 
-    for command in ("template", "primitives", "library", "compose", "present"):
+    for command in ("begin", "contract", "deliver", "template", "primitives", "library", "compose", "present"):
         extended = subparsers.add_parser(command, help=f"Execute typed {command} arguments from JSON")
         source = extended.add_mutually_exclusive_group(required=True)
         source.add_argument("--request", help="JSON object containing method arguments")
@@ -971,7 +1066,7 @@ def cli_main() -> None:
                 transaction_id=args.transaction_id,
             )
 
-        elif sub in ("template", "primitives", "library", "compose", "present"):
+        elif sub in ("begin", "contract", "deliver", "template", "primitives", "library", "compose", "present"):
             parameters = json.loads(Path(args.request_file).read_text(encoding="utf-8") if args.request_file else args.request)
             method = "templates" if sub == "template" else sub
             result = getattr(client, method)(**parameters)
@@ -985,7 +1080,13 @@ def cli_main() -> None:
             tool = req.get("tool") or req.get("action")
             args_dict = req.get("arguments") or req.get("args") or req
 
-            if tool in ("drawing_context", "context"):
+            if tool in ("drawing_begin", "begin"):
+                result = client.begin(**args_dict)
+            elif tool in ("drawing_contract", "contract"):
+                result = client.contract(**args_dict)
+            elif tool in ("drawing_deliver", "deliver"):
+                result = client.deliver(**args_dict)
+            elif tool in ("drawing_context", "context"):
                 result = client.context(**args_dict)
             elif tool in ("drawing_read", "read"):
                 result = client.read(**args_dict)

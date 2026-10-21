@@ -14,6 +14,8 @@ from mcp.server.fastmcp import FastMCP
 from mcp.types import CallToolResult, ImageContent, TextContent
 
 from drawing_client import BridgeError, DrawingClient
+from operation_schema import Operation
+from drawing_workflow import DrawingBrief
 
 mcp = FastMCP(
     "obsidian-excalidraw",
@@ -21,7 +23,7 @@ mcp = FastMCP(
 Obsidian Excalidraw MCP Server for professional diagramming.
 
 Workflow:
-Fast path: ask unresolved style/review and other preferences -> create(brief) -> drawing_compose(diagram) -> optional drawing_apply(post-style, inspect=True) -> view PNG -> drawing_review(requirement_checks).
+Start with drawing_begin(request, action="prepare"): it returns the actual bundled Skill, required task references, correct native examples and live host discovery. Resolve cited preferences, then drawing_begin(create|bind, brief). Hardware requires a declared component/port/signal representation and drawing_contract native-ID mapping, not a text report. Apply -> view PNG -> drawing_review(requirement_checks) -> drawing_deliver for the exact reviewed revision/preview. Without deliverable receipt, report work-in-progress/blocked, never completed.
 drawing_compose(inspect=True) returns the checked PNG directly when no post-styling is needed.
 Granular plan/apply/check/preview and every advanced operation remain available; no validation or visual gate is skipped.
 Optional scene DSL: drawing_dsl(plan|render, document, font_family, state_id, filename|file_path) compiles measured spatial scenes and reconciles stable identities. First render needs a unique filename or explicit existing file; repeat the same state_id to update, never replay the graph with compose. Render returns actual checked PNG; view it then call drawing_review. Native tools remain the path for libraries, interaction and precise unmanaged edits.
@@ -73,6 +75,8 @@ def _inspected_response(
         ])
     image = result["preview"].pop("_base64")
     result[kind] = receipt
+    result["status"] = "needs_repair" if result["check"]["status"] == "fail" else "rendered_needs_visual_review"
+    result["delivery_ready"] = False
     result["timings"].update(mutationMs=mutation_ms, totalMs=(time.perf_counter() - started) * 1000)
     return CallToolResult(content=[
         TextContent(type="text", text=json.dumps(result, ensure_ascii=False)),
@@ -81,12 +85,59 @@ def _inspected_response(
 
 
 @mcp.tool()
+def drawing_begin(
+    request: str,
+    diagram_type: Literal["auto", "general", "microarchitecture", "circuit", "math"] = "auto",
+    action: Literal["prepare", "create", "bind"] = "prepare",
+    brief: DrawingBrief | None = None,
+    filename: str | None = None,
+    foldername: str | None = None,
+    file_path: str | None = None,
+) -> dict[str, Any]:
+    """Reliable start: return bundled Skill/task references and real host evidence.
+
+    prepare never creates/modifies canvas contents; optional file_path reads existing
+    canvas and file-scoped review evidence. No fabricated user-choice provenance.
+    create/bind needs resolved brief; hardware also declares native component types,
+    world-side ports and named directed signals in brief.representation.
+    After drawing, map actual IDs with drawing_contract, view PNG, review and deliver.
+    """
+    return client.begin(request, diagram_type, action,
+                        brief.model_dump(exclude_unset=True) if brief else None,
+                        filename, foldername, file_path)
+
+
+@mcp.tool()
+def drawing_contract(context_token: str, bindings: dict[str, list[str]]) -> dict[str, Any]:
+    """Map declared logical components/signals to CURRENT native body/wire IDs.
+
+    Components map to body/closed-outline IDs, never text; each signal maps to one
+    continuous line/arrow. Ports derive from the component world AABB side/offset.
+    Invalid mappings return repair issues without saving them or modifying canvas.
+    Drawing check/review/deliver rerun topology checks; a valid mapping is not review.
+    """
+    return client.contract(context_token, bindings)
+
+
+@mcp.tool()
+def drawing_deliver(context_token: str, revision: str, preview_id: str) -> dict[str, Any]:
+    """Require the same owned file/current revision/full PNG and COMPLETED review.
+
+    Verify image hashes, current checks, declared topology and requirement coverage.
+    No completed review, stale scene/PNG, missing body/wire or failed visual checks
+    means NO delivery receipt. Raw geometry pass and successful writes are not done.
+    A receipt certifies this workflow evidence, not scientific/electrical correctness.
+    """
+    return client.deliver(context_token, revision, preview_id)
+
+
+@mcp.tool()
 def drawing_context(
     action: Literal["discover", "create", "bind"],
     filename: str | None = None,
     foldername: str | None = None,
     file_path: str | None = None,
-    brief: dict[str, Any] | None = None,
+    brief: DrawingBrief | None = None,
 ) -> dict[str, Any]:
     """Acquire canvas context: discover runtime capabilities, create a new canvas, or bind an existing file.
 
@@ -106,7 +157,7 @@ def drawing_context(
         filename=filename,
         foldername=foldername,
         file_path=file_path,
-        brief=brief,
+        brief=brief.model_dump(exclude_unset=True) if brief else None,
     )
 
 
@@ -298,7 +349,7 @@ def drawing_dsl(
 def drawing_apply(
     context_token: str,
     base_revision: str,
-    operations: list[dict[str, Any]],
+    operations: list[Operation],
     inspect: bool = False,
     expected: list[dict[str, Any]] | None = None,
     acceptance_level: Literal["low", "medium", "high"] | None = None,
@@ -306,8 +357,10 @@ def drawing_apply(
     """Apply an array of operations to the canvas in a single staged transaction.
 
     Returns transactionId, new revision, created/updated/deleted element IDs.
-    Every operations item REQUIRES "op", NOT "type". Example title bold:
-    {"op":"set_text_global_style","targets":["actual native text ID"],"bold":true}
+    Every operations item is an op-discriminated native schema; unknown or misplaced
+    fields fail before HTTP. Use create_shape(type=rectangle), not create_rectangle.
+    Text: {"op":"create_text","x":0,"y":0,"text":"ALU","style":{"fontSize":20,"fontFamily":"EXACT_DISCOVERED_FAMILY"}}.
+    Bold: {"op":"set_text_global_style","targets":["actual native text ID"],"bold":true}.
     Use compose's refs["diagram:title"] and its current revision for post-styling.
     inspect=True also performs full geometry/structure/semantic checks and returns
     a registered PNG ImageContent, full canvasSummary and measured phase timings.
