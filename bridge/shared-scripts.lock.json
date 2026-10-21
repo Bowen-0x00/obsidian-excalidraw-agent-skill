@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "Bowen-0x00/obsidian-excalidraw-scripts",
-  "sourceCommit": "22134fbd934e3df579ae0d216143eb20a8cc07ac",
+  "sourceCommit": "d0ae073ec227daeaad9bef032c106113d042fc98",
   "files": {
     "bridge/Scripts/hover/Feature-Hover-Engine.md": {
       "source": "Scripts/hover/Feature-Hover-Engine.md",
@@ -40,8 +40,8 @@
     },
     "bridge/Scripts/echarts/Feature-Echarts-Engine.md": {
       "source": "Scripts/echarts/Feature-Echarts-Engine.md",
-      "sha256": "222812a3e5da2a13cadb35e1a2bd7813fc6b85a3fbb4430af9fb2f9a3d1cc475",
-      "version": "1.3.0"
+      "sha256": "937823da29089efdd79e4cf4f70c9cc7147f1643264745864430187e683c9751",
+      "version": "1.3.1"
     },
     "bridge/Scripts/layer/Feature-Layer-Engine.md": {
       "source": "Scripts/layer/Feature-Layer-Engine.md",
