@@ -16,6 +16,7 @@ from mcp.types import CallToolResult, ImageContent, TextContent
 from drawing_client import BridgeError, DrawingClient
 from operation_schema import Operation
 from drawing_workflow import DrawingBrief
+from drawing_entry import DiagramType
 
 mcp = FastMCP(
     "obsidian-excalidraw",
@@ -87,7 +88,7 @@ def _inspected_response(
 @mcp.tool()
 def drawing_begin(
     request: str,
-    diagram_type: Literal["auto", "general", "microarchitecture", "circuit", "math"] = "auto",
+    diagram_type: DiagramType = "auto",
     action: Literal["prepare", "create", "bind"] = "prepare",
     brief: DrawingBrief | None = None,
     filename: str | None = None,
@@ -551,12 +552,31 @@ def drawing_primitives(
     context_token: str,
     items: list[dict[str, Any]],
     style: str | dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    """Plan native draw, polygon, cuboid, four-way braces, callout, highlighted code, checkbox and connections.
+    action: Literal["plan", "render"] = "plan",
+    state_id: str | None = None,
+    base_revision: str | None = None,
+) -> Any:
+    """Plan native primitives, projection/layer_stack/grid_array/leader and measured text.
 
-    Read the Skill's native-features reference for typed item fields; apply returned operations.
+    Default plan only; apply its operations. Technical illustration render requires
+    state_id and current base_revision, reuses the existing managed reconciler and
+    returns actual checked PNG; repeat the SAME state_id to update native IDs.
+    Managed render supports technical kinds and text only; no generic graph DSL.
+    Native measurement, per-object changes, external-edit conflicts and final review remain mandatory.
     """
-    return client.primitives(context_token, items, style)
+    try:
+        result = client.primitives(context_token, items, style, action, state_id, base_revision)
+        if "preview" not in result:
+            return result
+        image = result["preview"].pop("_base64")
+        return CallToolResult(content=[TextContent(type="text", text=json.dumps(result, ensure_ascii=False)),
+                                       ImageContent(type="image", data=image, mimeType="image/png")])
+    except Exception as error:
+        failure = {"ok": False, "error": {"code": getattr(error,"code","PRIMITIVE_ERROR"),
+                   "message": str(error), "details": getattr(error,"details",None),
+                   "committedReceipt": getattr(error,"committed_receipt",None)},
+                   "note":"Inspect current canvas/state after a committed or unknown outcome; do not replay the whole drawing."}
+        return CallToolResult(isError=True,content=[TextContent(type="text",text=json.dumps(failure,ensure_ascii=False))])
 
 
 @mcp.tool()

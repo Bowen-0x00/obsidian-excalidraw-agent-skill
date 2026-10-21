@@ -11,11 +11,12 @@ from pathlib import Path
 from typing import Any
 
 from runtime_config import artifact_directory, load_connection
-from drawing_entry import diagram_type
+from drawing_entry import DiagramType, diagram_type
 from representation_contract import validate_contract
 from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from representation_contract import RepresentationContract
+from illustration_contract import VisualPlan
 
 
 class Choice(BaseModel):
@@ -45,8 +46,9 @@ class DrawingBrief(BaseModel):
     task_id: Annotated[str, Field(min_length=1)]
     preferences: Preferences
     requirements: Annotated[list[Requirement], Field(min_length=1)]
-    diagram_type: Literal["auto", "general", "microarchitecture", "circuit", "math"] = "auto"
+    diagram_type: DiagramType = "auto"
     representation: RepresentationContract | None = None
+    visual_plan: VisualPlan | None = None
 
     @model_validator(mode="after")
     def resolved(self):
@@ -59,8 +61,8 @@ SOURCES = {"user", "answer", "inherited", "delegated"}
 
 def validate_brief(brief: Any) -> dict:
     required = {"task_id", "preferences", "requirements"}
-    if not isinstance(brief, dict) or not required.issubset(brief) or set(brief) - required - {"diagram_type", "representation"}:
-        raise ValueError("DRAWING_BRIEF_REQUIRED: brief needs task_id, preferences and requirements; optional diagram_type and representation; use drawing_begin before creating a canvas")
+    if not isinstance(brief, dict) or not required.issubset(brief) or set(brief) - required - {"diagram_type", "representation", "visual_plan"}:
+        raise ValueError("DRAWING_BRIEF_REQUIRED: brief needs task_id, preferences and requirements; optional diagram_type/representation/visual_plan; use drawing_begin before creating a canvas")
     if not isinstance(brief["task_id"], str) or not brief["task_id"].strip():
         raise ValueError("brief.task_id must identify this user drawing request")
     preferences = brief["preferences"]
@@ -85,6 +87,10 @@ def validate_brief(brief: Any) -> dict:
         identities.add(item["id"])
     kind = diagram_type("\n".join(item["description"] for item in requirements), brief.get("diagram_type", "auto"))
     validate_contract(brief.get("representation"), kind)
+    if brief.get("visual_plan") is not None:
+        VisualPlan.model_validate(brief["visual_plan"])
+    elif kind in ("physical_structure", "explanatory_page"):
+        raise ValueError("VISUAL_PLAN_REQUIRED: declare purpose, views, objects, physical relations and illustrative limits; do not invent a port/signal network for a section or slide")
     return json.loads(json.dumps(brief, ensure_ascii=False, allow_nan=False))
 
 

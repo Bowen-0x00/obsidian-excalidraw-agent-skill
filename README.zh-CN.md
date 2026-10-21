@@ -147,6 +147,11 @@ uv run --frozen python launcher.py doctor
 
 看过当前PNG并取得completed评审后调用 **`drawing_deliver(context_token,revision,preview_id)`**；只有deliverable回执才确认同一owned file、当前revision、完整全图PNG/hash、完成评审及当前需求/表达检查。写入成功、check pass和PNG已生成都不等于完成。[执行格式、CLI入口及几何/信任边界](skills/obsidian-excalidraw/references/workflow-details.md#启动表达与交付的执行契约)。回执不冒充科学/电气验证，也不能控制模型任意聊天中的虚假断言。
 
+技术插图继续共用当前执行Skill，新增[视觉设计层](skills/obsidian-excalidraw/references/visual-design.md)，不按每个题材复制完整工作流。物理剖面／封装／爆炸走`physical_structure`＋`brief.visual_plan`；页面讲解走`explanatory_page`。逻辑数据通路仍须端口／信号契约，引出线不当电气线。[投影／层叠／阵列／标注及同ID增量规范](skills/obsidian-excalidraw/references/technical-illustration.md)通过drawing_primitives执行；需要 **0.10.3 或更新运行包**，请同时更新运行包和Skill。
+
+[封装原生案例](examples/native/package-illustration.excalidraw.md)由真实shape／polygon／text重绘，不是整图截图。[构建器](examples/builders/package_illustration.py)可修改HBM层数、Logic位置和Interposer厚度，同state更新保留已有层／部件ID。[实际PNG](docs/images/package-illustration.png)。尺寸、材料和重复数量为示意，不作CAD、制造或热／电性能结论。
+
+
 
 数学内容按**语义而非美元符号**分流：矩阵、数学向量／转置、分式、求和与结构化上下标走已有保留源TeX的LaTeX入口，不用空格／Unicode或偏移小字模拟。RTL标识／总线切片、位串、引脚和波形仍保留原生文字／图元。[数学分流与混排验收](skills/obsidian-excalidraw/references/visual-content.md#数学内容分流-先认语义再选元素)分别核对源TeX、真实公式资源与PNG，不把数值正确当排版通过；这是Skill工作流，不冒充自动数学语义校验器。
 
@@ -242,6 +247,9 @@ MCP 只提供 **`drawing_debug(status|inspect)`**，没有开启权限或任意 
 ## 更新与安全
 
 克隆安装：停止本包 MCP，pull、`uv sync --frozen`、同步已复制 Skill，再重启 MCP。OMP 按接入说明执行 marketplace update／plugin upgrade；Windows 先断开旧 MCP，避免缓存被锁。重新连接**同一 vault**更新受管脚本，自定义文件仍受冲突保护；必要时重载 Engine／Obsidian。保留私有连接配置、DSL 身份状态和评审产物。
+
+**0.10.3 升级：**同时更新运行包和已复制规范，再重载MCP／Skill。drawing_primitives新增物理组件和带state_id／base_revision的托管render；物理视图用visual_plan，不虚构电气信号。保留已有场景身份与评审状态。Start／Bridge仍为 **0.13.7**，已匹配宿主不需重启。
+
 
 **0.10.2 升级：**同时更新运行包与已复制Skill，再重载MCP／Skill。工具列表应有drawing_begin、drawing_contract、drawing_deliver；只复制Skill不会增加API。新硬件任务在创建前声明representation，评审前映射保存的body/wire IDs。Start／Bridge仍为 **0.13.7**，已运行匹配宿主不需重启或重新连接。保留私有连接、task／DSL状态及历史版本缓存。
 

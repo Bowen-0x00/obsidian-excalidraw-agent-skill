@@ -520,9 +520,10 @@ class DrawingClient:
         validation = self.request("POST", "/v3/scene/validate", {"contextToken": context_token, "scope": "all"})
         if validation["revision"] != scene["revision"]:
             raise BridgeError("Canvas changed between geometry and structural checks", code="REVISION_CONFLICT", status=409)
-        diagnostics = run_geometry_diagnostics(scene["elements"], expected=expected, structural_validation=validation,
-            acceptance_level=ledger.acceptance_level, output_scale=preview.get("actualScale") if preview else None)
         record = for_context(context_token)
+        diagnostics = run_geometry_diagnostics(scene["elements"], expected=expected, structural_validation=validation,
+            acceptance_level=ledger.acceptance_level, output_scale=preview.get("actualScale") if preview else None,
+            visual_plan=record["brief"].get("visual_plan") if record else None)
         representation = check_representation(scene["elements"], record["brief"].get("representation"), record.get("representationBindings")) if record else []
         if representation:
             diagnostics["issues"] = decorate([*diagnostics["issues"], *representation], ledger.acceptance_level)
@@ -731,12 +732,18 @@ class DrawingClient:
             return plan_template(self, context_token, name, data, style)
         raise ValueError("Use template action list/get/plan; get/plan require name, plan requires context_token")
 
-    def primitives(self, context_token: str, items: list[dict], style: str | dict | None = None) -> dict:
+    def primitives(self, context_token: str, items: list[dict], style: str | dict | None = None,
+                   action: str = "plan", state_id: str | None = None, base_revision: str | None = None) -> dict:
         from drawing_primitives import plan_primitives
         if isinstance(style, str) or isinstance(style, dict) and "profile" in style:
             profile = resolve_style(style)
             style = {**profile["shape"], "fontFamily": profile["fontFamily"], "fontSize": profile["fontSize"],
                      "strokeColor": profile["text"]["strokeColor"]}
+        if action not in ("plan", "render"):
+            raise ValueError("primitives action must be plan or render")
+        if state_id is not None or action == "render":
+            from illustration_session import execute
+            return execute(self, context_token, items, style, action, state_id, base_revision)
         return plan_primitives(self, context_token, items, style)
 
     def library(self, action: str, context_token: str | None = None, library: str | None = None, item: str | None = None,

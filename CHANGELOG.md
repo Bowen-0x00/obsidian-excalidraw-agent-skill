@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.3 — Reference-driven technical illustrations (2026-10-21)
+
+- Route physical sections/exploded/package views separately from logical networks and page carriers. Add a typed visual_plan with source observations/uncertainties, views, native objects, physical relations and explicit schematic limits.
+- Add visual-design and technical-illustration reference modules under the existing execution Skill, not duplicated independent workflows.
+- Add deterministic projected_box, layer_stack, grid_array, leader and measured text primitives. Managed render reuses the existing scene reconciler, state locks, native identity and external-edit conflicts; it returns actual PNG/check without auto-review.
+- Physical checks verify current construction geometry, required view objects/labels, repeated members, model interpenetration, support/containment and annotation targets. Only concrete disjoint model solids receive projection-overlap treatment; text collisions remain blocking.
+- Add a source-driven native packaging case with HBM-count, die-position and interposer-thickness parameters. This is a 2D educational schematic, not CAD or electrical/manufacturing proof. Existing Bridge/bootstrap APIs remain unchanged.
+- Real-host verification: a 118-element native packaging figure contains no raster image. HBM 5→7 layers, Logic movement and Interposer thickening preserve existing body/layer IDs and unchanged base geometry. Repeated render is a no-op; stale revisions are rejected before mutation. Actual final PNG, high review and CLI delivery passed. 124 runtime tests and 7 shared-script tests passed; 15 shared Engines retain integrity.
+- Upgrade runtime and copied Skill together, then reload MCP/Skill. Start/Bridge remain 0.13.7; existing matching host sessions need no restart. New face insertion still requires visual paint-order review; 2D projection does not certify manufacturing or physical behavior.
+
 ## 0.10.2 — Executable start, native input, topology and delivery gates (2026-10-21)
 
 - Add drawing_begin with actual bundled Skill/task-reference content and hashes, current host discovery and optional existing canvas/review evidence; preparation does not create or modify a canvas.

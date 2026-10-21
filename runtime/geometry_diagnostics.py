@@ -56,6 +56,35 @@ def _segment_intersects_box(
     return u1 < u2
 
 
+def _segment_intersects_polygon(start, end, polygon, masks=()):
+    """Test visible polygon interior; split at every native mask boundary."""
+    def inside(point, boundary):
+        x,y=point
+        odd=False
+        for a,b in zip(boundary,boundary[1:]+boundary[:1]):
+            if (a[1]>y)!=(b[1]>y) and x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0]:
+                odd=not odd
+        return odd
+    dx,dy=end[0]-start[0],end[1]-start[1]
+    cuts=[0.0,1.0]
+    for boundary in [polygon,*masks]:
+        for a,b in zip(boundary,boundary[1:]+boundary[:1]):
+            ex,ey=b[0]-a[0],b[1]-a[1]
+            den=dx*ey-dy*ex
+            if abs(den)<1e-9:continue
+            ax,ay=a[0]-start[0],a[1]-start[1]
+            t=(ax*ey-ay*ex)/den
+            u=(ax*dy-ay*dx)/den
+            if 0<t<1 and 0<=u<=1:cuts.append(t)
+    cuts.sort()
+    for lo,hi in zip(cuts,cuts[1:]):
+        if hi-lo<=1e-7:continue
+        midpoint=(start[0]+dx*(lo+hi)/2,start[1]+dy*(lo+hi)/2)
+        if inside(midpoint,polygon) and not any(inside(midpoint,mask) for mask in masks):
+            return True
+    return False
+
+
 def _get_logical_id(el: dict[str, Any]) -> str | None:
     custom_data = el.get("customData")
     if isinstance(custom_data, dict):
@@ -326,7 +355,7 @@ def check_text_containment(
     return issues
 
 
-def check_body_overlap(active_elements: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def check_body_overlap(active_elements: list[dict[str, Any]], physical_pairs: set | None = None) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
 
     # Filter body elements
@@ -348,6 +377,8 @@ def check_body_overlap(active_elements: list[dict[str, Any]]) -> list[dict[str, 
             bw = float(b.get("width", 0))
             bh = float(b.get("height", 0))
             b_id = b.get("id", "")
+            if frozenset((a_id,b_id)) in (physical_pairs or ()):
+                continue
             if _construction_unit(a) is not None and _construction_unit(a) == _construction_unit(b):
                 # Explicit library/cuboid construction, not arbitrary shared group membership.
                 continue
@@ -387,6 +418,7 @@ def check_body_overlap(active_elements: list[dict[str, Any]]) -> list[dict[str, 
 def check_arrow_crossing(
     active_elements: list[dict[str, Any]],
     elements_by_id: dict[str, dict[str, Any]],
+    annotation_targets: dict[str, set[str]] | None = None,
 ) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
 
@@ -408,6 +440,7 @@ def check_arrow_crossing(
         start_target = (arrow.get("startBinding") or {}).get("elementId")
         end_target = (arrow.get("endBinding") or {}).get("elementId")
         exempt_ids = {arrow_id}
+        exempt_ids.update((annotation_targets or {}).get(arrow_id, ()))
         if start_target:
             exempt_ids.add(start_target)
         if end_target:
@@ -431,8 +464,21 @@ def check_arrow_crossing(
                 continue
 
             crossed = False
+            masks=[]
+            # A buried physical face is not a visible obstacle. Only exact opaque
+            # native faces later in paint order qualify; images/alpha/curves don't.
+            if obs.get("polygon") and (obs.get("customData") or {}).get("technicalIllustration"):
+                position=next((i for i,e in enumerate(active_elements) if e["id"]==obs_id),len(active_elements))
+                for later in active_elements[position+1:]:
+                    fill=str(later.get("backgroundColor","transparent"))
+                    if not later.get("polygon") or later.get("opacity",100)<99 or later.get("fillStyle")!="solid":
+                        continue
+                    if not fill.startswith("#") or len(fill)!=7 or (later.get("customData") or {}).get("gradient"):
+                        continue
+                    masks.append(_scene_points(later))
             for p1, p2 in segments:
-                if _segment_intersects_box(p1, p2, box):
+                polygon = _scene_points(elements_by_id[obs_id]) if obs.get("polygon") else None
+                if (_segment_intersects_polygon(p1,p2,polygon,masks) if polygon else _segment_intersects_box(p1,p2,box)):
                     crossed = True
                     break
 
@@ -659,6 +705,7 @@ def run_geometry_diagnostics(
     structural_validation: dict[str, Any] | None = None,
     acceptance_level: str = "medium",
     output_scale: float | None = None,
+    visual_plan: dict | None = None,
 ) -> dict[str, Any]:
     """Run comprehensive geometry diagnostics on the canvas scene."""
     elements_by_id = {
@@ -668,6 +715,18 @@ def run_geometry_diagnostics(
     active_elements = list(elements_by_id.values())
     acceptance_level = level(acceptance_level)
     visible_elements = [el for el in active_elements if is_visible(el)]
+    # Physical exemptions require declared objects, unchanged generated geometry
+    # and disjoint 3D model volumes. A shared group or \"physical\" type is not enough.
+    from illustration_contract import check_illustration, projected_overlap_pairs, geometry_matches, annotation_object_ids
+    physical_pairs = projected_overlap_pairs(active_elements, visual_plan)
+    annotation_targets = {}
+    if visual_plan:
+        declared = {(view,obj["id"]) for obj in visual_plan["objects"] for view in obj["views"]}
+        for element in visible_elements:
+            meta = (element.get("customData") or {}).get("technicalIllustration") or {}
+            target = (meta.get("viewId"),meta.get("targetObject"))
+            if meta.get("role") == "annotation" and target in declared and geometry_matches(element):
+                annotation_targets[element["id"]] = annotation_object_ids(visible_elements,target[0],target[1])
 
     all_issues: list[dict[str, Any]] = []
     for severity, name in (("error", "errors"), ("warning", "warnings")):
@@ -686,15 +745,16 @@ def run_geometry_diagnostics(
     all_issues.extend(check_text_containment(visible_elements, elements_by_id))
 
     # 3. Body overlap
-    all_issues.extend(check_body_overlap(visible_elements))
+    all_issues.extend(check_body_overlap(visible_elements, physical_pairs))
 
     # 4. Arrow crossing
-    all_issues.extend(check_arrow_crossing(visible_elements, elements_by_id))
+    all_issues.extend(check_arrow_crossing(visible_elements, elements_by_id, annotation_targets))
 
     # 5. Arrow label occlusion
     all_issues.extend(check_arrow_label_occlusion(visible_elements, elements_by_id))
     all_issues.extend(inspect_visual_conflicts(visible_elements))
     all_issues.extend(output_readability(visible_elements, output_scale))
+    all_issues.extend(check_illustration(active_elements, visual_plan))
 
     # 6. Semantic assertions
     if expected:

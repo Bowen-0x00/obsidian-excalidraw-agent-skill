@@ -147,6 +147,11 @@ Use **`drawing_begin(request, action="prepare")`** first: the tool returns the a
 
 After inspecting the current PNG and obtaining a completed review, call **`drawing_deliver(context_token, revision, preview_id)`**. Only its `deliverable` receipt confirms the same owned file, current revision, complete overview PNG/hash, completed review and current requirement/representation checks. Writes, check pass and exported PNGs alone are not completion. [Executable format, CLI entrypoints and geometry/trust limits](skills/obsidian-excalidraw/references/workflow-details.md#启动表达与交付的执行契约). This is workflow evidence, not electrical/scientific validation or control over arbitrary model chat.
 
+Technical illustrations use the same execution Skill plus a [visual-design module](skills/obsidian-excalidraw/references/visual-design.md), not a separate full workflow per topic. Physical sections/package/exploded views use `diagram_type:"physical_structure"` and `brief.visual_plan`; slide/explanatory composition uses `explanatory_page`. Logical datapaths still require ports/signals—an annotation leader is not a wire. [Projection, stacks, arrays, leaders and same-ID managed updates](skills/obsidian-excalidraw/references/technical-illustration.md) extend `drawing_primitives` in **0.10.3 and later**; upgrade the runtime and Skill together.
+
+The [native packaging example](examples/native/package-illustration.excalidraw.md) was reconstructed with native shapes/text, not a bitmap trace. Its [builder](examples/builders/package_illustration.py) accepts HBM-layer count, logic offset and interposer thickness; same-state updates preserve old layer/body IDs. [Actual PNG](docs/images/package-illustration.png). Dimensions, materials and repeated counts are schematic, not CAD/manufacturing or thermal/electrical evidence.
+
+
 
 Mathematical content is routed by **meaning, not dollar delimiters**: matrices, mathematical vectors/transposes, fractions, sums and structured subscripts use the existing source-preserving LaTeX path. Do not align matrices with spaces or simulate math with Unicode/small offset text. RTL identifiers/slices, bitstrings, pins and waveforms remain native text/geometry. [Math routing and mixed-content QA](skills/obsidian-excalidraw/references/visual-content.md#数学内容分流-先认语义再选元素) separates retained TeX, actual formula resources and PNG inspection from numeric correctness; this Skill workflow is not an automatic semantic-math validator.
 
@@ -242,6 +247,9 @@ User `.excalidrawlib` assets are not redistributed here. Query the actual curren
 ## Updates and safety
 
 For a checkout: stop this package's MCP process, pull, `uv sync --frozen`, refresh copied Skill files and restart MCP. For OMP, follow the supported marketplace update/plugin upgrade instructions in Agent setup; disconnect the old MCP first on Windows to avoid locked-cache failures. Reconnect the **same vault** to update managed scripts, preserving customized-file conflict checks; reload Engines/Obsidian when needed. Preserve private connection settings, DSL identity state and review artifacts.
+
+**0.10.3 upgrade:** reload MCP/Skill after updating runtime and copied guides. `drawing_primitives` now supports physical construction kinds and managed `render` with `state_id`/`base_revision`; physical views use a `visual_plan`, not invented electrical signals. Keep existing scene identities and review state. Start/Bridge stay **0.13.7**, so an already-matching host needs no restart.
+
 
 **0.10.2 upgrade:** update the runtime package **and** copied Skill, then reload MCP/Skill. The tool list must include drawing_begin, drawing_contract and drawing_deliver; copying only the Skill cannot add these APIs. New hardware tasks declare their representation before creation and map saved body/wire IDs before review. Start/Bridge remain **0.13.7**: an already-running matching host needs no restart or reconnection. Keep private connection/task/DSL state and historical version caches.
 

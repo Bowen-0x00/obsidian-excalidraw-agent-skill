@@ -4,6 +4,17 @@ These previews are **actual Obsidian Excalidraw-ymjr exports**: six YAML/DSL exa
 
 以下展示均由真实宿主渲染。README 保留五级 RISC-V，并新增地球科学、数学、城市交通、项目计划、生态学五个不同领域／表现形式；原图保留在本画廊，不因更换展示删掉已有能力。
 
+## Reference-driven physical illustration / 参考图驱动的物理示意
+
+[Native canvas](../examples/native/package-illustration.excalidraw.md) · [Builder](../examples/builders/package_illustration.py)
+
+![Editable packaging illustration](images/package-illustration.png)
+
+Actual host export: oblique heterogeneous chiplets plus a section showing Logic/GPU, HBM, Interposer, Package Substrate, PCB and heat spreader. The final scene has 118 native text/rectangle/ellipse/line/arrow elements and no raster image. RF/MEMS are explicitly outside the section. Reference colors encode roles, not verified material properties.
+
+Real same-file updates changed HBM 5→7 layers in both views, shifted Logic by 25 scene units and thickened the Interposer from 28→40 schematic units. Existing body/layer IDs survived; base/PCB geometry stayed fixed while upper structures and labels followed. A newly added top face initially hid an old HBM arrowhead; actual PNG review caught it and the label was placed outside the growing stack rather than claiming check pass proved visibility. Final high PNG review and delivery passed. Thickness/counts are illustrative, not a manufactured package or physical simulation.
+
+
 ## Coverage and complexity / 范围与复杂度
 
 | Example / 示例 | Method / 制作方式 | Native elements / 原生元素 | Declared connections / 连接 | What it demonstrates / 表达能力 |

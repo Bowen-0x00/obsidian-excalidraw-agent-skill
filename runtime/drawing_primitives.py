@@ -6,8 +6,9 @@ import uuid
 from typing import Any
 
 from diagram_layout import FONT, Metrics, PORTS, _number, _point, _route
+from illustration_geometry import KINDS as ILLUSTRATION_KINDS, plan_geometry
 
-SUPPORTED = ("draw", "polygon", "cuboid", "brace", "callout", "code", "checkbox", "connection")
+SUPPORTED = ("draw", "polygon", "cuboid", "brace", "callout", "code", "checkbox", "connection", "text", *ILLUSTRATION_KINDS)
 
 
 def _bounds(points: list[list[float]], x=0.0, y=0.0) -> dict:
@@ -31,6 +32,7 @@ def plan_primitives(client: Any, context_token: str, items: list[dict], style: d
     font_size = float(common.get("fontSize", 20))
     metrics = Metrics(client, context_token, font)
     operations, measured, refs, notes = [], {}, {}, []
+    anchors, manifests = {}, {}
     names = set()
     features = client.request("GET", "/v3/runtime-capabilities").get("features", {})
     for index, item in enumerate(items):
@@ -64,7 +66,28 @@ def plan_primitives(client: Any, context_token: str, items: list[dict], style: d
             if not features.get(feature, {}).get("callable"):
                 raise ValueError(f"Feature {feature} is not callable in the running instance")
 
-        if kind == "draw":
+        if kind in ILLUSTRATION_KINDS:
+            construction = plan_geometry({**item, "id": name}, geometry_style)
+            unit_ops.extend(construction["operations"])
+            unit_refs.extend("@" + op["ref"] for op in unit_ops)
+            box = construction["bounds"]
+            anchors[name] = construction["anchors"]
+            manifests[name] = construction["manifest"]
+            notes.extend(construction["notes"])
+            unit = unit_ops[0]["customData"]["agentPrimitive"]["instanceId"]
+        elif kind == "text":
+            allowed = {"kind", "id", "x", "y", "text", "width", "style", "objectId", "viewId"}
+            if set(item) - allowed or not isinstance(item.get("text"), str):
+                raise ValueError("text primitive needs text, x/y and optional width/style/objectId/viewId")
+            text, size = metrics.wrap(item["text"], _number(item.get("width", 600), "text.width", 1), text_style["fontSize"])
+            box = {"x": x, "y": y, **size}
+            unit_ops.append({"op": "create_text", "ref": name, "x": x, "y": y, "text": text, "style": text_style,
+                             "customData": data("caption")})
+            if item.get("objectId"):
+                unit_ops[-1]["customData"]["technicalIllustration"] = {"viewId": item.get("viewId","main"),
+                    "objectId": item["objectId"], "role": "label"}
+            unit_refs.append("@" + name)
+        elif kind == "draw":
             points = item.get("points")
             if not isinstance(points, list) or len(points) < 2:
                 raise ValueError("draw needs at least two explicit local stroke points")
@@ -235,7 +258,7 @@ def plan_primitives(client: Any, context_token: str, items: list[dict], style: d
             unit_refs.append("@" + name)
             if mode == "curve":
                 notes.append(f"{name}: spline collision checks remain unknown; inspect actual PNG and report limits")
-        if item.get("label") and kind not in ("connection", "callout", "code", "checkbox"):
+        if item.get("label") and kind not in ("text", "connection", "callout", "code", "checkbox"):
             text, size = metrics.wrap(str(item["label"]), max(box["width"], 160), text_style["fontSize"])
             caption_ref = name + ":caption"
             unit_ops.append({"op": "create_text", "ref": caption_ref, "x": box["x"] + (box["width"] - size["width"]) / 2,
@@ -252,4 +275,5 @@ def plan_primitives(client: Any, context_token: str, items: list[dict], style: d
     if len(operations) > 500:
         raise ValueError("Primitive plan exceeds the bridge operation limit; split explicit batches")
     return {"ok": True, "contextToken": context_token, "baseRevision": context["revision"], "operations": operations,
-            "refs": refs, "measuredBounds": measured, "operationCount": len(operations), "notes": notes}
+            "refs": refs, "measuredBounds": measured, "operationCount": len(operations), "notes": notes,
+            "anchors": anchors, "manifests": manifests}
