@@ -18,6 +18,12 @@
 
 [Python／原生 API 源码](examples/builders/advanced_showcase.py) · [可编辑画布](examples/native/pipeline.excalidraw.md) · [EX 局部大图](docs/images/pipeline-execute.png)。独立部件、命名端口和 68 条声明连接；覆盖 ALU／load／store／BEQ 教学子集，不冒充完整 RV32I 实现或 RTL 仿真。
 
+### FlashAttention · 分块精确注意力
+
+![全英文 FlashAttention 机制图：HBM 张量、片上分块计算、跨块 softmax 状态与输出写回](docs/images/flashattention.png)
+
+[可编辑画布](examples/native/flashattention.excalidraw.md) · [片上工作集大图](docs/images/flashattention-working-set.png) · [在线 softmax 公式大图](docs/images/flashattention-online-math.png) · [算法原文](https://tridao.me/publications/flash2/flash2.pdf)。图内全部英文，以原生张量投影、局部 score／weight tile 和在线归一化表达机制；共 314 个可编辑元素，其中 23 个公式资源保留源 TeX。前向计算教学示意，数值为合成算例，不作为 GPU 性能测试或芯片平面图。
+
 ### 地球科学 · 暖色手绘风景
 
 ![包含蒸发、凝结、降水、径流、入渗与地下水回流的可编辑水循环风景图](docs/images/water_cycle.png)
@@ -48,7 +54,7 @@
 
 [源码](examples/builders/diverse_showcase.py) · [可编辑画布](examples/native/academic.excalidraw.md)。直接使用宿主 **academic 主题＋three-line 模板**；数值全部是演示数据，不作为实验结论。
 
-**这六张 README 展示由 Agent 编写源码、调用原生 API 制作，不是 DSL 输出，也不是整图截图贴进画布。** 两张新版表格图需要**配套原生表格开发版宿主**，安装本包不会自动升级宿主插件。发现 `nativeTable.callable` 后使用 [`drawing_table(create|style)`](skills/obsidian-excalidraw/references/table-native.md)；旧宿主明确报依赖缺失，不模拟新版能力。原有六组 YAML／DSL 及其它示例仍保留在[完整画廊](docs/gallery.md)。
+**这七张 README 展示由 Agent 编写源码、调用原生 API 制作，不是 DSL 输出，也不是整图截图贴进画布。** 两张新版表格图需要**配套原生表格开发版宿主**，安装本包不会自动升级宿主插件。发现 `nativeTable.callable` 后使用 [`drawing_table(create|style)`](skills/obsidian-excalidraw/references/table-native.md)；旧宿主明确报依赖缺失，不模拟新版能力。原有六组 YAML／DSL 及其它示例仍保留在[完整画廊](docs/gallery.md)。
 
 ## 选择使用方式
 

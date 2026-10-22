@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Append the all-English FlashAttention illustration to both READMEs and the gallery, with the actual host PNG, editable native canvas and readable working-set/formula details. Preserve all six existing README figures.
+
 ## 0.10.4 — Choice-first teaching designs and observable mechanism evidence (2026-10-22)
 
 - Add pre-drawing expression candidates, recommendation and confirmed user choice (or cited explicit delegation/inheritance) in teaching_plan. Prepare returns design_options for the client's actual ask UI; palette/style choice is not a diagram-method decision.

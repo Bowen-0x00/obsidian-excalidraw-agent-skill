@@ -1,8 +1,20 @@
 # Real drawing gallery / 真实绘图画廊
 
-These previews are **actual Obsidian Excalidraw-ymjr exports**: six YAML/DSL examples, three retained systems/hardware examples and five new cross-domain native drawings. Sources, native canvases and real PNGs are included. The README selects RISC-V plus the five varied examples below; inference and matrix-engine diagrams remain archived here.
+These previews are **actual Obsidian Excalidraw-ymjr exports**: six YAML/DSL examples, three retained systems/hardware examples, five cross-domain native drawings and an all-English FlashAttention mechanism plate. Native canvases and real PNGs are included, with executable builders where linked. The README selects RISC-V, FlashAttention and the five varied examples below; inference and matrix-engine diagrams remain archived here.
 
-以下展示均由真实宿主渲染。README 保留五级 RISC-V，并新增地球科学、数学、城市交通、项目计划、生态学五个不同领域／表现形式；原图保留在本画廊，不因更换展示删掉已有能力。
+以下展示均由真实宿主渲染。README 保留五级 RISC-V、地球科学、数学、城市交通、项目计划和生态学六张图，并追加全英文 FlashAttention 机制图；原图保留，不因新增展示删掉已有能力。附带原生画布与真实 PNG，已链接构造器的示例另有可执行源码。
+
+## FlashAttention / 全英文分块精确注意力
+
+![FlashAttention tensors, on-chip tile computation and online-softmax recurrence](images/flashattention.png)
+
+[Editable native source / 可编辑原生源文件](../examples/native/flashattention.excalidraw.md) · [Working-set detail](images/flashattention-working-set.png) · [Online-softmax detail](images/flashattention-online-math.png)
+
+The approved all-English plate has 314 active native elements, including 23 MathJax formula resources with source TeX retained. Tensor projections, the held query block, streaming K/V blocks, local score/weight tiles, persistent row statistics/numerator and final output writeback remain separately editable. The conceptual N-by-N grid is explicitly not an allocated HBM score/weight buffer.
+
+The overview and readable details were inspected in the real host. All 56 numerical readouts belong to one synthetic 16-token, head-dimension-4 example; its CPU float64 tiled recurrence was compared with dense attention. This is a forward-pass, single-head, unmasked/no-dropout teaching schematic, not a GPU benchmark, a bitwise-equivalence guarantee or a chip floorplan. The 4-by-4 illustrative tiles are not kernel launch sizes.
+
+Mechanism references: [FlashAttention-2, Section 3.1](https://tridao.me/publications/flash2/flash2.pdf) and the [official Triton fused-attention tutorial](https://github.com/triton-lang/triton/blob/main/python/tutorials/06-fused-attention.py). Open the native source in the compatible host to edit and re-export it; the PNG is the inspected preview, not the editable source.
 
 ## Choice-first teaching mechanisms / 先选图法的教学机制
 
@@ -45,6 +57,7 @@ Real same-file updates changed HBM 5→7 layers in both views, shifted Logic by 
 | Transit / 城市交通 | Python + native API | 57 | — | Three schematic services, twenty stations and two shared interchanges |
 | Project Gantt / 项目计划 | Python + native TableManager | 61 | — | Mint semantic table, measured unequal columns and aligned seven-week timeline |
 | Ecology / 学术三线表 | Python + native TableManager | 56 | — | Native academic border template, editable botanical symbols and mass-ratio equation |
+| FlashAttention / 分块精确注意力 | Python + native API | 314 | — | All-English tensor/tile composition, carried softmax state, 23 source-preserving formulas and readable details |
 
 Counts include active native labels, binding anchors and port markers; they are not logical-node counts or a performance benchmark. Dashboard zero connections is intentional. Example metrics and hardware states are synthetic teaching material.
 

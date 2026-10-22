@@ -18,6 +18,12 @@ These are actual Obsidian PNG exports of the included sources, not UI mockups. T
 
 [Python/native-API source](examples/builders/advanced_showcase.py) · [Editable canvas](examples/native/pipeline.excalidraw.md) · [Readable EX detail](docs/images/pipeline-execute.png). Independent components and 68 declared connections; ALU/load/store/BEQ teaching subset, not a complete RV32I implementation or RTL simulator.
 
+### FlashAttention · tiled exact attention
+
+![All-English FlashAttention illustration with HBM tensors, on-chip tiles, carried softmax state and output writeback](docs/images/flashattention.png)
+
+[Editable canvas](examples/native/flashattention.excalidraw.md) · [Working-set detail](docs/images/flashattention-working-set.png) · [Online-softmax detail](docs/images/flashattention-online-math.png) · [Algorithm reference](https://tridao.me/publications/flash2/flash2.pdf). Native tensor projections, local score/weight tiles and online normalization; 314 editable elements including 23 source-preserving TeX resources. Forward-pass teaching schematic with synthetic values, not a GPU benchmark or chip floorplan.
+
 ### Earth science · warm handwritten landscape
 
 ![Editable water-cycle landscape with evaporation, condensation, rainfall, runoff, infiltration and groundwater](docs/images/water_cycle.png)
@@ -48,7 +54,7 @@ These are actual Obsidian PNG exports of the included sources, not UI mockups. T
 
 [Source](examples/builders/diverse_showcase.py) · [Editable canvas](examples/native/academic.excalidraw.md). Uses the host's **academic theme + three-line template**. All measurements are synthetic demonstration values.
 
-**These six README figures are Agent-authored native drawings, not DSL output or screenshots pasted into a canvas.** The two new table examples require the **paired native-table development build**; installing this package does not upgrade your host plugin. Discover `nativeTable.callable`, then use [`drawing_table(create|style)`](skills/obsidian-excalidraw/references/table-native.md). Older hosts fail explicitly rather than simulating the feature. Other examples, including the six YAML/DSL scenes, remain in the [gallery](docs/gallery.md).
+**These seven README figures are Agent-authored native drawings, not DSL output or screenshots pasted into a canvas.** The two new table examples require the **paired native-table development build**; installing this package does not upgrade your host plugin. Discover `nativeTable.callable`, then use [`drawing_table(create|style)`](skills/obsidian-excalidraw/references/table-native.md). Older hosts fail explicitly rather than simulating the feature. Other examples, including the six YAML/DSL scenes, remain in the [gallery](docs/gallery.md).
 
 ## Choose a workflow
 
