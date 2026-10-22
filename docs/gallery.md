@@ -4,6 +4,18 @@ These previews are **actual Obsidian Excalidraw-ymjr exports**: six YAML/DSL exa
 
 以下展示均由真实宿主渲染。README 保留五级 RISC-V，并新增地球科学、数学、城市交通、项目计划、生态学五个不同领域／表现形式；原图保留在本画廊，不因更换展示删掉已有能力。
 
+## Choice-first teaching mechanisms / 先选图法的教学机制
+
+The user selected sequence+mask comparison, matrix grouping+bit-width comparison and logical/physical mapping through the actual choice UI before these native examples were drawn. These are independent QA canvases, not replacements for the remote user's original chapter figures.
+
+- [Window native canvas](../examples/native/teaching-window.excalidraw.md) · [Actual PNG](images/teaching-window.png): actual visible mask cells, fixed-prefix column and per-step new/reused token states.
+- [Quantization native canvas](../examples/native/teaching-quantization.excalidraw.md) · [Actual PNG](images/teaching-quantization.png): equal-valued matrices with different grouping axes and equal-scale 16/4-bit strips.
+- [Paging native canvas](../examples/native/teaching-paging.excalidraw.md) · [Actual PNG](images/teaching-paging.png): logical blocks through a Block Table to non-contiguous physical blocks/free slots.
+- [Source builder](../examples/builders/teaching_examples.py) retains the selected designs and source-driven native operations.
+
+Real negative checks rejected unconfirmed creation, paragraph-only mechanism claims and all-pass review evidence using prose IDs. A deliberately miswired native mapping failed encoding checks and delivery despite all-pass inputs; managed render also refused the external edit. Repair/rebind kept native IDs and review rounds. A source-driven matrix-panel move updated only that panel, retained IDs and restored identical inspected pixels. Numbers/colors are schematic teaching encodings, not precision/performance measurements or a universal independent semantic judge.
+
+
 ## Reference-driven physical illustration / 参考图驱动的物理示意
 
 [Native canvas](../examples/native/package-illustration.excalidraw.md) · [Builder](../examples/builders/package_illustration.py)

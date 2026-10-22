@@ -55,6 +55,7 @@ def main() -> int:
                                    dispositions=observations.get("dispositions"),
                                    detail_preview_ids=observations.get("detail_preview_ids"),
                                    requirement_checks=observations.get("requirement_checks"),
+                                   expression_checks=observations.get("expression_checks"),
                                    check_result=report["check"],
                                    changes_summary=observations.get("changes_summary", "Actual scene DSL PNG review"))
         else:

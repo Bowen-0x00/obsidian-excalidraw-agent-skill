@@ -102,6 +102,7 @@ class ReviewLedger:
         dispositions: list[dict[str, Any]] | None = None,
         detail_preview_ids: list[str] | None = None,
         requirement_checks: list[dict[str, Any]] | None = None,
+        expression_checks: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Count initial review as round one; never bypass the cap on unknown/incomplete output."""
         if len(self.rounds) >= self.max_rounds:
@@ -159,6 +160,7 @@ class ReviewLedger:
             "acceptanceLevel": self.acceptance_level,
             "visualChecks": visual_checks or {},
             "requirementChecks": requirement_checks or [],
+            "expressionChecks": expression_checks or [],
             "dispositions": dispositions or [],
             "detailPreviewIds": detail_preview_ids or [],
             "advisories": advisories,

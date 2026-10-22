@@ -16,6 +16,7 @@ DiagramType = Literal[
     "math",
     "physical_structure",
     "explanatory_page",
+    "teaching",
 ]
 DIAGRAM_TYPES = (
     "auto",
@@ -25,7 +26,12 @@ DIAGRAM_TYPES = (
     "math",
     "physical_structure",
     "explanatory_page",
+    "teaching",
 )
+
+
+def teaching_requested(request: str) -> bool:
+    return bool(re.search(r"教学|学习|教程|图解|示意图|讲解|机制|工作原理|画出|可视化解释|\b(?:teach|tutorial|learning|explain|mechanism)\b", request, re.I))
 
 
 def diagram_type(request: str, requested: str = "auto") -> str:
@@ -59,16 +65,16 @@ def diagram_type(request: str, requested: str = "auto") -> str:
             if re.search(r"电路|逻辑门|\bcircuit\b", request, re.I)
             else "microarchitecture"
         )
+    if re.search(r"讲解页|演示页|信息图|\b(?:PPT|slide|infographic)\b", request, re.I):
+        return "explanatory_page"
+    if teaching_requested(request):
+        return "teaching"
     if requested != "auto":
         return requested
     if re.search(r"\bCPU\b|硬件|流水线|缓存层级|片上互连", request, re.I):
         return "microarchitecture"
     if re.search(r"矩阵|转置|分式|求和|递推|LaTeX|matrix|transpose", request, re.I):
         return "math"
-    if re.search(
-        r"讲解图|讲解页|演示页|信息图|\b(?:PPT|slide|infographic)\b", request, re.I
-    ):
-        return "explanatory_page"
     return "general"
 
 
@@ -81,6 +87,8 @@ def guidance(kind: str, request: str = "") -> dict:
         "references/typography.md",
         "references/workflow-details.md",
     ]
+    if kind == "teaching" or teaching_requested(request):
+        names.append("references/teaching-design.md")
     if kind in ("microarchitecture", "circuit"):
         names.append("references/microarchitecture.md")
     if kind in ("physical_structure", "explanatory_page"):
@@ -104,8 +112,10 @@ def guidance(kind: str, request: str = "") -> dict:
     logical = kind in ("microarchitecture", "circuit")
     return {
         "diagram_type": kind,
-        "documents": documents,
         "representation_required": logical,
+        "design_confirmation_required": kind == "teaching" or teaching_requested(request),
+        "design_step": "What visual structure explains the objective? Propose 2–3 actual alternatives with a recommendation; use the client's ask UI before creation. Cite explicit delegation/inheritance only when real. Style/color choice does not select an expression method.",
+        "documents": documents,
         "relation_strategy": "ports_and_signals"
         if logical
         else "physical_and_annotation"

@@ -31,6 +31,7 @@ from drawing_entry import diagram_type, guidance
 from operation_schema import validate_operations, operation_examples
 from representation_contract import check_representation
 from acceptance import decorate, issue_id, triage
+from teaching_contract import check_teaching, expression_issues, design_options
 from diagram_layout import FONT, Metrics, plan_diagram
 from drawing_templates import get_template, plan_template, template_catalog
 from drawing_composition import CompositionError, compose_diagram, create_presentation
@@ -209,13 +210,16 @@ class DrawingClient:
 
     def begin(self, request: str, diagram_type: str = "auto", action: str = "prepare",
               brief: dict[str, Any] | None = None, filename: str | None = None,
-              foldername: str | None = None, file_path: str | None = None) -> dict[str, Any]:
+              foldername: str | None = None, file_path: str | None = None, design: dict | None = None) -> dict[str, Any]:
         """Return actual bundled guidance, host evidence and one explicit task target."""
         if not isinstance(request, str) or not request.strip():
             raise ValueError("request must retain the user's actual drawing request")
         from drawing_entry import diagram_type as classify
         kind = classify(request, diagram_type)
         instructions = guidance(kind, request)
+        if design is not None and action != "prepare":
+            raise ValueError("Create/bind records the confirmed design in brief.teaching_plan, not a separate proposal")
+        options = design_options(design) if design is not None else None
         if action not in ("prepare", "create", "bind"):
             raise ValueError("drawing_begin.action must be prepare/create/bind")
         if brief is not None:
@@ -240,8 +244,8 @@ class DrawingClient:
             evidence = {"file": scene["file"], "revision": scene["revision"], "canvas": scene,
                         "brief": record["brief"] if record else None, "review_status": ledger.status,
                         "review_rounds": len(ledger.rounds), "last_review": ledger.rounds[-1] if ledger.rounds else None}
-        return {"status": "prepared_not_created", "delivery_ready": False, "guidance": instructions,
-                "discovery": discovery, "existing_evidence": evidence,
+        return {"status": "prepared_not_created", "delivery_ready": False, "design_options": options,
+                "guidance": instructions, "discovery": discovery, "existing_evidence": evidence,
                 "unresolved_preferences": ["style", "review", "palette", "background", "font"] if brief is None else [],
                 "operation_examples": operation_examples()}
 
@@ -525,11 +529,17 @@ class DrawingClient:
             acceptance_level=ledger.acceptance_level, output_scale=preview.get("actualScale") if preview else None,
             visual_plan=record["brief"].get("visual_plan") if record else None)
         representation = check_representation(scene["elements"], record["brief"].get("representation"), record.get("representationBindings")) if record else []
-        if representation:
-            diagnostics["issues"] = decorate([*diagnostics["issues"], *representation], ledger.acceptance_level)
+        teaching_required = bool(record and diagram_type("\n".join(r["description"] for r in record["brief"]["requirements"]),
+                                                       record["brief"].get("diagram_type","auto")) == "teaching")
+        teaching = check_teaching(scene["elements"], record["brief"].get("teaching_plan"), required=teaching_required) if record else []
+        extra = [*representation, *teaching]
+        if extra:
+            diagnostics["issues"] = decorate([*diagnostics["issues"], *extra], ledger.acceptance_level)
             diagnostics["status"], diagnostics["valid"] = "fail", False
-            diagnostics["summary"]["errors"] += len(representation)
-            diagnostics["summary"]["blocking"] += len(representation)
+            diagnostics["summary"]["errors"] += len(extra)
+            diagnostics["summary"]["blocking"] += len(extra)
+        diagnostics["teaching"] = {"required": teaching_required or bool(record and record["brief"].get("teaching_plan")), "issues": teaching,
+            "reviewRequired": "expression_checks must explain what actual native geometry demonstrates without reading paragraph prose"}
         diagnostics["representation"] = {"required": bool(record and record["brief"].get("representation")), "issues": representation}
         diagnostics.update(revision=scene["revision"], contextToken=context_token, coverage="complete", expected=expected or [])
         return diagnostics
@@ -625,6 +635,7 @@ class DrawingClient:
         dispositions: list[dict[str, Any]] | None = None,
         detail_preview_ids: list[str] | None = None,
         requirement_checks: list[dict[str, Any]] | None = None,
+        expression_checks: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Review a registered, current PNG; re-run hard checks rather than trusting model-supplied results."""
         receipt = self._preview_receipt(context_token, preview_id, revision)
@@ -667,6 +678,7 @@ class DrawingClient:
                 "elementIds": sorted(small_ids - covered),
                 "message": "Overview has small text; inspect registered readable detail PNGs for every affected label or repair the layout"})
         coverage_issues = requirement_issues(record["brief"]["requirements"], requirement_checks, set(by_id))
+        coverage_issues.extend(expression_issues(record["brief"].get("teaching_plan"), expression_checks, scene["elements"]))
         fresh_check["issues"].extend(coverage_issues)
         if coverage_issues:
             fresh_check["status"] = "fail"
@@ -679,6 +691,7 @@ class DrawingClient:
             check_result=fresh_check, preview_complete=receipt["complete"],
             visual_checks=visual_checks, dispositions=dispositions, detail_preview_ids=detail_preview_ids,
             requirement_checks=requirement_checks,
+            expression_checks=expression_checks,
         )
 
     def deliver(self, context_token: str, revision: str, preview_id: str) -> dict[str, Any]:
@@ -695,6 +708,7 @@ class DrawingClient:
             self._preview_receipt(context_token, detail_id, revision)
         ids = {e["id"] for e in scene["elements"] if not e.get("isDeleted")}
         coverage = requirement_issues(record["brief"]["requirements"], last.get("requirementChecks"), ids)
+        coverage.extend(expression_issues(record["brief"].get("teaching_plan"), last.get("expressionChecks"), scene["elements"]))
         checked = self.check(context_token, preview_id=preview_id)
         reviewed_issues = {issue_id(i) for i in last["hardIssues"]}
         new_issues = [i for i in checked["issues"] if issue_id(i) not in reviewed_issues and i.get("blocking")]
@@ -909,6 +923,7 @@ def create_cli_parser() -> argparse.ArgumentParser:
     p_rev.add_argument("--dispositions", help="JSON array of per-issue PNG-based geometric adjudications")
     p_rev.add_argument("--detail-preview-ids", help="Comma-separated current registered detail previews actually viewed")
     p_rev.add_argument("--requirement-checks", help="JSON per-requirement outcomes, current element_ids and specific evidence")
+    p_rev.add_argument("--expression-checks", help="JSON per-goal native geometry observations and without_prose explanation")
 
     # 9. revert
     p_revt = subparsers.add_parser("revert", help="Undo last canvas transaction")
@@ -1065,6 +1080,7 @@ def cli_main() -> None:
                 dispositions=json.loads(args.dispositions) if args.dispositions else None,
                 detail_preview_ids=args.detail_preview_ids.split(",") if args.detail_preview_ids else None,
                 requirement_checks=json.loads(args.requirement_checks) if args.requirement_checks else None,
+                expression_checks=json.loads(args.expression_checks) if args.expression_checks else None,
             )
 
         elif sub == "revert":

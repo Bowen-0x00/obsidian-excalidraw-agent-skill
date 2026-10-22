@@ -17,6 +17,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from representation_contract import RepresentationContract
 from illustration_contract import VisualPlan
+from teaching_contract import TeachingPlan, validate_teaching
 
 
 class Choice(BaseModel):
@@ -49,6 +50,7 @@ class DrawingBrief(BaseModel):
     diagram_type: DiagramType = "auto"
     representation: RepresentationContract | None = None
     visual_plan: VisualPlan | None = None
+    teaching_plan: TeachingPlan | None = None
 
     @model_validator(mode="after")
     def resolved(self):
@@ -61,8 +63,8 @@ SOURCES = {"user", "answer", "inherited", "delegated"}
 
 def validate_brief(brief: Any) -> dict:
     required = {"task_id", "preferences", "requirements"}
-    if not isinstance(brief, dict) or not required.issubset(brief) or set(brief) - required - {"diagram_type", "representation", "visual_plan"}:
-        raise ValueError("DRAWING_BRIEF_REQUIRED: brief needs task_id, preferences and requirements; optional diagram_type/representation/visual_plan; use drawing_begin before creating a canvas")
+    if not isinstance(brief, dict) or not required.issubset(brief) or set(brief) - required - {"diagram_type", "representation", "visual_plan", "teaching_plan"}:
+        raise ValueError("DRAWING_BRIEF_REQUIRED: brief needs task_id/preferences/requirements and task-appropriate representation/visual_plan/teaching_plan")
     if not isinstance(brief["task_id"], str) or not brief["task_id"].strip():
         raise ValueError("brief.task_id must identify this user drawing request")
     preferences = brief["preferences"]
@@ -91,6 +93,7 @@ def validate_brief(brief: Any) -> dict:
         VisualPlan.model_validate(brief["visual_plan"])
     elif kind in ("physical_structure", "explanatory_page"):
         raise ValueError("VISUAL_PLAN_REQUIRED: declare purpose, views, objects, physical relations and illustrative limits; do not invent a port/signal network for a section or slide")
+    validate_teaching(brief.get("teaching_plan"), requirements, required=kind == "teaching")
     return json.loads(json.dumps(brief, ensure_ascii=False, allow_nan=False))
 
 

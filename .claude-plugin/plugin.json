@@ -1,6 +1,6 @@
 {
   "name": "obsidian-excalidraw-agent-skill",
-  "version": "0.10.3",
+  "version": "0.10.4",
   "description": "Native drawing MCP, optional YAML/JSON scene DSL, Bridge/Engines and PNG-reviewed Agent Skill.",
   "author": { "name": "Bowen-0x00" },
   "homepage": "https://github.com/Bowen-0x00/obsidian-excalidraw-agent-skill",

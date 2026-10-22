@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.4 — Choice-first teaching designs and observable mechanism evidence (2026-10-22)
+
+- Add pre-drawing expression candidates, recommendation and confirmed user choice (or cited explicit delegation/inheritance) in teaching_plan. Prepare returns design_options for the client's actual ask UI; palette/style choice is not a diagram-method decision.
+- Route teaching/mechanism requests into the design gate rather than general-node defaults. Per-goal method/component evidence distinguishes mechanism drawings from chosen process/overview/reference diagrams.
+- Add native sequence_window, matrix_groups, bitwidth_compare, memory_map and time_steps through existing primitives/managed reconciliation. Current encoded cells, grouping, states, mapped endpoints and value labels are checked; prose claiming to show a mechanism fails.
+- Require per-goal expression_checks after actual PNG viewing, including concrete native IDs and without_prose observations. All-pass visual booleans cannot override failed mechanism evidence. User/visual provenance remains Agent attestation, not a sandbox or universal semantic proof.
+- Preserve existing drawings/private histories and native APIs; no host Bridge/bootstrap change (0.13.7).
+- Verification: 130 runtime tests and 7 shared-script tests passed during implementation. Real selected teaching figures used 199/150/42 native elements without raster replacement. Unconfirmed creation, prose-only mechanism evidence, all-pass miswire review, stale/externally edited source updates and delivery were exercised; same-ID repair/rebind and source-driven local movement preserved unrelated objects. Actual PNGs were inspected and goal-specific high reviews/delivery completed.
+
 ## 0.10.3 — Reference-driven technical illustrations (2026-10-21)
 
 - Route physical sections/exploded/package views separately from logical networks and page carriers. Add a typed visual_plan with source observations/uncertainties, views, native objects, physical relations and explicit schematic limits.

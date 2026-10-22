@@ -17,6 +17,7 @@ from drawing_client import BridgeError, DrawingClient
 from operation_schema import Operation
 from drawing_workflow import DrawingBrief
 from drawing_entry import DiagramType
+from teaching_contract import TeachingPlan
 
 mcp = FastMCP(
     "obsidian-excalidraw",
@@ -24,7 +25,7 @@ mcp = FastMCP(
 Obsidian Excalidraw MCP Server for professional diagramming.
 
 Workflow:
-Start with drawing_begin(request, action="prepare"): it returns the actual bundled Skill, required task references, correct native examples and live host discovery. Resolve cited preferences, then drawing_begin(create|bind, brief). Hardware requires a declared component/port/signal representation and drawing_contract native-ID mapping, not a text report. Apply -> view PNG -> drawing_review(requirement_checks) -> drawing_deliver for the exact reviewed revision/preview. Without deliverable receipt, report work-in-progress/blocked, never completed.
+Start with drawing_begin(request, action="prepare"). FIRST ask what visual structure explains the objective: propose 2–3 expression candidates with a recommendation, use the client's real ask UI, and record the confirmed choice (or explicit delegation/inheritance) in brief.teaching_plan. Style/color questions do not select a diagram method. Mechanism goals require actual native encodings, never paragraphs mentioning the mechanism. Physical structures use visual_plan, logical networks use component/port/signal representation. Apply -> inspect PNG -> drawing_review(requirement_checks,expression_checks) -> drawing_deliver. No receipt means no completion.
 drawing_compose(inspect=True) returns the checked PNG directly when no post-styling is needed.
 Granular plan/apply/check/preview and every advanced operation remain available; no validation or visual gate is skipped.
 Optional scene DSL: drawing_dsl(plan|render, document, font_family, state_id, filename|file_path) compiles measured spatial scenes and reconciles stable identities. First render needs a unique filename or explicit existing file; repeat the same state_id to update, never replay the graph with compose. Render returns actual checked PNG; view it then call drawing_review. Native tools remain the path for libraries, interaction and precise unmanaged edits.
@@ -94,18 +95,22 @@ def drawing_begin(
     filename: str | None = None,
     foldername: str | None = None,
     file_path: str | None = None,
+    design: TeachingPlan | None = None,
 ) -> dict[str, Any]:
     """Reliable start: return bundled Skill/task references and real host evidence.
 
     prepare never creates/modifies canvas contents; optional file_path reads existing
     canvas and file-scoped review evidence. No fabricated user-choice provenance.
-    create/bind needs resolved brief; hardware also declares native component types,
-    world-side ports and named directed signals in brief.representation.
+    create/bind needs resolved brief. Logical networks use representation; physical
+    views use visual_plan. Do not invent signal ports for a physical section.
+    For teaching, prepare may accept an unconfirmed design proposal and returns
+    design_options for the CLIENT ask tool. Create requires a confirmed teaching_plan
+    inside brief; style answers alone do not authorize an expression choice.
     After drawing, map actual IDs with drawing_contract, view PNG, review and deliver.
     """
     return client.begin(request, diagram_type, action,
                         brief.model_dump(exclude_unset=True) if brief else None,
-                        filename, foldername, file_path)
+                        filename, foldername, file_path, design.model_dump(exclude_unset=True) if design else None)
 
 
 @mcp.tool()
@@ -485,6 +490,7 @@ def drawing_review(
     dispositions: list[dict[str, Any]] | None = None,
     detail_preview_ids: list[str] | None = None,
     requirement_checks: list[dict[str, Any]] | None = None,
+    expression_checks: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Record review round in persistent ledger and determine whether to continue, complete, or seek attention.
 
@@ -499,6 +505,10 @@ def drawing_review(
     requirement_checks=[{requirement_id,outcome:"pass"|"fail",element_ids,evidence}]
     must cover every brief requirement with current native IDs. Completion records
     this attestation; it is not an independent proof of hardware/math correctness.
+    Teaching additionally requires per-goal expression_checks:
+    {goal_id,outcome,element_ids,observation,without_prose}. Cite encoded native objects,
+    not paragraph text; say what geometry alone shows. Hard encoding failures cannot
+    be waived by all-pass visual booleans. Visual observations remain attestations.
     """
     return client.review(
         context_token=context_token,
@@ -514,6 +524,7 @@ def drawing_review(
         dispositions=dispositions,
         detail_preview_ids=detail_preview_ids,
         requirement_checks=requirement_checks,
+        expression_checks=expression_checks,
     )
 
 
@@ -556,12 +567,13 @@ def drawing_primitives(
     state_id: str | None = None,
     base_revision: str | None = None,
 ) -> Any:
-    """Plan native primitives, projection/layer_stack/grid_array/leader and measured text.
+    """Plan native constructions and actual teaching encodings (not paragraph flows).
 
     Default plan only; apply its operations. Technical illustration render requires
     state_id and current base_revision, reuses the existing managed reconciler and
     returns actual checked PNG; repeat the SAME state_id to update native IDs.
-    Managed render supports technical kinds and text only; no generic graph DSL.
+    Managed render supports technical kinds, sequence_window, matrix_groups,
+    bitwidth_compare, memory_map, time_steps and measured text.
     Native measurement, per-object changes, external-edit conflicts and final review remain mandatory.
     """
     try:

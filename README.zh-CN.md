@@ -147,6 +147,11 @@ uv run --frozen python launcher.py doctor
 
 看过当前PNG并取得completed评审后调用 **`drawing_deliver(context_token,revision,preview_id)`**；只有deliverable回执才确认同一owned file、当前revision、完整全图PNG/hash、完成评审及当前需求/表达检查。写入成功、check pass和PNG已生成都不等于完成。[执行格式、CLI入口及几何/信任边界](skills/obsidian-excalidraw/references/workflow-details.md#启动表达与交付的执行契约)。回执不冒充科学/电气验证，也不能控制模型任意聊天中的虚假断言。
 
+**0.10.4 教学图法关口：**先问“该用什么可视结构解释学习目标”，提出2–3个候选、取舍与推荐，用真实选择UI确认；用户明确授权／已有方案继承才跳过。drawing_begin(prepare,design)返回可交给ask的选项，创建前brief.teaching_plan必须记录确认。配色／手绘选项不等于表达方案。[执行契约与组件](skills/obsidian-excalidraw/references/teaching-design.md)。
+
+新增序列窗口／掩码、矩阵行列分组、位宽格、逻辑物理块映射、时间步状态，仍用原生图元和已有增量协调器。check/review/deliver核对实际编码，不接受段落里提到术语。教学评审增加逐goal的expression_checks，描述看到了什么几何，以及“不读长段正文能看懂什么”；观察仍为Agent自述，不冒充通用独立语义裁判。不自动改写remote已有交付图。
+
+
 技术插图继续共用当前执行Skill，新增[视觉设计层](skills/obsidian-excalidraw/references/visual-design.md)，不按每个题材复制完整工作流。物理剖面／封装／爆炸走`physical_structure`＋`brief.visual_plan`；页面讲解走`explanatory_page`。逻辑数据通路仍须端口／信号契约，引出线不当电气线。[投影／层叠／阵列／标注及同ID增量规范](skills/obsidian-excalidraw/references/technical-illustration.md)通过drawing_primitives执行；需要 **0.10.3 或更新运行包**，请同时更新运行包和Skill。
 
 [封装原生案例](examples/native/package-illustration.excalidraw.md)由真实shape／polygon／text重绘，不是整图截图。[构建器](examples/builders/package_illustration.py)可修改HBM层数、Logic位置和Interposer厚度，同state更新保留已有层／部件ID。[实际PNG](docs/images/package-illustration.png)。尺寸、材料和重复数量为示意，不作CAD、制造或热／电性能结论。

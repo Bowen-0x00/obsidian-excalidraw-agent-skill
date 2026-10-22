@@ -7,8 +7,9 @@ from typing import Any
 
 from diagram_layout import FONT, Metrics, PORTS, _number, _point, _route
 from illustration_geometry import KINDS as ILLUSTRATION_KINDS, plan_geometry
+from teaching_geometry import KINDS as TEACHING_KINDS, plan_teaching
 
-SUPPORTED = ("draw", "polygon", "cuboid", "brace", "callout", "code", "checkbox", "connection", "text", *ILLUSTRATION_KINDS)
+SUPPORTED = ("draw", "polygon", "cuboid", "brace", "callout", "code", "checkbox", "connection", "text", *ILLUSTRATION_KINDS, *TEACHING_KINDS)
 
 
 def _bounds(points: list[list[float]], x=0.0, y=0.0) -> dict:
@@ -66,7 +67,23 @@ def plan_primitives(client: Any, context_token: str, items: list[dict], style: d
             if not features.get(feature, {}).get("callable"):
                 raise ValueError(f"Feature {feature} is not callable in the running instance")
 
-        if kind in ILLUSTRATION_KINDS:
+        if kind in TEACHING_KINDS:
+            construction = plan_teaching({**item, "id": name}, geometry_style)
+            unit_ops.extend(construction["operations"])
+            for label in construction["labels"]:
+                text, size = metrics.wrap(label["text"], label["width"], text_style["fontSize"])
+                px = label["x"] - size["width"]/2 if label["center"] else label["x"]
+                py = label["y"] - size["height"]/2 if label["center"] else label["y"]
+                unit_ops.append({"op":"create_text","ref":label["ref"],"x":px,"y":py,"text":text,"style":text_style,
+                    "customData":{"agentPrimitive":{"instanceId":"teaching:"+name,"kind":kind,"role":"caption"},
+                      "agentDiagram":{"logicalId":name,"role":"teaching-label"},
+                      "teaching":{"component":name,"kind":kind,"part":label["ref"][len(name)+1:],
+                                  "spec":construction["operations"][0]["customData"]["teaching"]["spec"]}}})
+            unit_refs.extend("@"+op["ref"] for op in unit_ops)
+            box = construction["bounds"]
+            manifests[name] = construction["semantics"]
+            unit = "teaching:"+name
+        elif kind in ILLUSTRATION_KINDS:
             construction = plan_geometry({**item, "id": name}, geometry_style)
             unit_ops.extend(construction["operations"])
             unit_refs.extend("@" + op["ref"] for op in unit_ops)

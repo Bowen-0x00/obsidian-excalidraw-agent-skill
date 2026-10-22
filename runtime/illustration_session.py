@@ -8,6 +8,7 @@ import json
 from drawing_primitives import plan_primitives
 from drawing_workflow import require_context
 from illustration_geometry import KINDS
+from teaching_geometry import KINDS as TEACHING_KINDS
 from scene_dsl.service import _locked, state_path
 from scene_dsl.session import plan_update, reconcile
 
@@ -24,9 +25,9 @@ def execute(client, token, items, style, action, state_id, base_revision):
         raise ValueError(
             "Technical illustration requires an exact discovered style.fontFamily"
         )
-    if any(item.get("kind") not in (*KINDS, "text") for item in items):
+    if any(item.get("kind") not in (*KINDS, *TEACHING_KINDS, "text") for item in items):
         raise ValueError(
-            "Managed technical render supports projected_box/layer_stack/grid_array/leader/text; use ordinary plan/apply for other primitives"
+            "Managed render supports technical/teaching construction kinds and measured text; use ordinary plan/apply for other primitives"
         )
     document = "illustration-" + state_id
     # Same state store/lock/reconciler as existing source-driven scenes; no second ID system.
