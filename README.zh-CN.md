@@ -149,6 +149,8 @@ uv run --frozen python launcher.py doctor
 
 新图先真实询问未定的 **style 和 review 等级**，与色板、背景、字体意图合并一轮；推荐值不是用户回答，“重试／继续／帮我画”不是免问。明确指定、原图／同套图继承、用户明确授权默认值逐项记录到必需的`brief`；用户需求逐项验收。见[偏好与任务单格式](skills/obsidian-excalidraw/references/diagram-recipes.md)和[验收证据](skills/obsidian-excalidraw/references/acceptance.md)。硬件仍按部件／端口／信号组织；kind或泳道都不是硬件自动布局器。
 
+**字体不局限于当前注册列表。** 新family对任务有明显收益时，Agent可按真实宿主能力查已有vault／系统候选并提议导入；网络下载另行授权。[动态字体工作流](skills/obsidian-excalidraw/references/runtime-fonts.md)要求明确来源、许可、目标vault目录和用户选择，再验证保存文件及后续加载配置，不能把临时注册当持久化。执行复用新宿主的EA API及已授权入口；不新增虚构字体MCP，也不静默下载。
+
 先用 **`drawing_begin(request,action:"prepare")`**：工具实际返回本包Skill、任务专用参考、原生操作示例与当前宿主证据，不依赖客户端自动激活Skill。任务单齐全后drawing_begin(create|bind)。drawing_apply现为op判别式schema，在任何HTTP写入前拒绝错名和错层字段。硬件brief声明部件/端口/信号契约，drawing_contract映射真实body/wire IDs，check/review/deliver按保存几何重算；文字报告不能冒充器件。
 
 看过当前PNG并取得completed评审后调用 **`drawing_deliver(context_token,revision,preview_id)`**；只有deliverable回执才确认同一owned file、当前revision、完整全图PNG/hash、完成评审及当前需求/表达检查。写入成功、check pass和PNG已生成都不等于完成。[执行格式、CLI入口及几何/信任边界](skills/obsidian-excalidraw/references/workflow-details.md#启动表达与交付的执行契约)。回执不冒充科学/电气验证，也不能控制模型任意聊天中的虚假断言。
@@ -248,6 +250,7 @@ MCP 只提供 **`drawing_debug(status|inspect)`**，没有开启权限或任意 
 | 查询用户素材库、只修改描述 | [素材库](skills/obsidian-excalidraw/references/library-catalog.md) · [维护 prompt](skills/obsidian-excalidraw/prompts/maintain-libraries.zh-CN.md) |
 | 硬件部件／端口／信号与保存后路由审计 | [微架构](skills/obsidian-excalidraw/references/microarchitecture.md) |
 | 风格、真实字体和视觉验收 | [风格](skills/obsidian-excalidraw/references/diagram-recipes.md) · [排版](skills/obsidian-excalidraw/references/typography.md) · [验收](skills/obsidian-excalidraw/references/acceptance.md) |
+| 动态字体、系统／网络分级授权与vault持久化 | [动态字体](skills/obsidian-excalidraw/references/runtime-fonts.md) |
 | 可信脚本、插件原生 CLI、交互 | [脚本](skills/obsidian-excalidraw/references/script-execution.md) · [原生 CLI](skills/obsidian-excalidraw/references/native-cli.md) |
 | CDP只读开关、详细debug与安全微调 | [只读CDP排错](skills/obsidian-excalidraw/references/cdp-readonly.md) |
 | 共享 Engine 来源、同步与发布检查 | [维护说明](docs/maintenance.md) |
@@ -258,6 +261,8 @@ MCP 只提供 **`drawing_debug(status|inspect)`**，没有开启权限或任意 
 ## 更新与安全
 
 克隆安装：停止本包 MCP，pull、`uv sync --frozen`、同步已复制 Skill，再重启 MCP。OMP 按接入说明执行 marketplace update／plugin upgrade；Windows 先断开旧 MCP，避免缓存被锁。重新连接**同一 vault**更新受管脚本，自定义文件仍受冲突保护；必要时重载 Engine／Obsidian。保留私有连接配置、DSL 身份状态和评审产物。
+
+**0.10.5 更新：**同步完整Skill后重载Agent／MCP，使入口返回的指南与安装包一致。动态字体复用新宿主实际发现的EA API，不是新增字体MCP；系统／网络与持久化分别授权。演示库实测仅覆盖本会话加载。Bridge／bootstrap仍为 **0.13.7**，本次不迁移字体文件、宿主设置、凭据或诊断权限。
 
 **0.10.3 升级：**同时更新运行包和已复制规范，再重载MCP／Skill。drawing_primitives新增物理组件和带state_id／base_revision的托管render；物理视图用visual_plan，不虚构电气信号。保留已有场景身份与评审状态。Start／Bridge仍为 **0.13.7**，已匹配宿主不需重启。
 

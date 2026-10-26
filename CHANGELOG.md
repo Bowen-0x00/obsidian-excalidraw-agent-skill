@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.10.5 — Consent-aware runtime fonts and verified session loading (2026-10-26)
 
 - Append the all-English FlashAttention illustration to both READMEs and the gallery, with the actual host PNG, editable native canvas and readable working-set/formula details. Preserve all six existing README figures.
+- Document on-demand runtime font discovery and explicitly authorized system/web acquisition through the newer host's existing EA APIs. Separate session registration, vault persistence, folder settings and overwrite consent; verify saved bytes and future loading configuration. No new font MCP, Bridge change, automatic download or host upgrade.
+- Real demo-host verification (ymjr 2.29.0-8), under explicit session-only consent: system discovery, JetBrains Mono registration/readiness, equal-width samples, native missing-font audit, stable-ID local editing and actual PNG/review/delivery passed. Existing font files/settings/reference drawing stayed unchanged. Vault persistence, reload/restart, cross-device loading and web-font acquisition were not authorized or tested.
 
 ## 0.10.4 — Choice-first teaching designs and observable mechanism evidence (2026-10-22)
 
