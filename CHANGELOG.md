@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.6 — Native vector icons and verified dynamic styling (2026-10-29)
+
+- Add source-backed native icon guidance for the newer host's rectangle/svgLayers format: local SVG discovery, source-color preservation, dynamic stroke/fill/width and source viewBox sizing through existing operations. Document parser/trust limits and distinguish vector icons, single-path components, library items and image attachments; no new icon MCP or automatic library deployment.
+- Demo host 2.29.0-9 verification: eight vector rectangle icons, source-palette preservation, monochrome/dynamic stroke-fill-width, same-ID restoration, nonzero viewBox, native nonce-cache invalidation and save/reopen PNG identity passed; actual PNG and SVG icon output inspected. No image carriers; source SVG files and icon-directory settings were not edited. Generic SVG conversion, dark mode and Action UI interaction are not certified.
+
 ## 0.10.5 — Consent-aware runtime fonts and verified session loading (2026-10-26)
 
 - Append the all-English FlashAttention illustration to both READMEs and the gallery, with the actual host PNG, editable native canvas and readable working-set/formula details. Preserve all six existing README figures.

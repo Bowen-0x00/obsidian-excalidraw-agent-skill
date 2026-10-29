@@ -151,6 +151,8 @@ Before a new drawing, the Agent asks unresolved **style and review depth** first
 
 **Fonts are not limited to the current registered list.** When a new family materially helps a role, the Agent can inspect host-supported vault/system candidates and propose an import; web acquisition is a separate opt-in. The [runtime-font workflow](skills/obsidian-excalidraw/references/runtime-fonts.md) requires explicit source, license and destination-vault approval, then verifies the saved file and future loading configuration before relying on persistence. This reuses the newer host's EA APIs through an authorized execution path; it does not add a font-management MCP tool or silently download fonts.
 
+**Editable vector icons:** on a host with the 2.29.0-9 multi-layer component, local SVG icons can become native rectangle carriers with ordered `svgLayers`, not image attachments. The [icon workflow](skills/obsidian-excalidraw/references/icons.md) covers source discovery, fit, original-color mode and dynamic stroke/fill/width through existing native operations. The current Action parser supports a limited SVG subset; no generic lossless SVG converter or new icon MCP is implied.
+
 Use **`drawing_begin(request, action="prepare")`** first: the tool returns the actual bundled Skill, task-specific references, native operation examples and live host evidence—even if the client did not activate the Skill automatically. Resolve the brief, then `drawing_begin(create|bind, ...)`. Native `drawing_apply` now exposes an op-discriminated schema and rejects unknown/misplaced fields before any HTTP write. Hardware briefs declare a component/port/signal contract; `drawing_contract` maps actual body/wire IDs and check/review/deliver recompute the saved topology. Text reports cannot satisfy native component bodies.
 
 After inspecting the current PNG and obtaining a completed review, call **`drawing_deliver(context_token, revision, preview_id)`**. Only its `deliverable` receipt confirms the same owned file, current revision, complete overview PNG/hash, completed review and current requirement/representation checks. Writes, check pass and exported PNGs alone are not completion. [Executable format, CLI entrypoints and geometry/trust limits](skills/obsidian-excalidraw/references/workflow-details.md#启动表达与交付的执行契约). This is workflow evidence, not electrical/scientific validation or control over arbitrary model chat.
@@ -248,6 +250,7 @@ MCP exposes only **`drawing_debug(status|inspect)`**, no enable action or arbitr
 | YAML/JSON schema, MCP/CLI, incremental state and review | [Scene DSL](docs/scene-dsl.md) |
 | Images, formulas, extensions, tables, special diagrams | [Capability map](skills/obsidian-excalidraw/references/capability-map.md) |
 | Library discovery and description-only maintenance | [Libraries](skills/obsidian-excalidraw/references/library-catalog.md) · [curation prompt](skills/obsidian-excalidraw/prompts/maintain-libraries.zh-CN.md) |
+| Local vector icons, multi-color layers and dynamic stroke/fill/width | [Icons](skills/obsidian-excalidraw/references/icons.md) |
 | Hardware symbols/ports/signals and saved-route audit | [Microarchitecture](skills/obsidian-excalidraw/references/microarchitecture.md) |
 | Style choices, actual fonts and visual acceptance | [Styles](skills/obsidian-excalidraw/references/diagram-recipes.md) · [Typography](skills/obsidian-excalidraw/references/typography.md) · [Acceptance](skills/obsidian-excalidraw/references/acceptance.md) |
 | Dynamic fonts, separate system/web consent and vault persistence | [Runtime fonts](skills/obsidian-excalidraw/references/runtime-fonts.md) |
@@ -261,6 +264,8 @@ User `.excalidrawlib` assets are not redistributed here. Query the actual curren
 ## Updates and safety
 
 For a checkout: stop this package's MCP process, pull, `uv sync --frozen`, refresh copied Skill files and restart MCP. For OMP, follow the supported marketplace update/plugin upgrade instructions in Agent setup; disconnect the old MCP first on Windows to avoid locked-cache failures. Reconnect the **same vault** to update managed scripts, preserving customized-file conflict checks; reload Engines/Obsidian when needed. Preserve private connection settings, DSL identity state and review artifacts.
+
+**0.10.6 update:** refresh the complete Skill/package and reload the Agent/MCP. Native vector icons reuse existing shape/patch operations and require the newer host's actual multi-layer component (paired with ymjr 2.29.0-9); no new icon MCP, automatic SVG-library installation or host upgrade is included. Bridge/bootstrap remain **0.13.7**. Local source SVG assets and private connection/diagnostic state are not redistributed.
 
 **0.10.5 update:** refresh the complete Skill and reload your Agent/MCP so bundled guidance comes from the same package. Runtime-font acquisition uses the newer host's discovered EA APIs, not a new font MCP; keep separate system/web and persistence consent. The demo-host test covered session-only loading. Bridge/bootstrap remain **0.13.7**; no font files, host settings, credentials or diagnostic permissions are migrated by this update.
 

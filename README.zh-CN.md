@@ -151,6 +151,8 @@ uv run --frozen python launcher.py doctor
 
 **字体不局限于当前注册列表。** 新family对任务有明显收益时，Agent可按真实宿主能力查已有vault／系统候选并提议导入；网络下载另行授权。[动态字体工作流](skills/obsidian-excalidraw/references/runtime-fonts.md)要求明确来源、许可、目标vault目录和用户选择，再验证保存文件及后续加载配置，不能把临时注册当持久化。执行复用新宿主的EA API及已授权入口；不新增虚构字体MCP，也不静默下载。
 
+**可编辑矢量图标：**宿主包含2.29.0-9多图层组件时，本地SVG可转换为rectangle＋有序`svgLayers`，不是image附件。[图标工作流](skills/obsidian-excalidraw/references/icons.md)说明来源发现、等比例fit、原色模式及现有原生操作的stroke／fill／线宽修改。当前Action解析器只支持有限SVG子集；不冒充通用无损转换器，也不新增虚构图标MCP。
+
 先用 **`drawing_begin(request,action:"prepare")`**：工具实际返回本包Skill、任务专用参考、原生操作示例与当前宿主证据，不依赖客户端自动激活Skill。任务单齐全后drawing_begin(create|bind)。drawing_apply现为op判别式schema，在任何HTTP写入前拒绝错名和错层字段。硬件brief声明部件/端口/信号契约，drawing_contract映射真实body/wire IDs，check/review/deliver按保存几何重算；文字报告不能冒充器件。
 
 看过当前PNG并取得completed评审后调用 **`drawing_deliver(context_token,revision,preview_id)`**；只有deliverable回执才确认同一owned file、当前revision、完整全图PNG/hash、完成评审及当前需求/表达检查。写入成功、check pass和PNG已生成都不等于完成。[执行格式、CLI入口及几何/信任边界](skills/obsidian-excalidraw/references/workflow-details.md#启动表达与交付的执行契约)。回执不冒充科学/电气验证，也不能控制模型任意聊天中的虚假断言。
@@ -248,6 +250,7 @@ MCP 只提供 **`drawing_debug(status|inspect)`**，没有开启权限或任意 
 | YAML／JSON、MCP／CLI、增量与 review | [Scene DSL 规范](docs/scene-dsl.md) |
 | 图片、公式、扩展、表格与特殊图 | [能力地图](skills/obsidian-excalidraw/references/capability-map.md) |
 | 查询用户素材库、只修改描述 | [素材库](skills/obsidian-excalidraw/references/library-catalog.md) · [维护 prompt](skills/obsidian-excalidraw/prompts/maintain-libraries.zh-CN.md) |
+| 本地矢量图标、多色图层、动态描边／填充／线宽 | [图标](skills/obsidian-excalidraw/references/icons.md) |
 | 硬件部件／端口／信号与保存后路由审计 | [微架构](skills/obsidian-excalidraw/references/microarchitecture.md) |
 | 风格、真实字体和视觉验收 | [风格](skills/obsidian-excalidraw/references/diagram-recipes.md) · [排版](skills/obsidian-excalidraw/references/typography.md) · [验收](skills/obsidian-excalidraw/references/acceptance.md) |
 | 动态字体、系统／网络分级授权与vault持久化 | [动态字体](skills/obsidian-excalidraw/references/runtime-fonts.md) |
@@ -261,6 +264,8 @@ MCP 只提供 **`drawing_debug(status|inspect)`**，没有开启权限或任意 
 ## 更新与安全
 
 克隆安装：停止本包 MCP，pull、`uv sync --frozen`、同步已复制 Skill，再重启 MCP。OMP 按接入说明执行 marketplace update／plugin upgrade；Windows 先断开旧 MCP，避免缓存被锁。重新连接**同一 vault**更新受管脚本，自定义文件仍受冲突保护；必要时重载 Engine／Obsidian。保留私有连接配置、DSL 身份状态和评审产物。
+
+**0.10.6 更新：**同步完整Skill／运行包并重载Agent／MCP。原生矢量图标复用现有shape／patch操作，需要宿主实际包含ymjr 2.29.0-9配套多图层组件；不新增图标MCP、不自动安装SVG库或升级宿主。Bridge／bootstrap仍为 **0.13.7**，用户源SVG资产及私有连接／诊断状态不随包分发。
 
 **0.10.5 更新：**同步完整Skill后重载Agent／MCP，使入口返回的指南与安装包一致。动态字体复用新宿主实际发现的EA API，不是新增字体MCP；系统／网络与持久化分别授权。演示库实测仅覆盖本会话加载。Bridge／bootstrap仍为 **0.13.7**，本次不迁移字体文件、宿主设置、凭据或诊断权限。
 
