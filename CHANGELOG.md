@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.7 — Self-discovering hosts and remote diagnostics (2026-11-03)
+
+- Add matched bootstrap/Bridge 0.13.8 self-owned per-vault private connection publication in the graphical host platform-default data directory, allowing unique local discovery without token copying. Retain existing explicit targets and fail closed on explicit configuration errors; multiple candidates require an ID or unique-name selection.
+- Expose live authenticated host/vault identity, plugin version, open canvases and engines in status, plus the registered host-vault catalog. Keep registration distinct from running/paired connections; no unauthenticated scanning or remote filesystem walking.
+- Add human-readable standalone `status`/`doctor` with `--json`, `vaults` for known profiles plus the host registered-vault catalog, and `use SELECTOR` for discovered local or paired remote profiles. Keep MCP `drawing_setup` JSON; an authenticated `NO_CANVAS` host remains connected and doctor only fails for broken/unconfigured connections.
+- Install the remote `~/.local/bin/excalidraw` wrapper for any-directory use without an Agent/MCP session. Preserve existing multi-host/vault defaults when adding private paired profiles; selection is explicit. Remote clients never deploy/start/reload a graphical host or use host Windows paths as local connect paths.
+- Replace Windows SSH pipe-based pairing with a private SCP staging directory and file-handle output capture; validate already-installed dependencies offline before contacting the package index. Keep credentials out of command arguments, remove pairing files, and fail explicitly on transport/setup errors.
+- Update onboarding for local and DELL/Redhat host/client roles. The same package now discovers a unique live host automatically; no copied credentials or hand-entered remote Windows vault path. Multiple hosts/vaults require an explicit profile ID/name choice.
+
 ## 0.10.6 — Native vector icons and verified dynamic styling (2026-10-29)
 
 - Add source-backed native icon guidance for the newer host's rectangle/svgLayers format: local SVG discovery, source-color preservation, dynamic stroke/fill/width and source viewBox sizing through existing operations. Document parser/trust limits and distinguish vector icons, single-path components, library items and image attachments; no new icon MCP or automatic library deployment.

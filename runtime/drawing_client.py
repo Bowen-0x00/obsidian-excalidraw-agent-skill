@@ -21,7 +21,7 @@ _RUNTIME_DIR = str(Path(__file__).resolve().parent)
 if _RUNTIME_DIR not in sys.path:
     sys.path.insert(0, _RUNTIME_DIR)
 
-from runtime_config import artifact_directory, load_connection
+from runtime_config import artifact_directory, connection_identity_mismatches, effective_connection, missing_connection_identity
 
 from geometry_diagnostics import run_geometry_diagnostics
 from review_ledger import ReviewLedger
@@ -72,11 +72,13 @@ def resolve_bridge_credentials() -> tuple[str, str, float]:
     Credentials environment overrides private connection.
     No implicit .omp/mcp.json fallback in public runtime.
     """
-    connection = load_connection()
+    return _connection_credentials(effective_connection())
 
-    url = os.environ.get("EXCALIDRAW_BRIDGE_URL") or connection.get("bridge_url")
-    token = os.environ.get("EXCALIDRAW_BRIDGE_TOKEN") or connection.get("bridge_token")
-    timeout = os.environ.get("EXCALIDRAW_BRIDGE_TIMEOUT") or connection.get("bridge_timeout")
+
+def _connection_credentials(connection: dict[str, Any]) -> tuple[str, str, float]:
+    url = connection.get("bridge_url")
+    token = connection.get("bridge_token")
+    timeout = connection.get("bridge_timeout")
 
     bridge_url = (url or "http://127.0.0.1:27124").rstrip("/")
     bridge_token = token or ""
@@ -104,10 +106,13 @@ class DrawingClient:
     def _refresh_connection(self) -> None:
         """Resolve unpinned settings before each request; never retry a write."""
         url_override, token_override, timeout_override = self._connection_overrides
-        if any(value is None for value in self._connection_overrides):
-            resolved_url, resolved_token, resolved_timeout = resolve_bridge_credentials()
+        if url_override is None or token_override is None:
+            connection = effective_connection()
+            resolved_url, resolved_token, resolved_timeout = _connection_credentials(connection)
         else:
-            resolved_url, resolved_token, resolved_timeout = "", "", 180.0
+            connection = {}
+            resolved_url, resolved_token, resolved_timeout = "", "", float(os.environ.get("EXCALIDRAW_BRIDGE_TIMEOUT", "180"))
+        self._expected_connection = connection if url_override is None or url_override.rstrip("/") == resolved_url else {}
         url = (url_override if url_override is not None else resolved_url).rstrip("/")
         if url != self.bridge_url:
             # Loopback credentials must never pass through an environment proxy.
@@ -137,11 +142,27 @@ class DrawingClient:
                 status=401,
             )
 
+        if method.upper() not in ("GET", "HEAD", "OPTIONS") and self._expected_connection:
+            status = self._send_request("GET", "/v3/status")
+            mismatches = connection_identity_mismatches(self._expected_connection, status)
+            if mismatches:
+                code = "BRIDGE_UPDATE_REQUIRED" if missing_connection_identity(self._expected_connection, status) else "IDENTITY_MISMATCH"
+                raise BridgeError("Refusing a write: responding Bridge does not match the configured host/vault.",
+                                  code=code, status=409, details={"identity_mismatches": mismatches})
+        return self._send_request(method, path, payload)
+
+    def _send_request(self, method: str, path: str, payload: dict[str, Any] | None = None) -> Any:
+        # One resolved credential/identity snapshot covers preflight and write. No write retry.
         target_url = f"{self.bridge_url}{path}"
         headers = {
             "Authorization": f"Bearer {self.bridge_token}",
             "Accept": "application/json",
         }
+
+        if path not in ("/v3/status", "/v3/vaults"):
+            for key, header in (("host_id", "X-Excalidraw-Host-Id"), ("vault_id", "X-Excalidraw-Vault-Id")):
+                if self._expected_connection.get(key):
+                    headers[header] = self._expected_connection[key]
 
         body_bytes: bytes | None = None
         if payload is not None:

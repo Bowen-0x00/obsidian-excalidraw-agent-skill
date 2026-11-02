@@ -2,14 +2,14 @@
 name: Excalidraw Agent Bridge
 description: Local authenticated MCP bridge for Obsidian Excalidraw.
 author: local
-version: 0.13.7
+version: 0.13.8
 autorun: false
 ---
 /*
 ```javascript
 */
 
-const BRIDGE_VERSION = "0.13.7";
+const BRIDGE_VERSION = "0.13.8";
 const PROTOCOL_VERSION = "3";
 const DEFAULT_PORT = 27124;
 
@@ -82,210 +82,145 @@ const BRIDGE_SCRIPT_NAME =
         .replace(/\.md$/, "")
     : SCRIPT_REL_PATH);
 
-// Resolve descriptor file beside itself: <script_dir>/Agent-Bridge-Connection.json
-const scriptVaultDir = BRIDGE_SCRIPT_PATH.substring(
-  0,
-  BRIDGE_SCRIPT_PATH.lastIndexOf("/"),
-);
+// The running Obsidian process owns the vault identity and local credentials.
+// A copied vault descriptor is a hint, never authority to reuse another vault.
+const os = nodeRequire("os");
+const nodeProcess = nodeRequire("process");
+const vaultBasePath = obsidianApp?.vault?.adapter?.getBasePath?.() ||
+  obsidianApp?.vault?.adapter?.basePath;
+if (!vaultBasePath) throw new Error("[Bridge] A local desktop vault is required.");
+function canonicalPath(value) {
+  const absolute = path.resolve(value).replace(/\\/g, "/");
+  return nodeProcess.platform === "win32" ? absolute.toLowerCase() : absolute;
+}
+function identity(value) {
+  return crypto.createHash("sha256").update(value).digest("hex").slice(0, 24);
+}
+const hostIdentity = {
+  id: identity(`${os.hostname()}\n${canonicalPath(os.homedir())}`),
+  name: os.hostname(),
+  platform: nodeProcess.platform,
+};
+const vaultIdentity = {
+  id: identity(canonicalPath(vaultBasePath)),
+  name: obsidianApp.vault.getName(),
+  path: path.resolve(vaultBasePath),
+};
+const defaultStateDirectory = nodeProcess.platform === "win32"
+  ? path.join(nodeProcess.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local"), "ObsidianExcalidrawAgent")
+  : nodeProcess.platform === "darwin"
+    ? path.join(os.homedir(), "Library", "Application Support", "ObsidianExcalidrawAgent")
+    : path.join(nodeProcess.env.XDG_DATA_HOME || path.join(os.homedir(), ".local", "share"), "obsidian-excalidraw-agent");
+const profilePath = path.join(defaultStateDirectory, "connections", `${vaultIdentity.id}.json`);
+const scriptVaultDir = path.posix.dirname(BRIDGE_SCRIPT_PATH);
 const descriptorVaultPath = `${scriptVaultDir}/Agent-Bridge-Connection.json`;
-
-const vaultBasePath =
-  obsidianApp?.vault?.adapter?.getBasePath?.() ||
-  obsidianApp?.vault?.adapter?.basePath ||
-  "";
-const descriptorFsPath = vaultBasePath
-  ? path.join(vaultBasePath, descriptorVaultPath)
-  : null;
-
-let descriptorExists = false;
-if (descriptorFsPath && fs.existsSync(descriptorFsPath)) {
-  descriptorExists = true;
-} else if (obsidianApp?.vault?.adapter) {
-  try {
-    descriptorExists = await obsidianApp.vault.adapter.exists(
-      descriptorVaultPath,
-    );
-  } catch {}
+const descriptorFsPath = path.join(vaultBasePath, descriptorVaultPath);
+function readObject(filename) {
+  const value = JSON.parse(fs.readFileSync(filename, "utf8"));
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`[Bridge] Expected a JSON object: ${filename}`);
+  }
+  return value;
 }
-
-let BRIDGE_TOKEN = "";
-let BRIDGE_PORT = DEFAULT_PORT;
-let usingDescriptor = false;
-let isNewToken = false;
-let scriptSettings = {};
-
-if (descriptorExists) {
-  let descriptorContent = null;
-  try {
-    if (descriptorFsPath && fs.existsSync(descriptorFsPath)) {
-      descriptorContent = await fs.promises.readFile(
-        descriptorFsPath,
-        "utf8",
-      );
-    } else {
-      descriptorContent = await obsidianApp.vault.adapter.read(
-        descriptorVaultPath,
-      );
+function privateWrite(filename, value) {
+  fs.mkdirSync(path.dirname(filename), { recursive: true, mode: 0o700 });
+  const temporary = `${filename}.${nodeProcess.pid}.tmp`;
+  fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
+  if (nodeProcess.platform !== "win32") fs.chmodSync(temporary, 0o600);
+  fs.renameSync(temporary, filename);
+}
+function isOutsideVault(filename) {
+  const relative = path.relative(vaultBasePath, filename);
+  return relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative);
+}
+let privateConfigPath = profilePath;
+let connection = null;
+let recoveredDescriptor = false;
+if (fs.existsSync(descriptorFsPath)) {
+  const descriptor = readObject(descriptorFsPath);
+  const candidate = descriptor.configPath;
+  if (typeof candidate === "string" && path.isAbsolute(candidate) &&
+      isOutsideVault(candidate) && fs.existsSync(candidate)) {
+    const stored = readObject(candidate);
+    if (stored.mode !== "remote" && stored.vault_path &&
+        (!stored.host_id || stored.host_id === hostIdentity.id) &&
+        canonicalPath(stored.vault_path) === canonicalPath(vaultBasePath)) {
+      privateConfigPath = candidate;
+      connection = stored;
     }
-  } catch (err) {
-    const msg = `[Bridge] Failed to read descriptor at ${descriptorVaultPath}: ${err?.message || err}`;
-    new Notice(msg, 8000);
-    throw new Error(msg);
   }
-
-  let descriptor;
-  try {
-    descriptor = JSON.parse(descriptorContent);
-  } catch (err) {
-    const msg = `[Bridge] Descriptor JSON is invalid in ${descriptorVaultPath}: ${err?.message || err}`;
-    new Notice(msg, 8000);
-    throw new Error(msg);
-  }
-
-  if (!descriptor || typeof descriptor !== "object") {
-    const msg = `[Bridge] Descriptor must be a JSON object in ${descriptorVaultPath}`;
-    new Notice(msg, 8000);
-    throw new Error(msg);
-  }
-
-  const configPath = descriptor.configPath;
-  if (typeof configPath !== "string" || !configPath.trim()) {
-    const msg = `[Bridge] Descriptor missing valid 'configPath' string in ${descriptorVaultPath}`;
-    new Notice(msg, 8000);
-    throw new Error(msg);
-  }
-  if (!path.isAbsolute(configPath)) {
-    throw new Error("[Bridge] Private connection configPath must be absolute.");
-  }
-
-  if (!fs.existsSync(configPath)) {
-    const msg = `[Bridge] Private connection config file not found at: ${configPath}`;
-    new Notice(msg, 8000);
-    throw new Error(msg);
-  }
-
-  let connectionRaw;
-  try {
-    connectionRaw = await fs.promises.readFile(configPath, "utf8");
-  } catch (err) {
-    const msg = `[Bridge] Failed to read private connection config at ${configPath}: ${err?.message || err}`;
-    new Notice(msg, 8000);
-    throw new Error(msg);
-  }
-
-  let connection;
-  try {
-    connection = JSON.parse(connectionRaw);
-  } catch (err) {
-    const msg = `[Bridge] Private connection config at ${configPath} is invalid JSON: ${err?.message || err}`;
-    new Notice(msg, 8000);
-    throw new Error(msg);
-  }
-
-  if (!connection || typeof connection !== "object") {
-    const msg = `[Bridge] Private connection config at ${configPath} must be a JSON object`;
-    new Notice(msg, 8000);
-    throw new Error(msg);
-  }
-
-  if (
-    typeof connection.bridge_url !== "string" ||
-    !connection.bridge_url.trim()
-  ) {
-    const msg = `[Bridge] Private connection config missing required 'bridge_url' string in ${configPath}`;
-    new Notice(msg, 8000);
-    throw new Error(msg);
-  }
-
-  let parsedUrl;
-  try {
-    parsedUrl = new URL(connection.bridge_url);
-  } catch (err) {
-    const msg = `[Bridge] Private connection config 'bridge_url' is malformed: ${connection.bridge_url}`;
-    new Notice(msg, 8000);
-    throw new Error(msg);
-  }
-
-  if (parsedUrl.protocol !== "http:" || parsedUrl.username || parsedUrl.password ||
-      parsedUrl.search || parsedUrl.hash || parsedUrl.pathname !== "/") {
-    const msg = `[Bridge] 'bridge_url' protocol must be 'http:', got '${parsedUrl.protocol}' in ${configPath}`;
-    new Notice(msg, 8000);
-    throw new Error(msg);
-  }
-
-  const hostname = parsedUrl.hostname.toLowerCase();
-  const isLoopback =
-    hostname === "127.0.0.1" ||
-    hostname === "localhost" ||
-    hostname === "::1" ||
-    hostname === "[::1]";
-
-  if (!isLoopback) {
-    const msg = `[Bridge] 'bridge_url' host must be loopback (127.0.0.1, localhost, ::1), got '${hostname}' in ${configPath}`;
-    new Notice(msg, 8000);
-    throw new Error(msg);
-  }
-
-  const portNum = parseInt(parsedUrl.port, 10);
-  if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
-    const msg = `[Bridge] 'bridge_url' port must be an integer between 1 and 65535, got '${parsedUrl.port}' in ${configPath}`;
-    new Notice(msg, 8000);
-    throw new Error(msg);
-  }
-
-  if (
-    typeof connection.bridge_token !== "string" ||
-    !connection.bridge_token.trim()
-  ) {
-    const msg = `[Bridge] Private connection config missing required 'bridge_token' in ${configPath}`;
-    new Notice(msg, 8000);
-    throw new Error(msg);
-  }
-
-  const candidateToken = connection.bridge_token.trim();
-  if (!/^[0-9a-f]{64}$/i.test(candidateToken)) {
-    const msg = `[Bridge] 'bridge_token' format invalid: expected 64 hexadecimal characters in ${configPath}`;
-    new Notice(msg, 8000);
-    throw new Error(msg);
-  }
-
-  BRIDGE_TOKEN = candidateToken;
-  BRIDGE_PORT = portNum;
-  usingDescriptor = true;
-} else {
-  // Legacy standalone behavior: read / generate token and save to scriptSettings
-  scriptSettings = ea.getScriptSettings() || {};
-  isNewToken = !scriptSettings.bridgeToken;
-
-  if (isNewToken) {
-    scriptSettings.bridgeToken = crypto.randomBytes(32).toString("hex");
-  }
-
-  if (!Number.isInteger(scriptSettings.bridgePort)) {
-    scriptSettings.bridgePort = DEFAULT_PORT;
-  }
-
-  await ea.setScriptSettings(scriptSettings);
-
-  BRIDGE_TOKEN = scriptSettings.bridgeToken;
-  BRIDGE_PORT = scriptSettings.bridgePort;
+  recoveredDescriptor = !connection;
 }
-
-// Credentials environment overrides private connection
-const nodeProcess =
-  typeof process !== "undefined"
-    ? process
-    : (nodeRequire ? nodeRequire("process") : null);
-
-if (nodeProcess?.env?.EXCALIDRAW_BRIDGE_TOKEN) {
-  BRIDGE_TOKEN = nodeProcess.env.EXCALIDRAW_BRIDGE_TOKEN.trim();
-}
-if (nodeProcess?.env?.EXCALIDRAW_BRIDGE_PORT) {
-  const envPort = parseInt(nodeProcess.env.EXCALIDRAW_BRIDGE_PORT, 10);
-  if (Number.isInteger(envPort) && envPort >= 1 && envPort <= 65535) {
-    BRIDGE_PORT = envPort;
+if (!connection && fs.existsSync(profilePath)) {
+  connection = readObject(profilePath);
+  if (connection.mode === "remote" || !connection.vault_path ||
+      (connection.host_id && connection.host_id !== hostIdentity.id) ||
+      canonicalPath(connection.vault_path) !== canonicalPath(vaultBasePath)) {
+    throw new Error("[Bridge] Local vault profile identity is invalid; preserve it and run drawing doctor.");
   }
 }
+const generatedConnection = !connection;
+if (!connection) connection = {
+  bridge_url: `http://127.0.0.1:${DEFAULT_PORT}`,
+  bridge_token: crypto.randomBytes(32).toString("hex"),
+  bridge_timeout: 180,
+};
+let parsedUrl;
+try { parsedUrl = new URL(connection.bridge_url); } catch {
+  throw new Error("[Bridge] Invalid private bridge_url; run drawing doctor.");
+}
+if (parsedUrl.protocol !== "http:" || !["127.0.0.1", "localhost", "[::1]", "::1"].includes(parsedUrl.hostname) ||
+    parsedUrl.username || parsedUrl.password || parsedUrl.search || parsedUrl.hash || parsedUrl.pathname !== "/") {
+  throw new Error("[Bridge] Private bridge_url must be an HTTP loopback origin.");
+}
+let BRIDGE_TOKEN = nodeProcess.env.EXCALIDRAW_BRIDGE_TOKEN?.trim() || connection.bridge_token;
+let BRIDGE_PORT = Number(nodeProcess.env.EXCALIDRAW_BRIDGE_PORT || parsedUrl.port);
+if (!/^[0-9a-f]{64}$/i.test(BRIDGE_TOKEN || "")) {
+  throw new Error("[Bridge] Invalid private token; expected 64 hexadecimal characters.");
+}
+if (!Number.isInteger(BRIDGE_PORT) || BRIDGE_PORT < 1024 || BRIDGE_PORT > 65535) {
+  throw new Error("[Bridge] Invalid private Bridge port (1024–65535 required).");
+}
+const scriptFolder = String(ea.plugin.settings.scriptFolderPath || path.posix.dirname(path.posix.dirname(scriptVaultDir))).replace(/\/+$/, "");
+connection = {
+  ...connection, mode: "local", host_id: hostIdentity.id, host_name: hostIdentity.name,
+  vault_id: vaultIdentity.id, vault_name: vaultIdentity.name, vault_path: vaultIdentity.path,
+  plugin_id: ea.plugin.manifest.id, script_folder: scriptFolder,
+  bridge_script: BRIDGE_SCRIPT_PATH,
+  bootstrap_script: `${scriptVaultDir}/Start-Agent-Drawing.md`,
+};
+function publishConnection() {
+  connection.bridge_url = `http://127.0.0.1:${BRIDGE_PORT}`;
+  connection.port = BRIDGE_PORT;
+  connection.bridge_token = BRIDGE_TOKEN;
+  privateWrite(privateConfigPath, connection);
+  if (canonicalPath(privateConfigPath) !== canonicalPath(profilePath)) privateWrite(profilePath, connection);
+  privateWrite(descriptorFsPath, { configPath: privateConfigPath });
+}
+function hostVaultCatalog() {
+  const configDirectory = nodeProcess.platform === "win32"
+    ? path.join(nodeProcess.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "obsidian")
+    : nodeProcess.platform === "darwin"
+      ? path.join(os.homedir(), "Library", "Application Support", "obsidian")
+      : path.join(nodeProcess.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config"), "obsidian");
+  const registryPath = path.join(configDirectory, "obsidian.json");
+  const entries = fs.existsSync(registryPath) ? readObject(registryPath).vaults || {} : {};
+  const vaults = new Map();
+  for (const entry of Object.values(entries)) {
+    if (!entry?.path || !fs.existsSync(entry.path)) continue;
+    const id = identity(canonicalPath(entry.path));
+    let enabled = false;
+    try {
+      const plugins = JSON.parse(fs.readFileSync(path.join(entry.path, ".obsidian", "community-plugins.json"), "utf8"));
+      enabled = Array.isArray(plugins) && plugins.includes(ea.plugin.manifest.id);
+    } catch { /* A registered folder may not have the drawing plugin. */ }
+    vaults.set(id, { id, name: path.basename(entry.path), path: path.resolve(entry.path),
+      pluginEnabled: enabled, running: id === vaultIdentity.id, selected: id === vaultIdentity.id });
+  }
+  vaults.set(vaultIdentity.id, { ...vaultIdentity, pluginEnabled: true, running: true, selected: true });
+  return { host: hostIdentity, vaults: [...vaults.values()], currentVaultId: vaultIdentity.id };
+}
+const scriptSettings = ea.getScriptSettings() || {};
 
 async function closeServerInstance(srv) {
   if (!srv) {
@@ -13505,6 +13440,10 @@ function bindingObject(
       request.method === "POST"
         ? await readJsonBody(request)
         : {};
+
+    if (request.method === "GET" && pathname === "/v3/vaults") {
+      return hostVaultCatalog();
+    }
   
     if (
       request.method === "GET" &&
@@ -13524,6 +13463,12 @@ function bindingObject(
       }
   
       return {
+        host: hostIdentity,
+        vault: vaultIdentity,
+        pluginVersion: ea.plugin.manifest.version,
+        openCanvases: obsidianApp.workspace.getLeavesOfType("excalidraw")
+          .map((leaf) => ({ file: leaf.view?.file?.path })).filter((entry) => entry.file),
+        engines: Object.keys(window.EA_Core?.listHooks?.() || {}),
         bridgeVersion:
           BRIDGE_VERSION,
         protocolVersion:
@@ -13909,6 +13854,16 @@ function bindingObject(
           "Missing or invalid Bearer Token.",
           401,
         );
+
+        const requestPath = normalizeRoute(new URL(request.url, "http://127.0.0.1").pathname);
+        if (!(request.method === "GET" && ["/v3/status", "/v3/vaults"].includes(requestPath))) {
+          const expectedVault = request.headers["x-excalidraw-vault-id"];
+          const expectedHost = request.headers["x-excalidraw-host-id"];
+          assert(!expectedVault || expectedVault === vaultIdentity.id, "TARGET_MISMATCH",
+            "The Bridge belongs to a different vault. Run excalidraw vaults and select the intended connection.", 409);
+          assert(!expectedHost || expectedHost === hostIdentity.id, "TARGET_MISMATCH",
+            "The Bridge belongs to a different host. Run excalidraw vaults and select the intended connection.", 409);
+        }
   
         const data = await enqueue(
           () => routeRequest(request),
@@ -13980,54 +13935,43 @@ function bindingObject(
   );
   
   state.server = server;
+  let resolveReady;
+  let rejectReady;
+  const listeningReady = new Promise((resolve, reject) => { resolveReady = resolve; rejectReady = reject; });
   
+  let retriedPort = false;
   server.on("error", (error) => {
-    console.error(
-      "[Excalidraw Agent Bridge] server error",
-      error,
-    );
-  
-    new Notice(
-      `Excalidraw Agent Bridge error: ${error.message}`,
-      10000,
-    );
+    if (error.code === "EADDRINUSE" && !nodeProcess.env.EXCALIDRAW_BRIDGE_PORT && !retriedPort) {
+      retriedPort = true;
+      server.listen(0, "127.0.0.1");
+      return;
+    }
+    console.error("[Excalidraw Agent Bridge] server error", error);
+    new Notice(`Excalidraw Agent Bridge error: ${error.message}`, 10000);
+    rejectReady(error);
   });
   
-  server.listen(
-    BRIDGE_PORT,
-    "127.0.0.1",
-    async () => {
-      if (
-        !usingDescriptor &&
-        (isNewToken ||
-          scriptSettings.copyTokenOnStart ===
-            true)
-      ) {
-        try {
-          await navigator.clipboard
-            .writeText(BRIDGE_TOKEN);
-
-          new Notice(
-            `Excalidraw Agent Bridge ${BRIDGE_VERSION} ` +
-              `listening on 127.0.0.1:${BRIDGE_PORT}. ` +
-              "Token copied to clipboard.",
-            6000,
-          );
-          return;
-        } catch {
-          // Fall through to standard notice.
-        }
-      }
-
-      if (
-        scriptSettings.silentStart !==
-        true
-      ) {
-        new Notice(
-          `Excalidraw Agent Bridge ${BRIDGE_VERSION} ` +
-            `listening on 127.0.0.1:${BRIDGE_PORT}.`,
-          4000,
-        );
-      }
-    },
-  );
+  function onListening() {
+    BRIDGE_PORT = server.address().port;
+    try {
+      publishConnection();
+    } catch (error) {
+      server.close();
+      console.error("[Bridge] Cannot publish the local connection", error);
+      new Notice(`Agent Drawing could not save its local connection: ${error.message}`, 10000);
+      rejectReady(error);
+      return;
+    }
+    resolveReady();
+    if (scriptSettings.silentStart !== true) {
+      new Notice(
+        `Agent Drawing ready: ${hostIdentity.name} / ${vaultIdentity.name} ` +
+        `(Bridge ${BRIDGE_VERSION}, 127.0.0.1:${BRIDGE_PORT}).` +
+        (generatedConnection || recoveredDescriptor ? " Local connection initialized; no token copying required." : ""),
+        6000,
+      );
+    }
+  }
+  server.once("listening", onListening);
+  server.listen(BRIDGE_PORT, "127.0.0.1");
+  await listeningReady;

@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 _RUNTIME_DIR = str(Path(__file__).resolve().parents[1])
 if _RUNTIME_DIR not in sys.path:
@@ -14,7 +15,7 @@ if _RUNTIME_DIR not in sys.path:
 
 from drawing_client import resolve_bridge_credentials
 from review_ledger import ReviewLedger
-from runtime_config import load_connection
+from runtime_config import ConnectionSelectionRequired, load_connection
 
 
 class RuntimeConfigTests(unittest.TestCase):
@@ -25,10 +26,11 @@ class RuntimeConfigTests(unittest.TestCase):
         os.environ.clear()
         os.environ.update(self._orig_env)
 
-    def test_load_connection_absent_returns_empty(self) -> None:
+    def test_explicit_missing_connection_fails_without_discovery(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             os.environ["EXCALIDRAW_AGENT_CONFIG"] = str(Path(tmp) / "nonexistent.json")
-            self.assertEqual(load_connection(), {})
+            with self.assertRaises(ValueError):
+                load_connection()
 
     def test_load_connection_malformed_rejection(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -74,6 +76,41 @@ class RuntimeConfigTests(unittest.TestCase):
             self.assertEqual(url, "http://127.0.0.1:29000")
             self.assertEqual(token, "token-from-env")
             self.assertEqual(timeout, 120.0)
+
+    def test_unbound_client_selects_only_unique_live_profile_across_state_roots(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            os.environ.pop("EXCALIDRAW_AGENT_CONFIG", None)
+            os.environ.pop("EXCALIDRAW_BRIDGE_URL", None)
+            os.environ.pop("EXCALIDRAW_BRIDGE_TOKEN", None)
+            os.environ["EXCALIDRAW_AGENT_STATE_DIR"] = str(base / "client")
+            for root, name, token in (("client", "offline", "offline"), ("host", "live", "live")):
+                profiles = base / root / "connections"
+                profiles.mkdir(parents=True)
+                (profiles / (name + ".json")).write_text(json.dumps({
+                    "bridge_url": "http://127.0.0.1:27124", "bridge_token": token, "vault_id": name,
+                }), encoding="utf-8")
+            def probe(config):
+                return {"connected": config["bridge_token"] == "live"}
+            with patch("runtime_config.default_state_directory", return_value=base / "host"), patch("runtime_config.probe_connection", side_effect=probe):
+                self.assertEqual(load_connection()["vault_id"], "live")
+                (base / "client/connection.json").write_text(json.dumps({"bridge_token": "explicit-offline"}), encoding="utf-8")
+                self.assertEqual(load_connection()["bridge_token"], "explicit-offline")
+                (base / "client/connection.json").write_text('{"connection_id":"unknown"}', encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    load_connection()
+                (base / "client/connection.json").unlink()
+                with patch("runtime_config.probe_connection", return_value={"connected": True}):
+                    with self.assertRaises(ConnectionSelectionRequired):
+                        load_connection()
+
+    def test_environment_binding_never_automatically_adopts_a_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ.pop("EXCALIDRAW_AGENT_CONFIG", None)
+            os.environ["EXCALIDRAW_AGENT_STATE_DIR"] = tmp
+            os.environ["EXCALIDRAW_BRIDGE_TOKEN"] = "explicit-env"
+            with patch("runtime_config.connection_profiles", side_effect=AssertionError("must not discover")):
+                self.assertEqual(load_connection(), {})
 
     def test_review_ledger_survives_a_working_directory_change(self) -> None:
         with tempfile.TemporaryDirectory() as state_tmp, tempfile.TemporaryDirectory() as foreign_cwd:

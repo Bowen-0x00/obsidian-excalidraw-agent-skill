@@ -120,20 +120,36 @@ omp plugin install --scope user obsidian-excalidraw-agent-skill@obsidian-excalid
 
 重启／reload 客户端并检查工具列表。OMP 不是必需依赖，其 `skill://...` 是客户端专有访问方式；其他 Agent 直接读取本地 Skill。
 
-### 3. 连接明确的 vault
+### 3. 发现并选择明确的 vault
 
-保持 Obsidian 打开，让 Agent 用 drawing_setup 连接你选择的 vault；或在包目录运行：
+**浏览 vault 不等于安装 Agent 包。** 打开目录、读取 Markdown、在该目录启动 Agent，都不会安装 Skill／MCP，也不会将绘图目标切换到该库。先完成上面的包安装，再核对真实宿主和 vault。
+
+保持目标 Obsidian 与 Bridge 运行。Bridge **0.13.8** 会自行发布私有的逐 vault 连接描述文件；本机客户端可自动发现唯一连接，不需要复制 token 或重新 connect：
 
 ```sh
-uv run --frozen python launcher.py connect --vault "/absolute/path/to/vault"
+uv run --frozen python launcher.py status
+uv run --frozen python launcher.py vaults
+uv run --frozen python launcher.py use "VAULT_ID_OR_UNIQUE_NAME"
 uv run --frozen python launcher.py doctor
 ```
 
-脚本部署到插件配置的绘图脚本目录下的 `Agent-Drawing/`，不改变插件授信或 autorun 权限。不能自动启动时，先打开一个画布，再在 Obsidian 运行 `Agent-Drawing/mcp/Start-Agent-Drawing`；新命令尚未索引时重载 Obsidian。
+只有需要选择／切换目标时才运行 `use`；参数为已发现本机连接或已配对远端 profile 的 ID／唯一名称。多个候选必须明确选择，不默认取第一项，也不按 cwd 猜测。显式环境变量／配置失效时不会悄悄回退到其他连接。`vaults` 分开列出已知连接 profile 与经鉴权读取的宿主注册 vault 目录；注册不代表正在运行或已经配对。
 
-已有安装继续使用原私有 state 目录，通过 `EXCALIDRAW_AGENT_STATE_DIR` 指定，避免意外配置第二条连接。`launcher.py status` 会说明当前目录和目标，不输出 bearer token。
+**宿主首次安装**或更新受管脚本时，在 GUI 宿主运行，而不是远端服务器：
 
-在另一个vault目录启动Agent，**不会自动切换用户级Bridge连接**；先核对`vault_path`。`configured:true`不证明服务已连接；缺Advanced URI时按提示手动运行启动命令。脚本覆盖保护不可通过重写安装所有权或搜历史token绕过。长驻客户端现会在下一次请求前读取最新私有连接配置；旧MCP进程需reload一次加载此修复。[连接排错](skills/obsidian-excalidraw/references/agent-setup.md)。
+```sh
+uv run --frozen python launcher.py connect
+# 发现多个已注册 vault 时，按返回的 ID 或唯一名称选择：
+uv run --frozen python launcher.py connect --vault-name "VAULT_ID_OR_UNIQUE_NAME"
+```
+
+显式 `--vault "/实际本机路径"` 仅供未注册库等高级本机场景使用，不作为远端接入流程。
+
+脚本部署到插件配置的绘图脚本目录下的 `Agent-Drawing/`，不改变授信或 autorun 权限。不能通过 Advanced URI 自动启动时，在目标 Obsidian 运行 `Agent-Drawing/mcp/Start-Agent-Drawing`；新命令未索引时重载 Obsidian。`launched:false` 不是启动成功，启动后重新查看 status／doctor。
+
+`status`／`doctor` 默认显示可读的宿主、vault、传输、Bridge／插件、画布、Engine 与私有状态信息；自动化加 `--json`。连接缺失／损坏时 doctor 非零退出；鉴权成功但 `NO_CANVAS` 仍属于已连接。检查只读，不启动 GUI。MCP 的 `drawing_setup(action="status")` 仍返回 JSON；状态／目录不输出 bearer 凭据。
+
+已有安装保留原私有 state（若配置了 `EXCALIDRAW_AGENT_STATE_DIR` 则继续使用）。宿主发现描述文件独立保存在平台默认数据目录，不受客户端私有 state 位置影响；远端只使用已配对 profile，不借用另一台机器的默认目录。检查真实宿主／vault，不能只看 `configured:true`；不能伪造脚本所有权或搜历史 token 绕过覆盖保护。[发现位置、状态与排错](skills/obsidian-excalidraw/references/agent-setup.md)。
 
 ## 自然语言绘图
 
@@ -221,7 +237,19 @@ flowchart LR
   C -->|实际 PNG 与状态| A
 ```
 
-服务器不需要 GUI／X11；本地桌面负责字体、素材和渲染。宿主 vault 路径、客户端输出路径、私有 state 分开理解。remote-deploy 是面向 OMP 的便捷注册；其他客户端可启动同一远端 stdio runtime。完整步骤见 [接入说明](skills/obsidian-excalidraw/references/agent-setup.md)。
+服务器不需要 GUI／X11；桌面宿主管理字体、素材与渲染。宿主 vault 路径、客户端输出路径、私有 state 分开理解。在 GUI 宿主运行 `remote-deploy` 安装独立远端 CLI（并便捷注册 OMP），持续运行 `remote-tunnel`；其他客户端也可启动同一远端 stdio runtime。
+
+部署后可在远端**任意目录**直接运行，不依赖 Agent／MCP 会话：
+
+```sh
+~/.local/bin/excalidraw status
+~/.local/bin/excalidraw status --json
+~/.local/bin/excalidraw doctor
+~/.local/bin/excalidraw vaults
+~/.local/bin/excalidraw use "PAIRED_PROFILE_ID_OR_UNIQUE_NAME"
+```
+
+远端 status 经已有 SSH loopback 隧道鉴权；vaults 列出已配对 profile 及所选宿主的注册 vault 目录，不遍历宿主磁盘、不扫描端口。仅在宿主目录出现的 vault 需要先在 GUI 宿主配对才能远端 use。不能把 Windows 宿主路径传给远端 connect；远端不部署／启动／重载 Obsidian。完整步骤见 [接入说明](skills/obsidian-excalidraw/references/agent-setup.md)。
 
 ## 可选 CDP 只读排错
 
@@ -264,6 +292,8 @@ MCP 只提供 **`drawing_debug(status|inspect)`**，没有开启权限或任意 
 ## 更新与安全
 
 克隆安装：停止本包 MCP，pull、`uv sync --frozen`、同步已复制 Skill，再重启 MCP。OMP 按接入说明执行 marketplace update／plugin upgrade；Windows 先断开旧 MCP，避免缓存被锁。重新连接**同一 vault**更新受管脚本，自定义文件仍受冲突保护；必要时重载 Engine／Obsidian。保留私有连接配置、DSL 身份状态和评审产物。
+
+**0.10.7 — 宿主发现与远端检查：**更新／重载运行包，并在每个目标 Obsidian 宿主更新受管脚本至 **Bridge 0.13.8**。Start 在宿主 Obsidian 内运行并发布该机逐 vault 私有身份；运行包自动发现唯一在线目标，有多个候选时按返回的 ID／唯一名称明确选择。远端无须 Agent 即可运行 `excalidraw status/vaults/use/doctor`。远端 `use` 选择已配对 profile；未启动的注册 vault 仍须先在宿主 setup／启动／配对。升级不会自动授信、启动 Obsidian 或切换现有目标。
 
 **0.10.6 更新：**同步完整Skill／运行包并重载Agent／MCP。原生矢量图标复用现有shape／patch操作，需要宿主实际包含ymjr 2.29.0-9配套多图层组件；不新增图标MCP、不自动安装SVG库或升级宿主。Bridge／bootstrap仍为 **0.13.7**，用户源SVG资产及私有连接／诊断状态不随包分发。
 

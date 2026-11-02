@@ -120,20 +120,36 @@ omp plugin install --scope user obsidian-excalidraw-agent-skill@obsidian-excalid
 
 Restart/reload the client and confirm tools appear. OMP is an example, not a dependency. Its `skill://...` URI is client-specific; other Agents read local Skill files.
 
-### 3. Connect the intended vault
+### 3. Discover and select the intended vault
 
-Keep Obsidian open. Ask your Agent to connect the chosen vault through `drawing_setup`, or run from the package directory:
+**Browsing a vault is not Agent-package setup.** Opening its folder, reading Markdown or starting an Agent there does not install the Skill/MCP or select that vault for drawing. Install the package above once; check the actual host and vault before editing a canvas.
+
+Keep Obsidian open with the intended vault and its Bridge running. Bridge **0.13.8** self-publishes a private per-vault connection descriptor; a local client can discover a unique connection without copying tokens or reconnecting it:
 
 ```sh
-uv run --frozen python launcher.py connect --vault "/absolute/path/to/vault"
+uv run --frozen python launcher.py status
+uv run --frozen python launcher.py vaults
+uv run --frozen python launcher.py use "VAULT_ID_OR_UNIQUE_NAME"
 uv run --frozen python launcher.py doctor
 ```
 
-Setup deploys reviewed scripts into `Agent-Drawing/` under the plugin's configured drawing-script directory. It does not change plugin trust/autorun permissions. Without automatic startup, open a drawing and run `Agent-Drawing/mcp/Start-Agent-Drawing` in Obsidian; reload Obsidian if new commands are not indexed.
+`use` is necessary only when choosing/changing a target. It accepts a discovered local connection or an already-paired remote profile by ID or unique name. Multiple candidates require an explicit selection; neither the first entry nor the current directory wins. Explicit environment/configuration overrides do not silently fall back to discovery. `vaults` distinguishes known connection profiles from the authenticated host registered-vault catalog; a registered vault is not necessarily running or paired.
 
-Existing installations must use their existing private state directory, selected by `EXCALIDRAW_AGENT_STATE_DIR`, rather than accidentally configuring a second connection. `launcher.py status` reports the selected directory and target without exposing a bearer token.
+For a **first host installation**, or to update managed scripts, run this on the graphical host (not a remote server):
 
-Starting the Agent inside another vault does **not** switch its user-level Bridge connection. Check `vault_path` first. `configured:true` is not proof of a live service; if Advanced URI is unavailable, run the stated bootstrap manually. Never bypass a managed-script conflict by rewriting installation ownership or searching session history for tokens. Long-lived clients follow updated private connection settings on their next request; reload an older MCP process once to load this fix. [Connection troubleshooting](skills/obsidian-excalidraw/references/agent-setup.md).
+```sh
+uv run --frozen python launcher.py connect
+# If several registered vaults are offered, select a returned ID or unique name:
+uv run --frozen python launcher.py connect --vault-name "VAULT_ID_OR_UNIQUE_NAME"
+```
+
+An explicit `--vault "/actual/local/path"` remains an advanced local-only escape hatch for an unregistered vault; it is not the remote onboarding workflow.
+
+Setup deploys reviewed scripts into `Agent-Drawing/` under the plugin-configured drawing-script directory. It does not change trust/autorun permissions. Without Advanced URI startup, run `Agent-Drawing/mcp/Start-Agent-Drawing` in the intended Obsidian vault; reload Obsidian if new commands are not indexed. `launched:false` is not successful startup. Run status/doctor again after starting the host.
+
+`status` and `doctor` default to readable host/vault, transport, Bridge/plugin, canvas, engine and private-state details; add `--json` for automation. `doctor` exits nonzero for a broken/unconfigured connection; an authenticated host with `NO_CANVAS` is still connected. These checks are read-only and never start a GUI. MCP `drawing_setup(action="status")` stays JSON. Status/catalog output excludes bearer credentials.
+
+Existing installations retain their private state (`EXCALIDRAW_AGENT_STATE_DIR` when set). Host discovery descriptors live in the platform-default data directory, independently of a client-specific state directory; remote clients use paired profiles, not another machine’s default directory. Check the selected host/vault, not just `configured:true`. Never bypass a managed-script conflict by forging ownership or searching history for tokens. [Discovery, state locations and troubleshooting](skills/obsidian-excalidraw/references/agent-setup.md).
 
 ## Natural-language drawing
 
@@ -221,7 +237,19 @@ flowchart LR
   C -->|Actual PNG and state| A
 ```
 
-No server GUI or X11 is needed. The desktop owns fonts/assets/renderer. Host vault paths, client output paths and private state are separate. `remote-deploy` is an OMP registration convenience; other clients can launch the same remote stdio runtime. Full instructions: [Agent setup](skills/obsidian-excalidraw/references/agent-setup.md).
+No server GUI or X11 is needed. The desktop owns fonts/assets/renderer. Host vault paths, client output paths and private state are separate. On the graphical host, `remote-deploy` installs the standalone remote CLI (and OMP registration convenience); keep `remote-tunnel` running. Other clients can launch the same remote stdio runtime.
+
+After deployment, run on the remote server from **any directory**, without an Agent or MCP session:
+
+```sh
+~/.local/bin/excalidraw status
+~/.local/bin/excalidraw status --json
+~/.local/bin/excalidraw doctor
+~/.local/bin/excalidraw vaults
+~/.local/bin/excalidraw use "PAIRED_PROFILE_ID_OR_UNIQUE_NAME"
+```
+
+Remote status authenticates through the existing SSH loopback tunnel; `vaults` lists paired profiles and the selected host registered-vault catalog without walking the host filesystem or scanning ports. A catalog-only vault needs pairing from the graphical host before remote `use`. Do not pass a Windows host path to remote `connect`: remote clients cannot deploy/start/reload Obsidian. Full instructions: [Agent setup](skills/obsidian-excalidraw/references/agent-setup.md).
 
 ## Optional read-only CDP troubleshooting
 
@@ -264,6 +292,8 @@ User `.excalidrawlib` assets are not redistributed here. Query the actual curren
 ## Updates and safety
 
 For a checkout: stop this package's MCP process, pull, `uv sync --frozen`, refresh copied Skill files and restart MCP. For OMP, follow the supported marketplace update/plugin upgrade instructions in Agent setup; disconnect the old MCP first on Windows to avoid locked-cache failures. Reconnect the **same vault** to update managed scripts, preserving customized-file conflict checks; reload Engines/Obsidian when needed. Preserve private connection settings, DSL identity state and review artifacts.
+
+**0.10.7 — Host discovery and remote checks:** install/reload this runtime, and update each intended Obsidian host’s managed Bridge scripts to **0.13.8**. Start runs inside that host’s Obsidian and publishes its private per-vault identity; the runtime discovers one unique live candidate, or asks for a returned profile ID/name if ambiguous. Remote users can run `excalidraw status/vaults/use/doctor` without an Agent. Remote `use` selects a previously paired profile; an unstarted registered vault still requires a host-side setup/start/pairing step. No package update silently grants trust, starts Obsidian, or switches an existing target.
 
 **0.10.6 update:** refresh the complete Skill/package and reload the Agent/MCP. Native vector icons reuse existing shape/patch operations and require the newer host's actual multi-layer component (paired with ymjr 2.29.0-9); no new icon MCP, automatic SVG-library installation or host upgrade is included. Bridge/bootstrap remain **0.13.7**. Local source SVG assets and private connection/diagnostic state are not redistributed.
 

@@ -13,7 +13,9 @@ import urllib.request
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from runtime_config import connection_path, load_connection, state_directory
+from runtime_config import (ConnectionSelectionRequired, bridge_get, connection_path,
+                            connection_profiles, effective_connection, load_connection,
+                            probe_connection, read_connection, state_directory, vault_identity)
 
 ROOT = Path(__file__).resolve().parent
 PLUGIN_ID = "obsidian-excalidraw-plugin-ymjr"
@@ -46,7 +48,7 @@ def _inside(root: Path, relative: str) -> Path:
     return target
 
 
-def discover_vaults() -> list[dict[str, str]]:
+def _local_vaults() -> list[dict[str, Any]]:
     override = os.environ.get("OBSIDIAN_CONFIG_DIR")
     if override:
         config_dir = Path(override)
@@ -60,46 +62,189 @@ def discover_vaults() -> list[dict[str, str]]:
     if not registry.is_file():
         return []
     data = _read_json(registry)
+    if not isinstance(data, dict) or not isinstance(data.get("vaults", {}), dict):
+        raise ValueError("Malformed Obsidian vault registry")
     result = []
-    for vault_id, entry in data.get("vaults", {}).items():
-        candidate = Path(entry.get("path", "")).expanduser()
-        if entry.get("path") and candidate.is_dir():
-            result.append({"id": vault_id, "name": candidate.name, "path": str(candidate.resolve())})
+    for registry_id, entry in data.get("vaults", {}).items():
+        if not isinstance(entry, dict) or not entry.get("path"):
+            continue
+        candidate = Path(entry["path"]).expanduser()
+        if not candidate.is_dir():
+            continue
+        candidate = candidate.resolve()
+        plugin = candidate / ".obsidian/plugins" / PLUGIN_ID
+        enabled_path = candidate / ".obsidian/community-plugins.json"
+        try:
+            enabled = _read_json(enabled_path) if enabled_path.is_file() else []
+            manifest = _read_json(plugin / "manifest.json") if (plugin / "manifest.json").is_file() else {}
+            eligible = PLUGIN_ID in enabled and manifest.get("id") == PLUGIN_ID and (plugin / "main.js").is_file()
+        except (OSError, ValueError, TypeError, AttributeError):
+            eligible = False
+        result.append({"id": vault_identity(str(candidate)), "registry_id": registry_id,
+                       "name": candidate.name, "path": str(candidate), "pluginEnabled": eligible,
+                       "running": False, "selected": False})
     return result
 
 
-def _bridge_probe(config: dict[str, Any]) -> dict[str, Any]:
-    url = str(config.get("bridge_url", ""))
-    token = config.get("bridge_token")
-    if not url or not token:
-        return {"connected": False, "reason": "Not connected. Run drawing_setup(action='connect') or launcher.py connect."}
-    parsed = urllib.parse.urlsplit(url)
-    if parsed.scheme != "http" or parsed.hostname not in ("127.0.0.1", "localhost", "::1") or parsed.username or parsed.password:
-        raise ValueError("The Bridge URL must be an HTTP loopback address")
-    request = urllib.request.Request(url.rstrip("/") + "/v3/status", headers={"Authorization": "Bearer " + token})
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+def discover_vaults() -> list[dict[str, Any]]:
     try:
-        with opener.open(request, timeout=3) as response:
-            status = json.load(response)
-        expected_script = config.get("bridge_script")
-        correct_target = not expected_script or status.get("scriptPath") == expected_script
-        return {"connected": status.get("ok") is True and correct_target, "status": status,
-                **({} if correct_target else {"reason": "Another Bridge is responding; start the connected vault bundle or choose a different port."})}
-    except (OSError, ValueError) as error:
-        return {"connected": False, "reason": str(error)}
+        config = effective_connection()
+    except ConnectionSelectionRequired as error:
+        # With several remote hosts there is no single authenticated registry to query.
+        return [] if any(p["config"].get("mode") == "remote" for p in error.profiles) else _local_vaults()
+    if config.get("mode") == "remote":
+        if not config.get("bridge_token") or not config.get("bridge_url"):
+            return []
+        registry = bridge_get(config, "/v3/vaults")
+        if not isinstance(registry.get("vaults"), list):
+            raise ValueError("Host Bridge lacks the authenticated vault registry; update and restart the host Bridge.")
+        return [{key: entry[key] for key in ("id", "name", "path", "pluginEnabled", "running", "selected") if key in entry}
+                for entry in registry["vaults"] if isinstance(entry, dict)]
+    vaults = _local_vaults()
+    running_ids, running_paths = set(), set()
+    for profile in connection_profiles():
+        if profile["config"].get("mode") == "remote":
+            continue
+        probe = _bridge_probe(profile["config"])
+        observed = probe.get("status", {}).get("vault")
+        if probe["connected"] and isinstance(observed, dict):
+            running_ids.add(observed.get("id"))
+            running_paths.add(observed.get("path"))
+    for vault in vaults:
+        vault["selected"] = vault["id"] == config.get("vault_id") or vault["path"] == config.get("vault_path")
+        vault["running"] = vault["id"] in running_ids or vault["path"] in running_paths
+    return vaults
+
+
+def _bridge_probe(config: dict[str, Any]) -> dict[str, Any]:
+    return probe_connection(config)
+
+
+def _public_status(status: dict[str, Any]) -> dict[str, Any]:
+    return {key: status[key] for key in ("ok", "ready", "file", "revision", "scriptPath", "host", "vault",
+                                        "pluginVersion", "bridgeVersion", "openCanvases", "engines") if key in status}
+
+
+def _catalog(config: dict[str, Any], profiles: list[dict[str, Any]], *,
+             selected_probe: dict[str, Any] | None = None, probe_all: bool = True) -> dict[str, Any]:
+    connections, selected_id = [], None
+    for profile in profiles:
+        candidate = profile["config"]
+        selected = (candidate.get("bridge_url"), candidate.get("bridge_token")) == (config.get("bridge_url"), config.get("bridge_token"))
+        if selected:
+            selected_id = profile["id"]
+        probe = (selected_probe if selected and selected_probe is not None else
+                 _bridge_probe(candidate) if probe_all else
+                 {"connected": False, "ready": False, "code": "NOT_CHECKED"})
+        observed = probe.get("status", {})
+        connections.append({"id": profile["id"], "name": candidate.get("vault_name") or profile["id"],
+                            "mode": candidate.get("mode", "local"), "config_path": profile["config_path"],
+                            "host": observed.get("host") or {"id": candidate.get("host_id"), "name": candidate.get("host_name") or candidate.get("remote_host")},
+                            "vault": observed.get("vault") or {"id": candidate.get("vault_id"), "name": candidate.get("vault_name"),
+                                                               "path": candidate.get("host_vault_path") or candidate.get("vault_path")},
+                            "selected": selected, **{key: probe[key] for key in ("connected", "ready", "code")}})
+    live = sum(entry["connected"] for entry in connections)
+    return {"connections": connections, "selected_connection_id": selected_id,
+            "needs_selection": not bool(config.get("bridge_token")) and live > 1}
+
+
+def list_connections() -> dict[str, Any]:
+    try:
+        config = effective_connection()
+    except ConnectionSelectionRequired:
+        config = {}
+    return _catalog(config, connection_profiles(remote=config.get("mode") == "remote"))
+
+
+def select_connection(selector: str) -> dict[str, Any]:
+    # Reading an explicit malformed binding must fail, not silently discover another target.
+    try:
+        current = load_connection()
+    except ConnectionSelectionRequired:
+        current = {}
+    profiles = connection_profiles(remote=current.get("mode") == "remote")
+    matches = [profile for profile in profiles if profile["id"] == selector]
+    if not matches:
+        matches = [profile for profile in profiles if selector in (profile["config"].get("vault_id"), profile["config"].get("vault_name"))]
+    if len(matches) != 1:
+        raise ValueError("Unknown connection selector" if not matches else "Ambiguous connection name; select an id")
+    selected = dict(matches[0]["config"])
+    selected["connection_id"] = matches[0]["id"]
+    selected["mode"] = selected.get("mode", "local")
+    target = connection_path().resolve()
+    if target.is_relative_to(ROOT) or (selected.get("mode") != "remote" and selected.get("vault_path") and target.is_relative_to(Path(selected["vault_path"]).resolve())):
+        raise ValueError("Private connection configuration must stay outside the vault and installed package")
+    _private_write(target, selected)
+    return setup_status()
+
+
+_REMEDIATION = {
+    "READY": "Connected and ready to draw.",
+    "NO_CANVAS": "Connected. Open an Excalidraw canvas or create/bind one before drawing.",
+    "NOT_CONFIGURED": "Run vaults, then use a connection id or connect an eligible registered vault.",
+    "SELECTION_REQUIRED": "Multiple choices are available. Run vaults, then use a connection id or connect with a registered vault id/name.",
+    "CONFIG_INVALID": "Repair the explicitly configured connection file; it was not replaced or bypassed.",
+    "CONNECTION_FAILED": "Start the selected host Bridge; for remote mode also restore its SSH tunnel.",
+    "AUTH_FAILED": "Re-pair the selected connection to refresh its credential; no other connection was selected.",
+    "IDENTITY_MISMATCH": "The responding host/vault is not the selected target. Use the intended paired connection or restart the intended Bridge.",
+    "BRIDGE_UPDATE_REQUIRED": "Update and restart the selected host Bridge to expose host/vault identity.",
+}
 
 
 def setup_status() -> dict[str, Any]:
-    config = load_connection()
+    runtime = {"version": _read_json(ROOT / "plugin.json").get("version"), "path": str(ROOT)}
+    try:
+        config = effective_connection()
+        probe = _bridge_probe(config)
+    except ConnectionSelectionRequired as error:
+        config = {"mode": "remote"} if all(p["config"].get("mode") == "remote" for p in error.profiles) else {}
+        probe = {"connected": False, "ready": False, "code": "SELECTION_REQUIRED"}
+    except ValueError as error:
+        return {"configured": False, "connected": False, "ready": False, "code": "CONFIG_INVALID", "readiness": "broken",
+                "runtime": runtime, "mode": "unknown", "state_directory": str(state_directory()),
+                "reason": str(error), "remediation": _REMEDIATION["CONFIG_INVALID"], "config_path": str(connection_path()),
+                "connections": [], "available_vaults": [], "needs_vault_selection": False}
     remote = config.get("mode") == "remote"
+    catalog = _catalog(config, connection_profiles(remote=remote), selected_probe=probe, probe_all=False)
+    try:
+        registry_error = None
+        if remote:
+            available = discover_vaults() if probe["connected"] else []
+            if not probe["connected"]:
+                registry_error = "The selected host is unavailable; known paired profiles remain listed."
+        else:
+            available = _local_vaults()
+            observed_vault = probe.get("status", {}).get("vault") or {}
+            if not isinstance(observed_vault, dict):
+                observed_vault = {}
+            for vault in available:
+                vault["selected"] = vault["id"] == config.get("vault_id") or vault["path"] == config.get("vault_path")
+                vault["running"] = probe["connected"] and vault["id"] == observed_vault.get("id")
+    except (OSError, ValueError) as error:
+        available, registry_error = [], str(error)
+    unbound = not config and not connection_path().exists() and not os.environ.get("EXCALIDRAW_AGENT_CONFIG")
+    if probe["code"] == "NOT_CONFIGURED" and unbound and (len([v for v in available if v.get("pluginEnabled")]) > 1 or catalog["needs_selection"]):
+        probe["code"] = "SELECTION_REQUIRED"
+    observed = _public_status(probe.pop("status", {}))
+    bridge_url = config.get("bridge_url")
+    try:
+        parsed_url = urllib.parse.urlsplit(bridge_url or "")
+        if parsed_url.username or parsed_url.password or parsed_url.query or parsed_url.fragment:
+            bridge_url = None
+    except ValueError:
+        bridge_url = None
     return {"configured": bool(config.get("bridge_token")), "config_path": str(connection_path()),
-            "mode": "remote" if remote else "local",
-            "rendering_location": "host" if remote else "local",
-            "remote_host": config.get("remote_host"),
-            "host_vault_path": config.get("host_vault_path") if remote else None,
+            "runtime": runtime,
+            "mode": "remote" if remote else "local", "rendering_location": "host" if remote else "local",
+            "remote_host": config.get("remote_host"), "host_vault_path": config.get("host_vault_path") if remote else None,
             "vault_path": None if remote else config.get("vault_path"), "vault_name": config.get("vault_name"),
-            "bridge_url": config.get("bridge_url"), "state_directory": str(state_directory()),
-            "available_vaults": [] if remote else discover_vaults(), **_bridge_probe(config)}
+            "bridge_url": bridge_url, "state_directory": str(state_directory()),
+            "available_vaults": available, **catalog, **probe, "status": observed,
+            "host": observed.get("host"), "vault": observed.get("vault"), "plugin_version": observed.get("pluginVersion"),
+            "open_canvases": observed.get("openCanvases", []), "engines": observed.get("engines", {}),
+            "readiness": "ready" if probe["ready"] else ("connected" if probe["connected"] else "broken"),
+            "remediation": _REMEDIATION[probe["code"]], "needs_vault_selection": probe["code"] == "SELECTION_REQUIRED",
+            **({"vault_registry_error": registry_error} if registry_error else {})}
 
 
 def _launch_uri(uri: str) -> None:
@@ -148,14 +293,53 @@ def start_bridge(open_uri: bool = True, wait_seconds: float = 15) -> dict[str, A
 def connect_vault(vault_path: str | None = None, vault_name: str | None = None,
                   port: int | None = None, open_uri: bool = True,
                   obsidian_config_dir: str = ".obsidian") -> dict[str, Any]:
-    if load_connection().get("mode") == "remote":
-        raise ValueError("Remote rendering connection: select/connect the vault on the host machine; this client must not deploy vault scripts.")
-    candidates = discover_vaults()
+    try:
+        current = effective_connection()
+    except ConnectionSelectionRequired:
+        current = {}
+        if not vault_path and not vault_name:
+            return setup_status()
+    remote = current.get("mode") == "remote"
+    if remote and vault_path:
+        raise ValueError("Remote rendering connection: explicit vault paths cannot deploy scripts on this headless client.")
+    if vault_name and not vault_path:
+        profiles = connection_profiles(remote=remote)
+        matches = [profile for profile in profiles if vault_name in (profile["id"], profile["config"].get("vault_id"), profile["config"].get("vault_name"))]
+        if len(matches) == 1:
+            selected_config = matches[0]["config"]
+            if remote or selected_config.get("mode") == "remote" or not selected_config.get("vault_path"):
+                return select_connection(matches[0]["id"])
+            select_connection(matches[0]["id"])
+            current = effective_connection()
+            vault_path = current["vault_path"]
+            vault_name = None
+        if len(matches) > 1:
+            raise ValueError("Ambiguous connection name; select a connection id")
+    if not vault_path and not vault_name and (current.get("bridge_token") or connection_path().exists() or
+            any(key in os.environ for key in ("EXCALIDRAW_AGENT_CONFIG", "EXCALIDRAW_BRIDGE_URL", "EXCALIDRAW_BRIDGE_TOKEN"))):
+        if remote or not current.get("vault_path"):
+            return setup_status()
+        # Refresh only the already selected local vault; never fall through to another registry candidate.
+        vault_path = current["vault_path"]
+    candidates = discover_vaults() if vault_name or not vault_path else []
+    if vault_name:
+        matches = [entry for entry in candidates if vault_name in (entry["id"], entry["name"])]
+        if len(matches) != 1:
+            raise ValueError("Unknown registered vault selector" if not matches else "Ambiguous vault name; select an id")
+        chosen = matches[0]
+        if vault_path and Path(vault_path).expanduser().resolve() != Path(chosen["path"]).resolve():
+            raise ValueError("vault_name selects a different registered vault than vault_path")
+        vault_path = chosen["path"]
+    if remote:
+        return {**setup_status(), "needs_vault_selection": True, "code": "SELECTION_REQUIRED",
+                "instruction": "Select a known paired profile with use; new remote vaults must be paired on the host."}
     if not vault_path:
-        if len(candidates) != 1:
-            return {"configured": False, "needs_vault_selection": True, "available_vaults": candidates,
-                    "instruction": "Select the intended vault_path; no vault has been changed."}
-        vault_path = candidates[0]["path"]
+        eligible = [entry for entry in candidates if entry.get("pluginEnabled")]
+        if len(eligible) != 1:
+            return {**setup_status(), "needs_vault_selection": True, "available_vaults": candidates,
+                    "code": "SELECTION_REQUIRED" if eligible else "NOT_CONFIGURED",
+                    "instruction": "Select an eligible registered vault id/name or an explicit vault_path; no vault has been changed."}
+        vault_path = eligible[0]["path"]
     vault = Path(vault_path).expanduser().resolve()
     if not vault.is_dir():
         raise ValueError("The selected vault does not exist")
@@ -213,10 +397,11 @@ def connect_vault(vault_path: str | None = None, vault_name: str | None = None,
     bridge_script = str(script_folder).rstrip("/") + "/Agent-Drawing/" + bundle["bridge"]
     config = {"bridge_url": f"http://127.0.0.1:{chosen_port}", "bridge_token": token,
               "bridge_timeout": 180, "port": chosen_port, "vault_path": str(vault),
-              "vault_name": vault_name or vault.name, "plugin_id": PLUGIN_ID,
+              "vault_name": vault.name, "vault_id": vault_identity(str(vault)), "plugin_id": PLUGIN_ID,
               "script_folder": script_folder, "bootstrap_script": bootstrap,
               "bridge_script": bridge_script, "obsidian_config_dir": obsidian_config_dir}
     _private_write(private_path, config)
+    _private_write(state_directory() / "connections" / (config["vault_id"] + ".json"), config)
     deployed = {}
     for relative, target, content, digest in staged:
         target.parent.mkdir(parents=True, exist_ok=True)

@@ -10,6 +10,7 @@ import re
 import shlex
 import subprocess
 import sys
+import tempfile
 import tomllib
 import urllib.parse
 import zipfile
@@ -21,11 +22,13 @@ sys.path.insert(0, str(ROOT / "runtime"))
 from runtime_config import load_connection, state_directory
 from setup_connection import _bridge_probe, _private_write
 
-# Executed by the user's remote Python interpreter; all payloads, including
-# credentials, arrive over SSH stdin, never as command arguments.
+# Pairing uses a private SCP file, never credentials in argv or a Windows SSH
+# stdin pipe (which can remain blocked indefinitely under an SSH session).
 REMOTE_INSTALL = r'''
 import base64,hashlib,io,json,os,pathlib,subprocess,sys,zipfile
-payload=json.load(sys.stdin)
+payload_path=pathlib.Path(sys.argv[1])
+try:payload=json.loads(payload_path.read_text(encoding='utf-8'))
+finally:payload_path.unlink()
 home=pathlib.Path.home()
 base=home/'.local/share/obsidian-excalidraw-agent-remote'
 state=base/'state'; package=base/'package'; record_path=state/'installation.json'
@@ -64,6 +67,11 @@ if not isinstance(mcp,dict) or not isinstance(mcp.get('mcpServers',{}),dict):rai
 existing=mcp.get('mcpServers',{}).get('excalidraw-local')
 if existing is not None and existing!=record.get('mcp_entry'):
     raise ValueError('Refusing to replace an unmanaged excalidraw-local server entry')
+venv=base/'venv'; python=venv/'bin/python'
+bin_dir=home/'.local/bin';wrapper=bin_dir/'excalidraw'
+wrapper_body='#!/bin/sh\nEXCALIDRAW_AGENT_STATE_DIR='+__import__('shlex').quote(str(state))+' exec '+__import__('shlex').quote(str(python))+' '+__import__('shlex').quote(str(package/'launcher.py'))+' "$@"\n'
+if wrapper.is_file() and wrapper.read_text()!=wrapper_body and record.get('wrapper_sha256')!=digest(wrapper):
+    raise ValueError('Refusing to overwrite an unmanaged ~/.local/bin/excalidraw')
 state.mkdir(parents=True,exist_ok=True,mode=0o700)
 package.mkdir(parents=True,exist_ok=True,mode=0o700)
 for relative,content in files.items():
@@ -74,11 +82,22 @@ for relative,content in files.items():
 partial=dict(record)
 partial['package_files']={key:hashlib.sha256(value).hexdigest() for key,value in files.items()}
 private_write(record_path,partial)
-venv=base/'venv'; python=venv/'bin/python'
-if not python.is_file():subprocess.run([sys.executable,'-m','venv',str(venv)],check=True,stdout=sys.stderr)
-subprocess.run([str(python),'-m','pip','install','--disable-pip-version-check','--index-url','https://pypi.org/simple',*payload['dependencies']],check=True,stdout=sys.stderr)
+if not python.is_file():subprocess.run([sys.executable,'-m','venv',str(venv)],check=True,capture_output=True,timeout=60)
+pip=[str(python),'-m','pip','install','--disable-pip-version-check']
+dependencies=subprocess.run([*pip,'--no-index',*payload['dependencies']],capture_output=True,text=True,timeout=60)
+if dependencies.returncode:
+    dependencies=subprocess.run([*pip,'--index-url','https://pypi.org/simple',*payload['dependencies']],capture_output=True,text=True,timeout=300)
+    if dependencies.returncode:raise RuntimeError('Dependency installation failed: '+dependencies.stderr[-2000:])
 connection=payload['connection']
-private_write(state/'connection.json',connection)
+profile_id=hashlib.sha256((str(connection.get('host_id',''))+'\n'+str(connection.get('vault_id') or connection.get('host_vault_path',''))).encode()).hexdigest()[:24]
+profile_path=state/'connections'/(profile_id+'.json')
+private_write(profile_path,connection)
+default_path=state/'connection.json'
+current=json.loads(default_path.read_text()) if default_path.is_file() else {}
+same_target=(current.get('host_id')==connection.get('host_id') and
+             (current.get('vault_id') or current.get('host_vault_path'))==(connection.get('vault_id') or connection.get('host_vault_path')))
+selected=not current or same_target
+if selected:private_write(default_path,{**connection,'connection_id':profile_id})
 for relative,content in skill_files.items():
     target=skill/relative;target.parent.mkdir(parents=True,exist_ok=True)
     temporary=target.with_name(target.name+'.tmp');temporary.write_bytes(content);temporary.replace(target)
@@ -88,9 +107,16 @@ mcp.setdefault('mcpServers',{})['excalidraw-local']=entry
 private_write(mcp_path,mcp)
 private_write(record_path,{'version':payload['version'],'package_files':{k:hashlib.sha256(v).hexdigest()for k,v in files.items()},
     'skill_files':{k:hashlib.sha256(v).hexdigest()for k,v in skill_files.items()},'mcp_entry':entry})
+bin_dir.mkdir(parents=True,exist_ok=True)
+wrapper.write_text(wrapper_body);wrapper.chmod(0o700)
+record=json.loads(record_path.read_text())
+record['wrapper_sha256']=digest(wrapper)
+private_write(record_path,record)
 print(json.dumps({'installed':True,'version':payload['version'],'package_path':str(package),'state_path':str(state),
     'python':str(python),'mcp_path':str(mcp_path),'skill_path':str(skill),'server_name':'excalidraw-local',
-    'rendering_location':'host','remote_port':payload['remote_port'],'token_disclosed':False},ensure_ascii=False))
+    'rendering_location':'host','remote_port':payload['remote_port'],'token_disclosed':False,
+    'profile_id':profile_id,'profile_path':str(profile_path),'selected':selected,'command':str(wrapper),
+    'next':'excalidraw status; excalidraw vaults; excalidraw use '+profile_id},ensure_ascii=False))
 '''
 
 
@@ -98,12 +124,20 @@ def _host_connection() -> dict[str, Any]:
     connection = load_connection()
     if connection.get("mode") == "remote":
         raise ValueError("Run remote deployment/tunnel on the graphical host, not on the headless client")
-    if not _bridge_probe(connection).get("connected"):
-        raise ValueError("Start the connected host Obsidian Bridge before deploying remote drawing")
+    probe = _bridge_probe(connection)
+    if not probe.get("connected"):
+        raise ValueError("Start Agent Drawing in Obsidian, then select its discovered connection with 'use'.")
     token = connection.get("bridge_token", "")
     if not re.fullmatch(r"[0-9a-f]{64}", token, flags=re.IGNORECASE):
-        raise ValueError("Host Bridge credentials must be generated by drawing_setup connect")
-    return connection
+        raise ValueError("Host Bridge credentials must be generated by Agent Drawing startup")
+    status = probe["status"]
+    host = status.get("host") or {}
+    vault = status.get("vault") or {}
+    return {**connection, "host_id": host.get("id", connection.get("host_id")),
+            "host_name": host.get("name", connection.get("host_name")),
+            "vault_id": vault.get("id", connection.get("vault_id")),
+            "vault_path": vault.get("path", connection.get("vault_path")),
+            "vault_name": vault.get("name", connection.get("vault_name"))}
 
 
 def _port(value: int) -> int:
@@ -112,10 +146,30 @@ def _port(value: int) -> int:
     return value
 
 
+def _capture_ssh(command: list[str], *, timeout: float) -> subprocess.CompletedProcess:
+    # Real file handles also avoid Windows OpenSSH's redirected-output hang.
+    with tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as errors:
+        result = subprocess.run(command, stdin=subprocess.DEVNULL, stdout=output,
+                                stderr=errors, timeout=timeout)
+        output.seek(0)
+        errors.seek(0)
+        return subprocess.CompletedProcess(command, result.returncode,
+            output.read().decode("utf-8", errors="replace"), errors.read().decode("utf-8", errors="replace"))
+
+
+def _ssh_executable() -> str:
+    if sys.platform == "win32":
+        native = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32/OpenSSH/ssh.exe"
+        if native.is_file():
+            return str(native)
+    return "ssh"
+
+
 def _ssh_config(host: str) -> Path:
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", host):
         raise ValueError("Use an existing safe SSH host alias")
-    resolved = subprocess.run(["ssh", "-G", host], capture_output=True, text=True, check=True)
+    resolved = subprocess.run([_ssh_executable(), "-G", host], stdin=subprocess.DEVNULL,
+                              capture_output=True, text=True, check=True, timeout=15)
     fields: dict[str, list[str]] = {}
     for line in resolved.stdout.splitlines():
         parts = line.split(" ", 1)
@@ -153,13 +207,13 @@ def tunnel_command(host: str, remote_port: int | None = None) -> list[str]:
         raise ValueError("Host Bridge URL must include its port")
     port = _port(remote_port if remote_port is not None else local_port)
     config = _ssh_config(host)
-    return ["ssh", "-F", str(config), "-N", "-T", "-R",
+    return [_ssh_executable(), "-F", str(config), "-N", "-T", "-R",
             f"127.0.0.1:{port}:127.0.0.1:{local_port}", "target"]
 
 
 def _package_archive() -> bytes:
     paths = [ROOT / name for name in ("launcher.py", "setup_connection.py", "remote_control.py", "pyproject.toml", "uv.lock",
-                                     "plugin.json", "README.md", "README.zh-CN.md", "LICENSE", "THIRD_PARTY_NOTICES.md")]
+                                     "plugin.json", "README.md", "README.zh-CN.md", "CHANGELOG.md", "LICENSE", "THIRD_PARTY_NOTICES.md")]
     paths += [path for folder in ("runtime", "skills/obsidian-excalidraw", "examples", "docs")
               for path in (ROOT / folder).rglob("*")
               if path.is_file() and "__pycache__" not in path.parts
@@ -181,13 +235,35 @@ def deploy_remote(host: str, remote_port: int | None = None) -> dict[str, Any]:
     remote_connection = {"mode": "remote", "bridge_url": f"http://127.0.0.1:{port}",
                          "bridge_token": connection["bridge_token"], "bridge_timeout": 180,
                          "vault_name": connection.get("vault_name"), "host_vault_path": connection.get("vault_path"),
+                         "host_id": connection.get("host_id"), "host_name": connection.get("host_name"),
+                         "vault_id": connection.get("vault_id"),
                          "bridge_script": connection.get("bridge_script"), "remote_host": host}
     payload = {"version": project["version"], "package": base64.b64encode(_package_archive()).decode("ascii"),
                "dependencies": dependencies, "connection": remote_connection, "remote_port": port}
     config_path = tunnel[2]
-    command = "python3 -c " + shlex.quote(REMOTE_INSTALL)
-    result = subprocess.run(["ssh", "-F", config_path, "-T", "target", command],
-                            input=json.dumps(payload), capture_output=True, text=True, timeout=600)
+    ssh = [_ssh_executable(), "-F", config_path, "-n", "-T", "target"]
+    created = _capture_ssh([*ssh, 'umask 077; mkdir -p "$HOME/.local/share/obsidian-excalidraw-agent-remote/state" && mktemp -d "$HOME/.local/share/obsidian-excalidraw-agent-remote/state/pairing.XXXXXXXX"'], timeout=30)
+    if created.returncode:
+        raise RuntimeError("Cannot create a private remote pairing file: " + created.stderr[-1000:])
+    remote_payload = created.stdout.strip()
+    if not remote_payload.startswith("/") or "\n" in remote_payload:
+        raise RuntimeError("Remote pairing path is not a single absolute path")
+    try:
+        with tempfile.TemporaryDirectory(prefix="excalidraw-pair-") as directory:
+            local_payload = Path(directory) / "pairing.json"
+            local_installer = Path(directory) / "install.py"
+            _private_write(local_payload, payload)
+            local_installer.write_text(REMOTE_INSTALL, encoding="utf-8")
+            scp = str(Path(_ssh_executable()).with_name("scp.exe")) if sys.platform == "win32" else "scp"
+            copied = _capture_ssh([scp, "-F", config_path, str(local_payload), str(local_installer),
+                                   "target:" + remote_payload + "/"], timeout=120)
+            if copied.returncode:
+                raise RuntimeError("Encrypted pairing transfer failed: " + copied.stderr[-1000:])
+        command = "python3 " + shlex.quote(remote_payload + "/install.py") + " " + shlex.quote(remote_payload + "/pairing.json")
+        result = _capture_ssh([*ssh, command], timeout=600)
+    finally:
+        _capture_ssh([*ssh, "rm -f -- " + shlex.quote(remote_payload + "/pairing.json") + " " +
+                      shlex.quote(remote_payload + "/install.py") + "; rmdir -- " + shlex.quote(remote_payload)], timeout=30)
     if result.returncode:
         # stderr may include remote interpreter traces; redact the token before reporting.
         detail = result.stderr.replace(connection["bridge_token"], "[REDACTED]")[-3000:]
